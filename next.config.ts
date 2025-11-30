@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Vercel会自动处理Next.js的部署配置
 };
 
 export default nextConfig;
