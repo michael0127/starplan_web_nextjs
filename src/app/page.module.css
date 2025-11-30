@@ -1,0 +1,12 @@
+.main {
+  min-width: 1200px;
+  width: 100%;
+  padding-top: 72px; /* 为fixed navbar留出空间 */
+}
+
+@media (max-width: 1200px) {
+  .main {
+    min-width: auto;
+  }
+}
+

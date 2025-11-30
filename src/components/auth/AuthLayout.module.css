@@ -1,0 +1,367 @@
+:root {
+  --systemColor1: #4a5bf4;
+}
+
+.authPage {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.5) 31.67%,
+    rgba(74, 91, 244, 0.5) 100%
+  );
+  overflow-x: hidden;
+  overflow-y: auto;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.authPage.mounted {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.authPage::before,
+.authPage::after {
+  content: "";
+  position: absolute;
+  background-size: contain;
+  background-repeat: no-repeat;
+  z-index: 0;
+}
+
+.authPage::before {
+  background-image: url('/img/flower1.png');
+  width: 35vw;
+  height: 35vw;
+  left: 0;
+  bottom: 200px;
+  background-position: left bottom;
+}
+
+.authPage::after {
+  background-image: url('/img/flower2.png');
+  width: 20vw;
+  height: 40vw;
+  right: 0;
+  top: calc(50% - 280px);
+  transform: translateY(-50%);
+  background-position: right center;
+}
+
+.topBar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 20px;
+  z-index: 12000;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.8) 50%,
+    transparent 100%
+  );
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.1s,
+              transform 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.1s;
+}
+
+.authPage.mounted .topBar {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.back {
+  display: flex;
+  align-items: center;
+}
+
+.back a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #4150d8;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 500;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.back a:hover {
+  background: rgba(65, 80, 216, 0.1);
+  transform: translateX(-2px);
+}
+
+.back a span {
+  white-space: nowrap;
+}
+
+.logoContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+
+.logoContainer img {
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.topBarSpacer {
+  width: 120px;
+}
+
+.container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 40px 20px;
+  position: relative;
+  z-index: 2;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+  gap: 40px;
+  min-height: calc(100vh - 200px);
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.2s,
+              transform 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.2s;
+}
+
+.authPage.mounted .container {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.panel {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 40px 30px;
+  width: 60%;
+  max-width: 500px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  opacity: 0;
+  transform: translateX(-30px) scale(0.95);
+  transition: opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1) 0.3s,
+              transform 0.7s cubic-bezier(0.4, 0, 0.2, 1) 0.3s;
+}
+
+.authPage.mounted .panel {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+
+.marketingPanel {
+  width: 40%;
+  background: linear-gradient(135deg, #4a5bf4 0%, #357ae8 100%);
+  border-radius: 20px;
+  padding: 0;
+  color: white;
+  position: relative;
+  overflow: hidden;
+  min-height: 500px;
+  max-height: 700px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translateX(30px) scale(0.95);
+  transition: opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1) 0.4s,
+              transform 0.7s cubic-bezier(0.4, 0, 0.2, 1) 0.4s;
+}
+
+.authPage.mounted .marketingPanel {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+
+.imageWrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 500px;
+}
+
+.imageWrapper img {
+  object-fit: contain;
+}
+
+.copyright {
+  width: 100%;
+  border-top: 1px solid #c7c7c7;
+  padding-top: 24px;
+  margin-top: 20px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 20px;
+  border-radius: 20px 20px 0 0;
+  margin: 20px 0 0 0;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+  z-index: 2;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.5s,
+              transform 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.5s;
+}
+
+.authPage.mounted .copyright {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.copyrightText {
+  font-size: 16px;
+  color: #717171;
+  margin-bottom: 16px;
+  font-weight: 400;
+}
+
+.legalLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-bottom: 16px;
+  justify-content: center;
+}
+
+.copyright a {
+  font-size: 14px;
+  color: #717171;
+  text-decoration: none;
+  transition: color 0.3s ease;
+  font-weight: 400;
+}
+
+.copyright a:hover {
+  color: #333;
+}
+
+@media (max-width: 1024px) {
+  .topBar {
+    padding: 12px 15px;
+  }
+
+  .logoContainer img {
+    width: 100px;
+    height: auto;
+  }
+
+  .topBarSpacer {
+    width: 100px;
+  }
+
+  .back a {
+    font-size: 14px;
+    padding: 6px 10px;
+    gap: 6px;
+  }
+
+  .back a img {
+    width: 20px;
+    height: 20px;
+  }
+
+  .container {
+    flex-direction: column;
+    padding: 80px 20px 20px;
+    min-height: auto;
+  }
+  
+  .panel {
+    width: 100%;
+    max-width: 500px;
+  }
+  
+  .marketingPanel {
+    width: 100%;
+    min-height: 400px;
+    max-height: 500px;
+  }
+
+  .imageWrapper {
+    min-height: 400px;
+  }
+}
+
+@media (max-width: 480px) {
+  .topBar {
+    padding: 10px 12px;
+  }
+
+  .logoContainer img {
+    width: 80px;
+    height: auto;
+  }
+
+  .topBarSpacer {
+    width: 80px;
+  }
+
+  .back a span {
+    display: none;
+  }
+
+  .back a {
+    padding: 6px;
+  }
+
+  .back a img {
+    width: 24px;
+    height: 24px;
+  }
+
+  .container {
+    padding: 70px 15px 15px;
+  }
+
+  .panel {
+    padding: 30px 20px;
+  }
+
+  .marketingPanel {
+    min-height: 300px;
+    max-height: 400px;
+  }
+
+  .imageWrapper {
+    min-height: 300px;
+  }
+}
+
+@media (max-width: 768px) {
+  .legalLinks {
+    flex-direction: row;
+    gap: 12px;
+  }
+
+  .copyrightText {
+    font-size: 14px;
+  }
+
+  .legalLinks a {
+    font-size: 14px;
+  }
+}
+

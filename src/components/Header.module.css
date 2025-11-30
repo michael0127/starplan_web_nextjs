@@ -1,0 +1,105 @@
+.header {
+  position: fixed;
+  width: 100%;
+  top: 0;
+  left: 0;
+  background: #fff;
+  z-index: 10;
+  transition: background-color 0.3s ease;
+}
+
+.cont {
+  max-width: 1200px;
+  width: 80%;
+  margin: 0 auto;
+  height: 72px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  display: block;
+  width: 195px;
+  margin-left: -7%;
+}
+
+.logo img {
+  width: 100%;
+  height: auto;
+}
+
+.nav {
+  display: flex;
+  gap: 15px;
+}
+
+.nav a {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+  text-align: center;
+  color: #000;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.nav a:hover {
+  color: #4A5BF4;
+  text-decoration: underline;
+}
+
+.btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn1 {
+  width: 86px;
+  height: 40px;
+  border-radius: 20px;
+  background: #252525;
+  color: #fff;
+  text-align: center;
+  line-height: 40px;
+  text-decoration: none;
+  display: block;
+  transition: opacity 0.3s ease;
+}
+
+.btn1:hover {
+  opacity: 0.8;
+}
+
+.btn2 {
+  width: 100px;
+  height: 40px;
+  border-radius: 20px;
+  background: #4A5BF4;
+  color: #fff;
+  text-align: center;
+  line-height: 40px;
+  text-decoration: none;
+  display: block;
+  transition: opacity 0.3s ease;
+}
+
+.btn2:hover {
+  opacity: 0.8;
+}
+
+@media (max-width: 768px) {
+  .cont {
+    width: 95%;
+  }
+  
+  .nav {
+    display: none;
+  }
+  
+  .logo {
+    margin-left: 0;
+  }
+}
+
