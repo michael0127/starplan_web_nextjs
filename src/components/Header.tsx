@@ -13,6 +13,12 @@ export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
 
+  // 判断是否为应用内页面（explore, profile, referrals, resume等）
+  const isAppPage = pathname.startsWith('/explore') || 
+                    pathname.startsWith('/profile') || 
+                    pathname.startsWith('/referrals') || 
+                    pathname.startsWith('/resume');
+
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 50) {
@@ -63,43 +69,48 @@ export default function Header() {
             priority
           />
         </Link>
-        <nav className={styles.nav}>
-          <Link href="/">Home</Link>
-          <Link 
-            href="/#how" 
-            onClick={(e) => handleNavClick(e, '/#how')}
-          >
-            How it Works
-          </Link>
-          <Link 
-            href="/#starPlan" 
-            onClick={(e) => handleNavClick(e, '/#starPlan')}
-          >
-            Find a Job
-          </Link>
-          <Link 
-            href="/#why" 
-            onClick={(e) => handleNavClick(e, '/#why')}
-          >
-            Why Choose
-          </Link>
-        </nav>
-        <div className={styles.btns}>
-          {isLoggedIn ? (
-            <Link href="/dashboard" className={styles.btn1}>
-              Enter
-            </Link>
-          ) : (
-            <>
-              <Link href="/login" className={styles.btn1}>
-                Login
+        {/* 只在非应用页面（如首页）显示导航菜单 */}
+        {!isAppPage && (
+          <>
+            <nav className={styles.nav}>
+              <Link href="/">Home</Link>
+              <Link 
+                href="/#how" 
+                onClick={(e) => handleNavClick(e, '/#how')}
+              >
+                How it Works
               </Link>
-              <Link href="/register" className={styles.btn2}>
-                Register
+              <Link 
+                href="/#starPlan" 
+                onClick={(e) => handleNavClick(e, '/#starPlan')}
+              >
+                Find a Job
               </Link>
-            </>
-          )}
-        </div>
+              <Link 
+                href="/#why" 
+                onClick={(e) => handleNavClick(e, '/#why')}
+              >
+                Why Choose
+              </Link>
+            </nav>
+            <div className={styles.btns}>
+              {isLoggedIn ? (
+                <Link href="/explore" className={styles.btn1}>
+                  Enter
+                </Link>
+              ) : (
+                <>
+                  <Link href="/login" className={styles.btn1}>
+                    Login
+                  </Link>
+                  <Link href="/register" className={styles.btn2}>
+                    Register
+                  </Link>
+                </>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </header>
   );

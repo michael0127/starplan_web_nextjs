@@ -9,6 +9,10 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@prisma/client": "^6.3.0",
+    "@supabase/supabase-js": "^2.86.0",
+    "framer-motion": "^12.23.25",
+    "lucide-react": "^0.555.0",
     "next": "16.0.4",
     "react": "19.2.0",
     "react-dom": "19.2.0"
@@ -21,6 +25,7 @@
     "baseline-browser-mapping": "^2.8.32",
     "eslint": "^9",
     "eslint-config-next": "16.0.4",
+    "prisma": "^6.3.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

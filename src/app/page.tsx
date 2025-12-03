@@ -10,6 +10,7 @@ import FindAJob from '@/components/FindAJob';
 import WhyChoose from '@/components/WhyChoose';
 import GetStarPlan from '@/components/GetStarPlan';
 import SectionWrapper from '@/components/common/SectionWrapper';
+import { PageTransition } from '@/components/PageTransition';
 import { useHashScroll } from '@/hooks/useHashScroll';
 import styles from './page.module.css';
 
@@ -98,40 +99,42 @@ export default function Home() {
   }, []);
 
   return (
-    <main className={styles.main}>
-      <Script
-        src="https://assets.calendly.com/assets/external/widget.js"
-        strategy="afterInteractive"
-        onLoad={() => {
-          if (window.Calendly) {
-            window.Calendly.initBadgeWidget({
-              url: 'https://calendly.com/hello-starplan',
-              text: 'Book Consultation',
-              color: '#4a5bf4',
-              textColor: '#ffffff',
-              branding: false,
-            });
-          }
-        }}
-      />
-      <Header />
-      <SectionWrapper animationType="fadeIn" delay={0}>
-        <Banner />
-      </SectionWrapper>
-      <SectionWrapper animationType="fadeUp" delay={100}>
-        <HowItWorks />
-      </SectionWrapper>
-      <SectionWrapper animationType="slideRight" delay={200}>
-        <FindAJob />
-      </SectionWrapper>
-      <SectionWrapper animationType="fadeUp" delay={100}>
-        <WhyChoose />
-      </SectionWrapper>
-      <SectionWrapper animationType="slideLeft" delay={200}>
-        <GetStarPlan />
-      </SectionWrapper>
-      <Footer />
-    </main>
+    <PageTransition>
+      <main className={styles.main}>
+        <Script
+          src="https://assets.calendly.com/assets/external/widget.js"
+          strategy="afterInteractive"
+          onLoad={() => {
+            if (window.Calendly) {
+              window.Calendly.initBadgeWidget({
+                url: 'https://calendly.com/hello-starplan',
+                text: 'Book Consultation',
+                color: '#4a5bf4',
+                textColor: '#ffffff',
+                branding: false,
+              });
+            }
+          }}
+        />
+        <Header />
+        <SectionWrapper animationType="fadeIn" delay={0}>
+          <Banner />
+        </SectionWrapper>
+        <SectionWrapper animationType="fadeUp" delay={100}>
+          <HowItWorks />
+        </SectionWrapper>
+        <SectionWrapper animationType="slideRight" delay={200}>
+          <FindAJob />
+        </SectionWrapper>
+        <SectionWrapper animationType="fadeUp" delay={100}>
+          <WhyChoose />
+        </SectionWrapper>
+        <SectionWrapper animationType="slideLeft" delay={200}>
+          <GetStarPlan />
+        </SectionWrapper>
+        <Footer />
+      </main>
+    </PageTransition>
   );
 }
 

@@ -2,45 +2,73 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import AuthLayout from '@/components/auth/AuthLayout';
 import GoogleButton from '@/components/auth/GoogleButton';
 import PasswordInput from '@/components/auth/PasswordInput';
+import { PageTransition } from '@/components/PageTransition';
 import { usePageAnimation } from '@/hooks/usePageAnimation';
+import { supabase } from '@/lib/supabase';
 import styles from './page.module.css';
 import formStyles from '@/components/auth/AuthForm.module.css';
 
 export default function Login() {
-  const [loginMethod, setLoginMethod] = useState<'password' | 'verifyCode'>('password');
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const mounted = usePageAnimation();
+  const router = useRouter();
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+
+    try {
+      // Validate inputs
+      if (!email || !password) {
+        setError('Please enter both email and password');
+        setIsLoading(false);
+        return;
+      }
+
+      // Sign in with Supabase
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) {
+        setError(signInError.message);
+        setIsLoading(false);
+        return;
+      }
+
+      if (data.user) {
+        // Redirect to explore page on success
+        router.push('/explore');
+      }
+    } catch (err) {
+      setError('An unexpected error occurred. Please try again.');
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <AuthLayout mounted={mounted}>
-      <div className={formStyles.title}>
-        Empower your job seeking<br />
-        Journey with <span className={formStyles.highlight}>StarPlan</span>
-      </div>
-      <p className={formStyles.subtitle}>
-        Offering transformative features and strategic insights<br />for
-        unparalleled success
-      </p>
-
-      <form id="loginForm" className={formStyles.form}>
-        {/* 登录方式切换标签 */}
-        <div className={formStyles.loginTabs}>
-          <div 
-            className={`${formStyles.tabItem} ${loginMethod === 'password' ? formStyles.active : ''}`}
-            onClick={() => setLoginMethod('password')}
-          >
-            Password Login
-          </div>
-          <div 
-            className={`${formStyles.tabItem} ${loginMethod === 'verifyCode' ? formStyles.active : ''}`}
-            onClick={() => setLoginMethod('verifyCode')}
-          >
-            Verification Code Login
-          </div>
+    <PageTransition>
+      <AuthLayout mounted={mounted}>
+        <div className={formStyles.title}>
+          Empower your job seeking<br />
+          Journey with <span className={formStyles.highlight}>StarPlan</span>
         </div>
+        <p className={formStyles.subtitle}>
+          Offering transformative features and strategic insights<br />for
+          unparalleled success
+        </p>
+
+      <form id="loginForm" className={formStyles.form} onSubmit={handleLogin}>
 
         <div className={formStyles.formItem}>
           <label className={formStyles.label} htmlFor="email">Email Address</label>
@@ -49,70 +77,47 @@ export default function Login() {
             className={formStyles.input}
             id="email"
             placeholder="example@email.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
+            disabled={isLoading}
           />
-          <div className={formStyles.errorMessage} id="emailError"></div>
         </div>
 
-        {/* 密码登录 */}
-        {loginMethod === 'password' && (
-          <>
-            <div className={formStyles.formItem} id="passwordField">
-              <label className={formStyles.label} htmlFor="password">Password</label>
-              <div className={formStyles.passwordContainer}>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  className={formStyles.input}
-                  id="password"
-                  placeholder="Enter your password"
-                />
-                <button
-                  type="button"
-                  className={formStyles.passwordToggle}
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? 'Hide' : 'Show'}
-                </button>
-              </div>
-              <div className={formStyles.errorMessage} id="passwordError"></div>
-            </div>
-            <div className={formStyles.forgotPassword} id="forgotPasswordLink">
-              <Link href="/forgot-password" style={{ color: '#252525', textDecoration: 'none' }}>
-                Forgot Password?
-              </Link>
-            </div>
-          </>
-        )}
-
-        {/* 验证码登录 */}
-        {loginMethod === 'verifyCode' && (
-          <div className={formStyles.formItem} id="verifyCodeField">
-            <label className={formStyles.label} htmlFor="verifyCode">Verification Code</label>
-            <div className={formStyles.verifyCodeContainer}>
-              <input
-                type="text"
-                className={formStyles.input}
-                id="verifyCode"
-                placeholder="Enter 6-digit code"
-                maxLength={6}
-              />
-              <button
-                type="button"
-                className={formStyles.sendCodeBtn}
-                id="sendCodeBtn"
-              >
-                Send Code
-              </button>
-            </div>
-            <div className={formStyles.errorMessage} id="verifyCodeError"></div>
+        <div className={formStyles.formItem}>
+          <label className={formStyles.label} htmlFor="password">Password</label>
+          <div className={formStyles.passwordContainer}>
+            <input
+              type={showPassword ? 'text' : 'password'}
+              className={formStyles.input}
+              id="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              disabled={isLoading}
+            />
+            <button
+              type="button"
+              className={formStyles.passwordToggle}
+              onClick={() => setShowPassword(!showPassword)}
+              disabled={isLoading}
+            >
+              {showPassword ? 'Hide' : 'Show'}
+            </button>
           </div>
-        )}
+        </div>
+
+        <div className={formStyles.forgotPassword}>
+          <Link href="/forgot-password" style={{ color: '#252525', textDecoration: 'none' }}>
+            Forgot Password?
+          </Link>
+        </div>
         
-        <button type="submit" className={formStyles.button} id="loginBtn">
-          Login
+        <button type="submit" className={formStyles.button} id="loginBtn" disabled={isLoading}>
+          {isLoading ? 'Logging in...' : 'Login'}
         </button>
-        <div className={formStyles.successMessage} id="successMessage"></div>
-        <div className={formStyles.errorMessage} id="loginError"></div>
+        {error && <div className={formStyles.errorMessage}>{error}</div>}
       </form>
 
       {/* 或分隔线 */}
@@ -127,6 +132,7 @@ export default function Login() {
         Having trouble logging in?
         <Link href="/register">Register</Link>
       </p>
-    </AuthLayout>
+      </AuthLayout>
+    </PageTransition>
   );
 }

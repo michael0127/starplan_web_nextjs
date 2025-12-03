@@ -1,18 +1,22 @@
+'use client';
+
 import Link from 'next/link';
+import { PageTransition } from '@/components/PageTransition';
 import styles from './not-found.module.css';
 
 export default function NotFound() {
   return (
-    <div className={styles.container}>
-      <h1 className={styles.title}>404</h1>
-      <h2 className={styles.subtitle}>Page Not Found</h2>
-      <p className={styles.description}>
-        The page you are looking for does not exist.
-      </p>
-      <Link href="/" className={styles.button}>
-        Go Back Home
-      </Link>
-    </div>
+    <PageTransition>
+      <div className={styles.container}>
+        <h1 className={styles.title}>404</h1>
+        <h2 className={styles.subtitle}>Page Not Found</h2>
+        <p className={styles.description}>
+          The page you are looking for does not exist.
+        </p>
+        <Link href="/" className={styles.button}>
+          Go Back Home
+        </Link>
+      </div>
+    </PageTransition>
   );
 }
-

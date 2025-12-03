@@ -1,0 +1,355 @@
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 120px);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(229, 231, 235, 0.7);
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.4) inset;
+  padding: 24px 16px;
+  backdrop-filter: blur(12px);
+}
+
+.nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 12px;
+  border-radius: 14px;
+  color: #4b5563;
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.item:hover {
+  background: rgba(243, 244, 255, 0.8);
+  color: #1f2937;
+  transform: translateX(2px);
+}
+
+.itemActive {
+  background: #4a5bf4;
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(74, 91, 244, 0.3);
+}
+
+.itemActive:hover {
+  transform: translateX(0);
+  box-shadow: 0 6px 20px rgba(74, 91, 244, 0.4);
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* Explore icon - compass/search */
+.icon_explore {
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+
+.icon_explore::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.icon_explore::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 5px;
+  background: currentColor;
+}
+
+/* Referrals icon - people/network */
+.icon_referrals {
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+
+.icon_referrals::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 10px;
+  height: 10px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.icon_referrals::after {
+  content: '';
+  position: absolute;
+  bottom: 1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 6px;
+  border: 2px solid currentColor;
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+}
+
+/* Resume icon - document */
+.icon_resume {
+  border: 2px solid currentColor;
+  border-radius: 3px;
+}
+
+.icon_resume::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  right: 4px;
+  height: 2px;
+  background: currentColor;
+}
+
+.icon_resume::after {
+  content: '';
+  position: absolute;
+  top: 9px;
+  left: 4px;
+  right: 4px;
+  height: 2px;
+  background: currentColor;
+}
+
+/* Earnings icon - dollar/money */
+.icon_earnings {
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+
+.icon_earnings::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 14px;
+  background: currentColor;
+}
+
+.icon_earnings::after {
+  content: 'S';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 11px;
+  font-weight: 700;
+  color: currentColor;
+}
+
+/* Settings icon - gear */
+.icon_settings {
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+
+.icon_settings::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 6px;
+  height: 6px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+
+.icon_settings::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 4px;
+  background: currentColor;
+}
+
+.label {
+  flex: 1;
+}
+
+.footer {
+  padding: 16px 0 0;
+  border-top: 1px solid rgba(229, 231, 235, 0.5);
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.userCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 8px;
+  border-radius: 12px;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+
+.userCard:hover {
+  background: rgba(243, 244, 255, 0.6);
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #4a5bf4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(74, 91, 244, 0.25);
+}
+
+.avatarText {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.avatarImage {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.userInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.userName {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.userEmail {
+  font-size: 12px;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.settingsButton {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(243, 244, 255, 0.5);
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  color: #4b5563;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  width: 100%;
+  font-family: inherit;
+}
+
+.settingsButton:hover {
+  background: rgba(243, 244, 255, 0.9);
+  border-color: #4a5bf4;
+  color: #1f2937;
+  transform: translateX(2px);
+}
+
+.settingsIcon {
+  width: 18px;
+  height: 18px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.settingsIcon::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 6px;
+  height: 6px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+
+.settingsIcon::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 4px;
+  background: currentColor;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+  }
+
+  .nav {
+    flex-direction: row;
+    gap: 4px;
+    flex: 0;
+  }
+
+  .item {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .footer {
+    display: none;
+  }
+}

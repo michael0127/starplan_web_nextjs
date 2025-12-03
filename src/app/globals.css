@@ -22,6 +22,11 @@ html {
   scroll-behavior: smooth;
 }
 
+/* 页面切换时禁用滚动行为以获得更好的过渡效果 */
+html.transitioning {
+  scroll-behavior: auto;
+}
+
 html,
 body {
   max-width: 100vw;
@@ -41,6 +46,16 @@ body {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+/* 为链接添加平滑过渡 */
+a:not([class*="button"]):not([class*="btn"]) {
+  transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+/* 提升整体应用的过渡质量 */
+* {
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .wrap {

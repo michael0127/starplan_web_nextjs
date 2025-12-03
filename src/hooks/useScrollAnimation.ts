@@ -49,3 +49,8 @@ export function useScrollAnimation(options: UseScrollAnimationOptions = {}) {
   return { ref, isVisible };
 }
 
+
+
+
+
+
