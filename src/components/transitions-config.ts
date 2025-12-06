@@ -194,3 +194,11 @@ export type TransitionType = keyof typeof transitionConfig;
 export type EasingType = keyof typeof easingPresets;
 export type DurationType = keyof typeof durationPresets;
 
+
+
+
+
+
+
+
+

@@ -7,9 +7,9 @@ import { useUser } from '@/hooks/useUser';
 import styles from './Sidebar.module.css';
 
 const NAV_ITEMS = [
-  { href: '/explore', label: 'Explore', icon: 'explore' },
-  { href: '/referrals', label: 'Referrals', icon: 'referrals' },
-  { href: '/resume', label: 'Resume', icon: 'resume' },
+  { href: '/explore', label: 'Explore', icon: 'explore', requireAuth: false },
+  { href: '/resume', label: 'Resume', icon: 'resume', requireAuth: true },
+  { href: '/profile', label: 'Profile', icon: 'profile', requireAuth: true },
 ];
 
 export function Sidebar() {
@@ -28,6 +28,14 @@ export function Sidebar() {
     router.push('/login');
   };
 
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, item: typeof NAV_ITEMS[0]) => {
+    // 如果需要认证但用户未登录，阻止导航并跳转到登录页
+    if (item.requireAuth && !authUser) {
+      e.preventDefault();
+      router.push('/login');
+    }
+  };
+
   return (
     <aside className={styles.sidebar} aria-label="Main navigation">
       <nav className={styles.nav}>
@@ -41,6 +49,7 @@ export function Sidebar() {
               className={`${styles.item} ${
                 isActive ? styles.itemActive : ''
               }`}
+              onClick={(e) => handleNavClick(e, item)}
             >
               <span className={`${styles.icon} ${styles[`icon_${item.icon}`]}`} aria-hidden="true" />
               <span className={styles.label}>{item.label}</span>
@@ -49,10 +58,12 @@ export function Sidebar() {
         })}
       </nav>
       <div className={styles.footer}>
-        <button onClick={handleLogout} className={styles.settingsButton}>
-          <span className={styles.settingsIcon} aria-hidden="true" />
-          <span>Logout</span>
-        </button>
+        {authUser && (
+          <button onClick={handleLogout} className={styles.settingsButton}>
+            <span className={styles.settingsIcon} aria-hidden="true" />
+            <span>Logout</span>
+          </button>
+        )}
         {authLoading || dbLoading ? (
           <div className={styles.userCard}>
             <div className={styles.avatar} aria-hidden="true">
@@ -64,7 +75,16 @@ export function Sidebar() {
             </div>
           </div>
         ) : authUser ? (
-          <Link href="/profile" className={styles.userCard}>
+          <Link 
+            href="/profile" 
+            className={styles.userCard}
+            onClick={(e) => {
+              if (!authUser) {
+                e.preventDefault();
+                router.push('/login');
+              }
+            }}
+          >
             <div className={styles.avatar} aria-hidden="true">
               {dbUser?.avatarUrl ? (
                 <img 

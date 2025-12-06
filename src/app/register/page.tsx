@@ -64,8 +64,8 @@ export default function Register() {
       }
 
       if (data.user) {
-        // Redirect to explore page on success
-        router.push('/explore');
+        // Redirect to onboarding page for new users
+        router.push('/onboarding');
       }
     } catch (err) {
       setError('An unexpected error occurred. Please try again.');

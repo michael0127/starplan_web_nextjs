@@ -255,3 +255,11 @@ WHERE table_name = 'users' AND column_name = 'id';
 
 完成所有步骤后，你的 User 表就会自动与 Supabase Auth 同步了！🎉
 
+
+
+
+
+
+
+
+

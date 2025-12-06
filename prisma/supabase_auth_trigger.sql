@@ -7,12 +7,18 @@
 -- 1. 创建函数：处理新用户注册
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
+DECLARE
+  user_type_value TEXT;
 BEGIN
-  INSERT INTO public.users (id, email, avatar_url, created_at, updated_at)
+  -- 从 raw_user_meta_data 中获取 user_type，如果没有则默认为 'CANDIDATE'
+  user_type_value := COALESCE(new.raw_user_meta_data->>'user_type', 'CANDIDATE');
+  
+  INSERT INTO public.users (id, email, name, user_type, created_at, updated_at)
   VALUES (
     new.id,
     new.email,
-    new.raw_user_meta_data->>'avatar_url',
+    new.raw_user_meta_data->>'name',
+    user_type_value::public."UserType",
     now(),
     now()
   );
@@ -22,7 +28,8 @@ EXCEPTION
     -- 如果用户已存在，更新记录
     UPDATE public.users
     SET email = new.email,
-        avatar_url = new.raw_user_meta_data->>'avatar_url',
+        name = new.raw_user_meta_data->>'name',
+        user_type = user_type_value::public."UserType",
         updated_at = now()
     WHERE id = new.id;
     RETURN new;
@@ -38,10 +45,15 @@ CREATE TRIGGER on_auth_user_created
 -- 3. 创建函数：处理用户更新
 CREATE OR REPLACE FUNCTION public.handle_user_update()
 RETURNS TRIGGER AS $$
+DECLARE
+  user_type_value TEXT;
 BEGIN
+  user_type_value := COALESCE(new.raw_user_meta_data->>'user_type', 'CANDIDATE');
+  
   UPDATE public.users
   SET email = new.email,
-      avatar_url = new.raw_user_meta_data->>'avatar_url',
+      name = new.raw_user_meta_data->>'name',
+      user_type = user_type_value::public."UserType",
       updated_at = now()
   WHERE id = new.id;
   RETURN new;
@@ -75,11 +87,12 @@ CREATE TRIGGER on_auth_user_deleted
 -- 如果你已经有一些 auth.users 记录，运行这个来同步现有用户
 -- 注意：这会跳过已存在的用户
 
-INSERT INTO public.users (id, email, avatar_url, created_at, updated_at)
+INSERT INTO public.users (id, email, name, user_type, created_at, updated_at)
 SELECT 
   id,
   email,
-  raw_user_meta_data->>'avatar_url',
+  raw_user_meta_data->>'name',
+  COALESCE((raw_user_meta_data->>'user_type')::public."UserType", 'CANDIDATE'::public."UserType"),
   created_at,
   updated_at
 FROM auth.users
@@ -90,4 +103,11 @@ ON CONFLICT (id) DO NOTHING;
 -- =====================================================
 -- 运行以下查询来检查触发器状态：
 -- SELECT * FROM pg_trigger WHERE tgname LIKE 'on_auth_user%';
+
+
+
+
+
+
+
 

@@ -4,7 +4,8 @@ import { useEffect } from 'react';
 import Script from 'next/script';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import Banner from '@/components/Banner';
+import Hero from '@/components/Hero';
+import LatestRoles from '@/components/LatestRoles';
 import HowItWorks from '@/components/HowItWorks';
 import FindAJob from '@/components/FindAJob';
 import WhyChoose from '@/components/WhyChoose';
@@ -118,7 +119,10 @@ export default function Home() {
         />
         <Header />
         <SectionWrapper animationType="fadeIn" delay={0}>
-          <Banner />
+          <Hero />
+        </SectionWrapper>
+        <SectionWrapper animationType="fadeUp" delay={100}>
+          <LatestRoles />
         </SectionWrapper>
         <SectionWrapper animationType="fadeUp" delay={100}>
           <HowItWorks />

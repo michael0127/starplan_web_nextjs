@@ -47,8 +47,25 @@ export default function Login() {
       }
 
       if (data.user) {
-        // Redirect to explore page on success
-        router.push('/explore');
+        // Check if user has completed onboarding
+        try {
+          const response = await fetch(`/api/user/${data.user.id}`);
+          if (response.ok) {
+            const userData = await response.json();
+            // Redirect based on onboarding status
+            if (userData.hasCompletedOnboarding) {
+              router.push('/explore');
+            } else {
+              router.push('/onboarding');
+            }
+          } else {
+            // If user data not found, go to onboarding
+            router.push('/onboarding');
+          }
+        } catch (err) {
+          // On error, default to explore page
+          router.push('/explore');
+        }
       }
     } catch (err) {
       setError('An unexpected error occurred. Please try again.');

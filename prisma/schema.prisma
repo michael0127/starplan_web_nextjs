@@ -8,13 +8,59 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum UserType {
+  CANDIDATE
+  EMPLOYER
+}
+
+// 用户表（C端和B端统一）
 model User {
-  id        String   @id @default(uuid()) @db.Uuid
-  email     String   @unique
-  name      String?
-  avatarUrl String?  @map("avatar_url")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id                     String   @id @default(uuid()) @db.Uuid
+  email                  String   @unique
+  name                   String?
+  avatarUrl              String?  @map("avatar_url")
+  userType               UserType @default(CANDIDATE) @map("user_type")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+  
+  // Onboarding相关字段
+  hasCompletedOnboarding Boolean  @default(false) @map("has_completed_onboarding")
+  jobFunction            String?  @map("job_function")
+  jobTypes               String[] @default([]) @map("job_types")
+  preferredLocation      String?  @map("preferred_location")
+  remoteOpen             Boolean  @default(false) @map("remote_open")
+  h1bSponsorship         Boolean  @default(false) @map("h1b_sponsorship")
+
+  cvs CV[]
+  jds JobDescription[]
 
   @@map("users")
+}
+
+// CV简历
+model CV {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  fileUrl       String   @map("file_url")
+  extractedData Json?    @map("extracted_data")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("cvs")
+}
+
+// JD职位描述
+model JobDescription {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  fileUrl       String   @map("file_url")
+  extractedData Json?    @map("extracted_data")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("job_descriptions")
 }

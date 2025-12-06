@@ -240,3 +240,11 @@ exit={{ opacity: 0, scale: 1.1 }}
 - [Next.js App Router](https://nextjs.org/docs/app)
 - [React Hooks](https://react.dev/reference/react)
 
+
+
+
+
+
+
+
+

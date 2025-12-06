@@ -1,0 +1,298 @@
+.hero {
+  width: 100%;
+  padding: 80px 24px 60px;
+  background: linear-gradient(135deg, #fafafa 0%, #ffffff 50%, #f8f9ff 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Background decoration container */
+.bgDecoration {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Animated gradient blobs */
+.gradient1 {
+  position: absolute;
+  top: -10%;
+  left: -5%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(91, 76, 245, 0.08) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: float 20s ease-in-out infinite;
+}
+
+.gradient2 {
+  position: absolute;
+  bottom: -10%;
+  right: -5%;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(74, 91, 244, 0.06) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: float 25s ease-in-out infinite reverse;
+}
+
+/* Floating circles */
+.circle1 {
+  position: absolute;
+  top: 15%;
+  right: 10%;
+  width: 120px;
+  height: 120px;
+  border: 2px solid rgba(91, 76, 245, 0.1);
+  border-radius: 50%;
+  animation: floatRotate 15s ease-in-out infinite;
+}
+
+.circle2 {
+  position: absolute;
+  bottom: 20%;
+  left: 8%;
+  width: 80px;
+  height: 80px;
+  border: 2px solid rgba(74, 91, 244, 0.08);
+  border-radius: 50%;
+  animation: floatRotate 20s ease-in-out infinite reverse;
+}
+
+.circle3 {
+  position: absolute;
+  top: 50%;
+  left: 15%;
+  width: 60px;
+  height: 60px;
+  background: radial-gradient(circle, rgba(91, 76, 245, 0.05) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: pulse 8s ease-in-out infinite;
+}
+
+/* Animations */
+@keyframes float {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -30px) scale(1.05);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.95);
+  }
+}
+
+@keyframes floatRotate {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  33% {
+    transform: translate(20px, -20px) rotate(120deg);
+  }
+  66% {
+    transform: translate(-10px, 10px) rotate(240deg);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+}
+
+/* Soft gradient fade at bottom for smooth transition */
+.bottomFade {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100px;
+  background: linear-gradient(to bottom, 
+    transparent 0%, 
+    rgba(255, 255, 255, 0.3) 40%,
+    rgba(255, 255, 255, 0.7) 100%
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+
+.content {
+  max-width: 1200px;
+  width: 100%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  position: relative;
+  z-index: 1;
+}
+
+.title {
+  font-size: 56px;
+  font-weight: 600;
+  line-height: 1.1;
+  color: #000000;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.subtitleContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.subtitle {
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #666666;
+  margin: 0;
+}
+
+.buttons {
+  display: flex;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.primaryButton,
+.secondaryButton {
+  padding: 12px 28px;
+  font-size: 16px;
+  font-weight: 500;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+  display: inline-block;
+}
+
+.primaryButton {
+  background: #5b4cf5;
+  color: #ffffff;
+}
+
+.primaryButton:hover {
+  background: #4a3cd4;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(91, 76, 245, 0.3);
+}
+
+.secondaryButton {
+  background: #e8e8e8;
+  color: #333333;
+}
+
+.secondaryButton:hover {
+  background: #d8d8d8;
+  transform: translateY(-1px);
+}
+
+/* Tablet */
+@media (max-width: 768px) {
+  .hero {
+    padding: 60px 20px 50px;
+  }
+
+  .title {
+    font-size: 40px;
+  }
+
+  .subtitle {
+    font-size: 16px;
+  }
+
+  .buttons {
+    flex-direction: column;
+    width: 100%;
+    max-width: 320px;
+  }
+
+  .primaryButton,
+  .secondaryButton {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* Reduce decoration size on tablet */
+  .gradient1,
+  .gradient2 {
+    width: 400px;
+    height: 400px;
+  }
+
+  .circle1 {
+    width: 100px;
+    height: 100px;
+  }
+
+  .circle2 {
+    width: 70px;
+    height: 70px;
+  }
+
+  .circle3 {
+    width: 50px;
+    height: 50px;
+  }
+
+  .bottomFade {
+    height: 80px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .hero {
+    padding: 50px 16px 40px;
+  }
+
+  .title {
+    font-size: 32px;
+  }
+
+  .subtitle {
+    font-size: 14px;
+  }
+
+  /* Further reduce or hide decorations on mobile */
+  .gradient1,
+  .gradient2 {
+    width: 300px;
+    height: 300px;
+    opacity: 0.5;
+  }
+
+  .circle1,
+  .circle2,
+  .circle3 {
+    opacity: 0.6;
+  }
+
+  .bottomFade {
+    height: 60px;
+  }
+}
+
+
+
+
+
+
+

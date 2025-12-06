@@ -141,6 +141,38 @@
   background: currentColor;
 }
 
+/* Profile icon - user avatar */
+.icon_profile {
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+
+.icon_profile::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.icon_profile::after {
+  content: '';
+  position: absolute;
+  bottom: 1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 12px;
+  height: 5px;
+  border: 2px solid currentColor;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+}
+
 /* Earnings icon - dollar/money */
 .icon_earnings {
   border: 2px solid currentColor;

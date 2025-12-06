@@ -185,3 +185,11 @@ SELECT * FROM pg_trigger WHERE tgname LIKE 'on_auth_user%';
 - [Supabase Auth 文档](https://supabase.com/docs/guides/auth)
 - [Supabase + Prisma 集成](https://supabase.com/docs/guides/integrations/prisma)
 
+
+
+
+
+
+
+
+
