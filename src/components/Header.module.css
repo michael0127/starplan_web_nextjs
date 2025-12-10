@@ -45,7 +45,7 @@
 
 .nav {
   display: flex;
-  gap: 15px;
+  gap: 32px;
   align-items: center;
 }
 
@@ -144,16 +144,19 @@
 }
 
 .btn1 {
-  width: 86px;
   height: 40px;
+  padding: 0 24px;
   border-radius: 20px;
   background: #252525;
   color: #fff;
   text-align: center;
   line-height: 40px;
   text-decoration: none;
-  display: block;
+  display: inline-block;
+  white-space: nowrap;
   transition: opacity 0.3s ease;
+  font-size: 16px;
+  font-weight: 500;
 }
 
 .btn1:hover {
@@ -161,16 +164,19 @@
 }
 
 .btn2 {
-  width: 100px;
   height: 40px;
+  padding: 0 24px;
   border-radius: 20px;
   background: #4A5BF4;
   color: #fff;
   text-align: center;
   line-height: 40px;
   text-decoration: none;
-  display: block;
+  display: inline-block;
+  white-space: nowrap;
   transition: opacity 0.3s ease;
+  font-size: 16px;
+  font-weight: 500;
 }
 
 .btn2:hover {

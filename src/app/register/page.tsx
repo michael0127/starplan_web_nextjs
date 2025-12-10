@@ -15,9 +15,7 @@ import formStyles from '@/components/auth/AuthForm.module.css';
 export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const mounted = usePageAnimation();
@@ -30,14 +28,8 @@ export default function Register() {
 
     try {
       // Validate inputs
-      if (!email || !password || !confirmPassword) {
+      if (!email || !password) {
         setError('Please fill in all fields');
-        setIsLoading(false);
-        return;
-      }
-
-      if (password !== confirmPassword) {
-        setError('Passwords do not match');
         setIsLoading(false);
         return;
       }
@@ -97,51 +89,28 @@ export default function Register() {
           </div>
 
           <div className={formStyles.formItem}>
-            <label className={formStyles.label} htmlFor="password">Password</label>
-            <div className={formStyles.passwordContainer}>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                className={formStyles.input}
-                id="password"
-                placeholder="Enter your password (min 6 characters)"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={isLoading}
-              />
+            <div className={styles.labelRow}>
+              <label className={formStyles.label} htmlFor="password">Password</label>
               <button
                 type="button"
-                className={formStyles.passwordToggle}
+                className={styles.showButton}
                 onClick={() => setShowPassword(!showPassword)}
                 disabled={isLoading}
               >
                 {showPassword ? 'Hide' : 'Show'}
               </button>
             </div>
-          </div>
-
-          <div className={formStyles.formItem}>
-            <label className={formStyles.label} htmlFor="confirmPassword">Confirm Password</label>
-            <div className={formStyles.passwordContainer}>
-              <input
-                type={showConfirmPassword ? 'text' : 'password'}
-                className={formStyles.input}
-                id="confirmPassword"
-                placeholder="Enter your password again"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                disabled={isLoading}
-              />
-              <button
-                type="button"
-                className={formStyles.passwordToggle}
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                disabled={isLoading}
-              >
-                {showConfirmPassword ? 'Hide' : 'Show'}
-              </button>
-            </div>
+            <input
+              type={showPassword ? 'text' : 'password'}
+              className={formStyles.input}
+              id="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              disabled={isLoading}
+            />
+            <p className={styles.passwordHint}>Password must be at least 6 characters</p>
           </div>
 
           <button 

@@ -102,27 +102,27 @@ export default function Login() {
         </div>
 
         <div className={formStyles.formItem}>
-          <label className={formStyles.label} htmlFor="password">Password</label>
-          <div className={formStyles.passwordContainer}>
-            <input
-              type={showPassword ? 'text' : 'password'}
-              className={formStyles.input}
-              id="password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={isLoading}
-            />
+          <div className={styles.labelRow}>
+            <label className={formStyles.label} htmlFor="password">Password</label>
             <button
               type="button"
-              className={formStyles.passwordToggle}
+              className={styles.showButton}
               onClick={() => setShowPassword(!showPassword)}
               disabled={isLoading}
             >
               {showPassword ? 'Hide' : 'Show'}
             </button>
           </div>
+          <input
+            type={showPassword ? 'text' : 'password'}
+            className={formStyles.input}
+            id="password"
+            placeholder="Enter your password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            disabled={isLoading}
+          />
         </div>
 
         <div className={formStyles.forgotPassword}>

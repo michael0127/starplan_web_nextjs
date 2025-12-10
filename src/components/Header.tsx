@@ -136,6 +136,7 @@ export default function Header() {
               </div>
 
               <Link href="/talents">Talents</Link>
+              <Link href="/blog">Blog</Link>
             </nav>
             <div className={styles.btns}>
               {isLoggedIn ? (
@@ -145,10 +146,10 @@ export default function Header() {
               ) : (
                 <>
                   <Link href="/login" className={styles.btn1}>
-                    Login
+                    Candidates
                   </Link>
-                  <Link href="/register" className={styles.btn2}>
-                    Register
+                  <Link href="/companies" className={styles.btn2}>
+                    Companies
                   </Link>
                 </>
               )}
