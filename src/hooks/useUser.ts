@@ -6,7 +6,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { User } from '@prisma/client';
+import { User as PrismaUser } from '@prisma/client';
+import { UserProfile } from '@/types/profile';
+
+// 扩展 Prisma User 类型，明确 profile 字段的类型
+export type User = Omit<PrismaUser, 'profile'> & {
+  profile: UserProfile | null;
+};
 
 /**
  * 获取单个用户的 Hook
@@ -61,7 +67,7 @@ export function useUser(userId: string | null | undefined) {
  * 获取用户列表的 Hook
  */
 export function useUsers(searchQuery?: string) {
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<PrismaUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -107,7 +113,7 @@ export function useUpdateUser() {
   const updateUser = async (
     userId: string,
     data: { name?: string; avatarUrl?: string }
-  ): Promise<User | null> => {
+  ): Promise<PrismaUser | null> => {
     try {
       setUpdating(true);
       setError(null);

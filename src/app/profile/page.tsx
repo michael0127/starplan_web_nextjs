@@ -38,7 +38,7 @@ export default function ProfilePage() {
   // 加载profile数据
   useEffect(() => {
     if (dbUser?.profile) {
-      setProfile(dbUser.profile as UserProfile);
+      setProfile(dbUser.profile);
     }
   }, [dbUser]);
 
