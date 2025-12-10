@@ -1,11 +1,12 @@
 /**
  * Resume Upload API
- * POST /api/user/resume - 上传用户简历
+ * POST /api/user/resume - 上传用户简历并解析内容到profile
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { supabase } from '@/lib/supabase';
+import { Prisma } from '@prisma/client';
 
 export async function POST(request: NextRequest) {
   try {
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 上传到自定义存储服务
+    // 1. 上传文件到存储服务
     const uploadFormData = new FormData();
     uploadFormData.append('file', file);
     uploadFormData.append('bucket_name', 'cvs');
@@ -86,12 +87,45 @@ export async function POST(request: NextRequest) {
     const uploadResult = await uploadResponse.json();
     const fileUrl = uploadResult.url || uploadResult.file_url || uploadResult.path;
 
-    // 保存到数据库
+    // 2. 调用CV解析服务（这会自动保存profile数据到数据库）
+    let extractedData = null;
+    let cvExtractionSuccess = false;
+
+    try {
+      const extractionFormData = new FormData();
+      extractionFormData.append('file', file);
+
+      const extractionResponse = await fetch(
+        `https://starplan-service.onrender.com/api/v1/cv-extraction/extract?user_id=${user.id}`,
+        {
+          method: 'POST',
+          headers: {
+            'accept': 'application/json',
+          },
+          body: extractionFormData,
+        }
+      );
+
+      if (extractionResponse.ok) {
+        extractedData = await extractionResponse.json();
+        cvExtractionSuccess = true;
+        console.log('CV extraction successful:', extractedData);
+      } else {
+        const errorText = await extractionResponse.text();
+        console.error('CV extraction error:', errorText);
+        // 不阻止流程，继续保存CV记录
+      }
+    } catch (extractionError) {
+      console.error('CV extraction request failed:', extractionError);
+      // 不阻断流程，继续保存CV记录
+    }
+
+    // 3. 保存CV记录到数据库
     const cv = await prisma.cV.create({
       data: {
         userId: user.id,
         fileUrl: fileUrl,
-        // extractedData: null, // 可以在这里集成简历解析服务
+        extractedData: extractedData ? (extractedData as Prisma.InputJsonValue) : Prisma.JsonNull,
       },
     });
 
@@ -101,6 +135,13 @@ export async function POST(request: NextRequest) {
         id: cv.id,
         fileUrl: cv.fileUrl,
         createdAt: cv.createdAt,
+      },
+      extraction: {
+        success: cvExtractionSuccess,
+        data: extractedData,
+        message: cvExtractionSuccess 
+          ? 'CV parsed and profile updated successfully' 
+          : 'CV uploaded but parsing failed - you can retry later',
       },
     });
   } catch (error) {

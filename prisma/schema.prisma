@@ -30,6 +30,9 @@ model User {
   preferredLocation      String?  @map("preferred_location")
   remoteOpen             Boolean  @default(false) @map("remote_open")
   h1bSponsorship         Boolean  @default(false) @map("h1b_sponsorship")
+  
+  // Profile额外信息（JSON格式）
+  profile                Json?    @map("profile")
 
   cvs CV[]
   jds JobDescription[]

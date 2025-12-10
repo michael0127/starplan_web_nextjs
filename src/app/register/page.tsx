@@ -48,12 +48,12 @@ export default function Register() {
         return;
       }
 
-      // Sign up with Supabase
+      // Sign up with Supabase with email verification
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: undefined, // Disable email verification redirect
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
         },
       });
 
@@ -64,8 +64,8 @@ export default function Register() {
       }
 
       if (data.user) {
-        // Redirect to onboarding page for new users
-        router.push('/onboarding');
+        // Redirect to check-email page
+        router.push('/check-email');
       }
     } catch (err) {
       setError('An unexpected error occurred. Please try again.');

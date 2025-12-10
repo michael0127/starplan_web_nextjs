@@ -1,7 +1,7 @@
 .main {
   min-width: 1200px;
   width: 100%;
-  padding-top: 72px;
+  padding-top: 24px;
   padding-bottom: 56px;
   background: radial-gradient(circle at top left, #f3f4ff 0, #ffffff 40%, #f7f8ff 100%);
 }
@@ -11,6 +11,15 @@
     min-width: auto;
   }
 }
+
+
+
+
+
+
+
+
+
 
 
 

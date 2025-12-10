@@ -54,14 +54,17 @@ export async function PATCH(
     const body = await request.json();
 
     // 验证请求体
-    const { name, avatarUrl } = body;
-
-    if (!name && !avatarUrl) {
-      return NextResponse.json(
-        { error: 'At least one field (name or avatarUrl) must be provided' },
-        { status: 400 }
-      );
-    }
+    const { 
+      name, 
+      avatarUrl, 
+      profile,
+      jobFunction,
+      jobTypes,
+      preferredLocation,
+      remoteOpen,
+      h1bSponsorship,
+      hasCompletedOnboarding 
+    } = body;
 
     // TODO: 添加用户身份验证
     // 确保只有用户自己才能更新自己的信息
@@ -70,6 +73,14 @@ export async function PATCH(
     const updatedUser = await updateUser(id, {
       ...(name !== undefined && { name }),
       ...(avatarUrl !== undefined && { avatarUrl }),
+      ...(profile !== undefined && { profile }),
+      // Employment preferences
+      ...(jobFunction !== undefined && { jobFunction }),
+      ...(jobTypes !== undefined && { jobTypes }),
+      ...(preferredLocation !== undefined && { preferredLocation }),
+      ...(remoteOpen !== undefined && { remoteOpen }),
+      ...(h1bSponsorship !== undefined && { h1bSponsorship }),
+      ...(hasCompletedOnboarding !== undefined && { hasCompletedOnboarding }),
     });
 
     return NextResponse.json(updatedUser);
@@ -81,6 +92,15 @@ export async function PATCH(
     );
   }
 }
+
+
+
+
+
+
+
+
+
 
 
 

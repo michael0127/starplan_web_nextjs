@@ -1,49 +1,73 @@
 .root {
-  max-width: 1200px;
   width: 100%;
-  margin: 0 auto;
+  height: 100vh;
+  margin: 0;
   display: flex;
-  gap: 32px;
+  gap: 24px;
+  padding: 0;
+  padding-right: 4.5%;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  align-items: stretch;
+  overflow: hidden;
 }
 
 .sidebar {
-  position: fixed;
-  top: 96px;
-  align-self: flex-start;
-  width: 200px;
-  left: 4.5%;
-  z-index: 8;
+  flex-shrink: 0;
+  width: 240px;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .content {
   flex: 1;
   min-width: 0;
-  margin-left: 280px; /* increased spacing from sidebar */
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 @media (max-width: 1024px) {
   .root {
-    width: 95%;
+    gap: 20px;
+    padding-right: 2.5%;
+    height: 100vh;
+  }
+
+  .sidebar {
+    width: 200px;
+    height: 100vh;
   }
 
   .content {
-    margin-left: 0;
+    height: 100vh;
   }
 }
 
 @media (max-width: 768px) {
   .root {
     flex-direction: column;
+    gap: 16px;
+    padding-right: 0;
+    height: auto;
+    min-height: 100vh;
   }
 
   .sidebar {
-    position: static;
     width: 100%;
-    left: auto;
+    height: auto;
+    max-height: none;
   }
 
   .content {
-    margin-left: 0;
+    width: 100%;
+    height: auto;
+    min-height: 0;
   }
 }
 

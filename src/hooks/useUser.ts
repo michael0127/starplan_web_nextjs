@@ -16,41 +16,45 @@ export function useUser(userId: string | null | undefined) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchUser = async () => {
     if (!userId) {
       setLoading(false);
       setUser(null);
       return;
     }
 
-    async function fetchUser() {
-      try {
-        setLoading(true);
-        setError(null);
+    try {
+      setLoading(true);
+      setError(null);
 
-        const response = await fetch(`/api/user/${userId}`);
+      const response = await fetch(`/api/user/${userId}`);
 
-        if (!response.ok) {
-          if (response.status === 404) {
-            throw new Error('User not found');
-          }
-          throw new Error('Failed to fetch user');
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('User not found');
         }
-
-        const data = await response.json();
-        setUser(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-        setUser(null);
-      } finally {
-        setLoading(false);
+        throw new Error('Failed to fetch user');
       }
-    }
 
+      const data = await response.json();
+      setUser(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchUser();
   }, [userId]);
 
-  return { user, loading, error };
+  const refreshUser = async () => {
+    await fetchUser();
+  };
+
+  return { user, loading, error, refreshUser };
 }
 
 /**
@@ -135,6 +139,15 @@ export function useUpdateUser() {
 
   return { updateUser, updating, error };
 }
+
+
+
+
+
+
+
+
+
 
 
 

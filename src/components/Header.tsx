@@ -56,7 +56,7 @@ export default function Header() {
   return (
     <header 
       id="header" 
-      className={styles.header}
+      className={`${styles.header} ${isAppPage ? styles.appHeader : ''}`}
       style={{ backgroundColor: isScrolled ? '#fff' : 'transparent' }}
     >
       <div className={styles.cont}>

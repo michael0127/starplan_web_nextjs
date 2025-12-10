@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useUser } from '@/hooks/useUser';
@@ -38,6 +39,15 @@ export function Sidebar() {
 
   return (
     <aside className={styles.sidebar} aria-label="Main navigation">
+      <Link href="/" className={styles.logo}>
+        <Image
+          src="/img/logo.png"
+          alt="StarPlan Logo"
+          width={195}
+          height={40}
+          priority
+        />
+      </Link>
       <nav className={styles.nav}>
         {NAV_ITEMS.map((item) => {
           const isActive = pathname === item.href;

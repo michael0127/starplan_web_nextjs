@@ -3,13 +3,15 @@
   background: linear-gradient(180deg, #ffffff 0%, rgba(74, 91, 244, 0.05) 100%);
   display: flex;
   flex-direction: column;
+  position: relative;
+  overflow-x: hidden;
 }
 
 .topBar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem 3rem;
+  padding: 1.5rem 4.5%;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
 }
@@ -17,6 +19,7 @@
 .logo {
   display: flex;
   align-items: center;
+  margin-left: 0;
 }
 
 .logo img {
@@ -77,6 +80,7 @@
   max-width: 900px;
   width: 100%;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
 }
 
 .header {
@@ -159,6 +163,7 @@
 
 .jobFunctionWrapper {
   position: relative;
+  width: 100%;
 }
 
 .inputWithTags {
@@ -278,22 +283,6 @@
   font-size: 0.9rem;
 }
 
-/* 移动端优化 */
-@media (max-width: 768px) {
-  .inputWithTags {
-    max-height: 150px;
-  }
-
-  .inlineInput {
-    min-width: 120px;
-  }
-
-  .inlineJobTag {
-    font-size: 0.8125rem;
-    padding: 0.3rem 0.5rem;
-  }
-}
-
 .jobDropdown {
   position: absolute;
   top: 100%;
@@ -309,6 +298,8 @@
   max-height: 450px;
   overflow: hidden;
   animation: slideDown 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 @keyframes slideDown {
@@ -323,11 +314,14 @@
 }
 
 .jobCategories {
-  width: 300px;
+  min-width: 250px;
+  max-width: 35%;
+  width: 35%;
   background: #fafafa;
   border-right: 1px solid #e5e7eb;
   overflow-y: auto;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .jobCategories::-webkit-scrollbar {
@@ -410,6 +404,8 @@
   padding: 1.25rem;
   overflow-y: auto;
   max-height: 450px;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 .jobPositions::-webkit-scrollbar {
@@ -863,15 +859,56 @@
   margin: 0;
 }
 
+/* 响应式设计 - 大屏幕到中等屏幕 */
+@media (max-width: 1024px) {
+  .jobCategories {
+    min-width: 200px;
+    width: 40%;
+    max-width: 40%;
+  }
+
+  .categoryItem {
+    padding: 0.75rem 0.875rem;
+    font-size: 0.9rem;
+  }
+
+  .positionTag {
+    padding: 0.4rem 0.875rem;
+    font-size: 0.8125rem;
+  }
+}
+
+@media (max-width: 900px) {
+  .mainCard {
+    padding: 2.5rem;
+    max-width: 95%;
+  }
+
+  .jobDropdown {
+    max-height: 380px;
+  }
+
+  .jobCategories {
+    min-width: 180px;
+    width: 40%;
+  }
+
+  .jobPositions {
+    padding: 1rem;
+    max-height: 380px;
+  }
+}
+
 @media (max-width: 768px) {
   .topBar {
-    padding: 1rem 1.5rem;
+    padding: 1rem 4.5%;
   }
 
   .mainCard,
   .processingCard {
     padding: 2rem 1.5rem;
     margin: 1rem;
+    max-width: calc(100% - 2rem);
   }
 
   .title {
@@ -896,6 +933,83 @@
 
   .primaryButton {
     width: 100%;
+  }
+
+  .jobDropdown {
+    max-height: 350px;
+    flex-direction: column;
+  }
+
+  .jobCategories {
+    width: 100%;
+    max-width: 100%;
+    min-width: 100%;
+    max-height: 120px;
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .categoryItem {
+    white-space: nowrap;
+    flex-shrink: 0;
+    padding: 0.75rem 1rem;
+    border-left: none;
+    border-bottom: 3px solid transparent;
+  }
+
+  .categoryItem::before {
+    display: none;
+  }
+
+  .categoryItemActive {
+    border-bottom: 3px solid #4A5BF4;
+  }
+
+  .jobPositions {
+    max-height: 230px;
+  }
+
+  .logo {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .mainCard {
+    padding: 1.5rem 1rem;
+  }
+
+  .topBar {
+    padding: 0.875rem 4.5%;
+  }
+
+  .logo img {
+    height: 32px;
+  }
+
+  .title {
+    font-size: 1.25rem;
+  }
+
+  .jobDropdown {
+    max-height: 300px;
+  }
+
+  .jobPositions {
+    max-height: 180px;
+    padding: 0.75rem;
+  }
+
+  .positionTag {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .logo {
+    margin-left: 0;
   }
 }
 

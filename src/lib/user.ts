@@ -16,6 +16,14 @@ export type UserCreateInput = {
 export type UserUpdateInput = {
   name?: string;
   avatarUrl?: string;
+  profile?: any; // JSON 类型，用于存储用户的完整 profile 数据
+  // Employment preferences (存储在独立字段)
+  jobFunction?: string;
+  jobTypes?: string[];
+  preferredLocation?: string;
+  remoteOpen?: boolean;
+  h1bSponsorship?: boolean;
+  hasCompletedOnboarding?: boolean;
 };
 
 /**
@@ -74,6 +82,15 @@ export async function updateUser(
     data: {
       ...(data.name !== undefined && { name: data.name }),
       ...(data.avatarUrl !== undefined && { avatarUrl: data.avatarUrl }),
+      ...(data.profile !== undefined && { profile: data.profile }),
+      // Employment preferences
+      ...(data.jobFunction !== undefined && { jobFunction: data.jobFunction }),
+      ...(data.jobTypes !== undefined && { jobTypes: data.jobTypes }),
+      ...(data.preferredLocation !== undefined && { preferredLocation: data.preferredLocation }),
+      ...(data.remoteOpen !== undefined && { remoteOpen: data.remoteOpen }),
+      ...(data.h1bSponsorship !== undefined && { h1bSponsorship: data.h1bSponsorship }),
+      ...(data.hasCompletedOnboarding !== undefined && { hasCompletedOnboarding: data.hasCompletedOnboarding }),
+      updatedAt: new Date(), // 更新时间戳
     },
   });
 }
@@ -144,6 +161,15 @@ export async function getUserStats() {
     withAvatars,
   };
 }
+
+
+
+
+
+
+
+
+
 
 
 

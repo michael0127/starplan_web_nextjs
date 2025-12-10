@@ -18,10 +18,24 @@
   align-items: center;
 }
 
+/* 应用页面（有sidebar）的特殊布局 */
+.appHeader .cont {
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  padding: 0 4.5%;
+  justify-content: flex-start;
+}
+
 .logo {
   display: block;
   width: 195px;
   margin-left: -7%;
+}
+
+/* 应用页面的logo，与sidebar对齐 */
+.appHeader .logo {
+  margin-left: 0;
 }
 
 .logo img {
@@ -89,9 +103,20 @@
   opacity: 0.8;
 }
 
+/* 确保在所有缩放级别下sidebar与header对齐 */
+@media (min-width: 769px) {
+  .appHeader .cont {
+    padding: 0 4.5%;
+  }
+}
+
 @media (max-width: 768px) {
   .cont {
     width: 95%;
+  }
+
+  .appHeader .cont {
+    padding: 0 4.5%;
   }
   
   .nav {
@@ -100,6 +125,16 @@
   
   .logo {
     margin-left: 0;
+  }
+
+  .appHeader .logo {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .appHeader .cont {
+    padding: 0 4.5%;
   }
 }
 

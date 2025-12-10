@@ -2,7 +2,6 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Header from '@/components/Header';
 import { PageTransition } from '@/components/PageTransition';
 import { SidebarLayout } from '@/components/navigation/SidebarLayout';
 import { useAuth } from '@/hooks/useAuth';
@@ -23,11 +22,10 @@ export default function ResumePage() {
     return (
       <PageTransition>
         <main className={styles.main}>
-          <Header />
           <SidebarLayout>
-            <div className={styles.content}>
+            <section className={styles.inner}>
               <p>Loading...</p>
-            </div>
+            </section>
           </SidebarLayout>
         </main>
       </PageTransition>
@@ -42,17 +40,22 @@ export default function ResumePage() {
   return (
     <PageTransition>
       <main className={styles.main}>
-        <Header />
         <SidebarLayout>
-          <div className={styles.content}>
-            <h1 className={styles.title}>Resume</h1>
-            <p className={styles.description}>
-              Build and manage your professional resume for StarPlan opportunities.
-            </p>
-            <div className={styles.placeholder}>
-              Resume builder coming soon...
+          <section className={styles.inner}>
+            <div className={styles.headerRow}>
+              <div className={styles.titleGroup}>
+                <h1 className={styles.title}>Resume</h1>
+                <p className={styles.subtitle}>
+                  Build and manage your professional resume for StarPlan opportunities.
+                </p>
+              </div>
             </div>
-          </div>
+            <div className={styles.content}>
+              <div className={styles.placeholder}>
+                Resume builder coming soon...
+              </div>
+            </div>
+          </section>
         </SidebarLayout>
       </main>
     </PageTransition>

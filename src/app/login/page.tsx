@@ -64,7 +64,7 @@ export default function Login() {
           }
         } catch (err) {
           // On error, default to explore page
-          router.push('/explore');
+        router.push('/explore');
         }
       }
     } catch (err) {
