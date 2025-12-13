@@ -46,6 +46,9 @@ export default function Register() {
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
+          data: {
+            user_type: 'CANDIDATE', // 标记为候选人账户 (必须大写以匹配数据库enum)
+          }
         },
       });
 

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
+import { useUserType } from '@/hooks/useUserType';
 import styles from './page.module.css';
 
 interface OnboardingData {
@@ -72,6 +73,13 @@ const jobCategories = [
 
 export default function OnboardingPage() {
   const router = useRouter();
+  
+  // 权限检查：只允许 CANDIDATE 访问
+  const { loading: userTypeLoading, isCandidate } = useUserType({
+    required: 'CANDIDATE',
+    redirectTo: '/employer/dashboard',
+  });
+  
   const [step, setStep] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -279,6 +287,17 @@ export default function OnboardingPage() {
     await supabase.auth.signOut();
     router.push('/login');
   };
+
+  // 如果正在加载用户类型或不是 candidate，显示加载状态
+  if (userTypeLoading || !isCandidate) {
+    return (
+      <div className={styles.container}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+          Loading...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>

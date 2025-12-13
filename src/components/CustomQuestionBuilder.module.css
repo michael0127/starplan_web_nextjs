@@ -1,0 +1,212 @@
+.builderContainer {
+  background: white;
+  border-radius: 12px;
+  border: 2px solid #4a5bf4;
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+.builderHeader {
+  background: linear-gradient(135deg, #4a5bf4 0%, #6b7bf8 100%);
+  padding: 20px 24px;
+}
+
+.builderHeader h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+}
+
+.builderBody {
+  padding: 24px;
+}
+
+.formGroup {
+  margin-bottom: 20px;
+}
+
+.formGroup:last-child {
+  margin-bottom: 0;
+}
+
+.label {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: #252525;
+  margin-bottom: 8px;
+}
+
+.required {
+  color: #e74c3c;
+  margin-left: 4px;
+}
+
+.input,
+.select,
+.textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 15px;
+  color: #252525;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+  outline: none;
+  border-color: #4a5bf4;
+  box-shadow: 0 0 0 3px rgba(74, 91, 244, 0.1);
+}
+
+.textarea {
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.hint {
+  display: block;
+  font-size: 13px;
+  color: #666;
+  margin-top: 6px;
+  font-style: italic;
+}
+
+/* Options */
+.optionRow {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.optionRow .input {
+  flex: 1;
+}
+
+.removeOptionBtn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  color: #e74c3c;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.removeOptionBtn:hover {
+  background: #e74c3c;
+  border-color: #e74c3c;
+  color: white;
+}
+
+.addOptionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: rgba(74, 91, 244, 0.1);
+  border: 1px dashed #4a5bf4;
+  border-radius: 8px;
+  color: #4a5bf4;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.addOptionBtn:hover {
+  background: rgba(74, 91, 244, 0.2);
+}
+
+/* Checkbox */
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.checkboxLabel:hover {
+  background: rgba(74, 91, 244, 0.05);
+}
+
+.checkboxLabel input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #4a5bf4;
+}
+
+.checkboxLabel span {
+  font-size: 15px;
+  font-weight: 500;
+  color: #252525;
+}
+
+/* Actions */
+.builderActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 24px;
+  border-top: 1px solid #e0e0e0;
+  background: #fafafa;
+}
+
+.btnPrimary,
+.btnSecondary {
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.btnPrimary {
+  background: #4a5bf4;
+  color: white;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  background: #3a4be4;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(74, 91, 244, 0.3);
+}
+
+.btnPrimary:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.btnSecondary {
+  background: transparent;
+  color: #666;
+  border: 1px solid #e0e0e0;
+}
+
+.btnSecondary:hover {
+  border-color: #4a5bf4;
+  color: #4a5bf4;
+  background: rgba(74, 91, 244, 0.05);
+}
+
+
+

@@ -1,0 +1,28 @@
+/* Employer Login页面特定样式 */
+
+.labelRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.showButton {
+  background: none;
+  border: none;
+  color: #4a5bf4;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.2s ease;
+}
+
+.showButton:hover {
+  opacity: 0.8;
+}
+
+.showButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

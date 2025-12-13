@@ -1,0 +1,115 @@
+Subcategory,Skills
+Machine Learning Engineer (Artificial Intelligence / Machine Learning),Python; PyTorch; TensorFlow; JAX; LLMs; RAG; Fine-tuning; Multi-agent systems; Classical ML; Model evaluation; Feature engineering; Data pipelines; MLOps; Vector DBs; Cloud AI; Responsible AI; AI Safety
+Deep Learning Engineer (Artificial Intelligence / Machine Learning),Python; PyTorch; TensorFlow; JAX; CNN/RNN; Transformers; GPU acceleration; Model evaluation; Data pipelines; MLOps
+Generative AI Engineer (Artificial Intelligence / Machine Learning),Python; PyTorch; TensorFlow; LLMs; RAG; Prompt engineering; Fine-tuning; Embeddings; MLOps; Responsible AI
+Multi-Agent Systems Engineer (Artificial Intelligence / Machine Learning),Python; Multi-agent frameworks; Orchestration; Task planning; RL; Simulation; Debugging; MLOps
+Reinforcement Learning Engineer (Artificial Intelligence / Machine Learning),Python; RLlib; Gym; RL algorithms; Policy gradient; Q-learning; Simulation; Model evaluation
+NLP Engineer (Artificial Intelligence / Machine Learning),"Python; NLP libraries (spaCy, HuggingFace); Transformers; Tokenization; Embeddings; RAG; Text preprocessing; Fine-tuning"
+Computer Vision Engineer (Artificial Intelligence / Machine Learning),Python; OpenCV; PyTorch; CNNs; Object detection; Segmentation; Image augmentation; Data pipelines
+Speech/Audio AI Engineer (Artificial Intelligence / Machine Learning),Python; PyTorch; Librosa; Speech recognition; Audio processing; TTS; ASR; Signal processing
+AI Research Scientist (Artificial Intelligence / Machine Learning),Python; PyTorch; TensorFlow; Research methodology; Experimentation; Publishing; Model evaluation; RL; NLP; CV
+Applied AI Scientist (Artificial Intelligence / Machine Learning),Python; ML libraries; Model deployment; Business problem solving; Data pipelines; MLOps
+AI Ethics & Policy Specialist (Artificial Intelligence / Machine Learning),AI ethics; Policy frameworks; Governance; Risk assessment; Bias detection; Responsible AI
+AI Product Manager (Artificial Intelligence / Machine Learning),Product management; AI concepts; Roadmapping; Stakeholder management; Data pipelines; ML lifecycle
+AI Data Curator / Data Labeling Ops (Artificial Intelligence / Machine Learning),Data labeling; Data quality; Dataset management; Annotation tools; Data pipelines
+AI Infrastructure Engineer (MLOps/LLMOps) (Artificial Intelligence / Machine Learning),MLOps; Docker; Kubernetes; ML deployment; Monitoring; Pipelines; Cloud AI platforms
+Data Scientist (Data Science & Analytics),Python; R; SQL; Statistical modelling; EDA; Experiment design; Forecasting; BI; Visualization; Causal inference
+Data Analyst (Data Science & Analytics),SQL; Python; Excel; Tableau; PowerBI; Data cleaning; Reporting; KPI tracking
+Quantitative Analyst (Data Science & Analytics),Python; R; Statistics; Econometrics; Modelling; Forecasting; Risk analysis
+BI Analyst (Data Science & Analytics),SQL; BI tools; Data visualization; Dashboard creation; KPI monitoring
+Statistician (Data Science & Analytics),R; Python; Probability; Hypothesis testing; Regression; Experimentation
+Data Visualization Engineer (Data Science & Analytics),Python; D3.js; Tableau; PowerBI; Data storytelling; Dashboard design
+Experimentation / Causal Inference Scientist (Data Science & Analytics),Python; R; Statistics; Experiment design; A/B testing; Causal inference
+Decision Scientist (Data Science & Analytics),Python; R; Data modeling; Decision optimization; Simulation; Business analytics
+Data Engineer (Data Engineering),Python; SQL; Scala; ETL/ELT; Data pipelines; Warehousing; Spark; Kafka; Airflow; Data modeling
+Big Data Engineer (Data Engineering),Python; Spark; Hadoop; Data lakes; Streaming pipelines; ETL; SQL; Kafka
+ETL Developer (Data Engineering),Python; SQL; ETL frameworks; Data integration; Scheduling; Airflow; Data validation
+Database Engineer (Data Engineering),SQL; NoSQL; Database design; Query optimization; Indexing; Replication; Backup
+Analytics Engineer (Data Engineering),SQL; Data modeling; BI integration; Data pipelines; Data quality
+Data Platform Engineer (Data Engineering),Python; Cloud data services; ETL; Data lakehouse; Monitoring; Data pipelines
+Backend Engineer (Software Engineering),Python; Java; Go; Node.js; APIs; Database; Microservices; CI/CD; Docker; Kubernetes
+Frontend Engineer (Software Engineering),JavaScript; TypeScript; React; Vue; HTML/CSS; UI frameworks; Webpack; Testing
+Full Stack Engineer (Software Engineering),Python; JS/TS; React; Node.js; Databases; API design; CI/CD; Docker; Kubernetes
+Systems Engineer (Software Engineering),Linux; C/C++; Networking; System design; DevOps; Monitoring
+Embedded Engineer (Software Engineering),C/C++; RTOS; Microcontrollers; Hardware interfacing; Debugging
+Cloud Software Engineer (Software Engineering),Python; Java; Cloud platforms; APIs; Microservices; CI/CD; Docker/K8s
+Mobile Engineer (iOS/Android) (Software Engineering),Swift; Kotlin; React Native; Mobile SDKs; APIs; UI frameworks
+API Engineer (Software Engineering),REST; GraphQL; API design; Authentication; Documentation; Backend integration
+DevOps Engineer (Software Engineering),CI/CD; Docker; Kubernetes; Terraform; Monitoring; Automation; Cloud platforms
+Site Reliability Engineer (SRE) (Software Engineering),SRE principles; Monitoring; Incident response; Scaling; Cloud; CI/CD
+Platform Engineer (Software Engineering),Microservices; Kubernetes; Cloud infra; CI/CD; APIs; Observability
+Cloud Architect (Cloud & Infrastructure),AWS; GCP; Azure; Architecture; IaC; Networking; Security; Scalability
+Cloud Engineer (Cloud & Infrastructure),AWS; Azure; GCP; Cloud services; CI/CD; Monitoring
+Cloud Security Engineer (Cloud & Infrastructure),Cloud security; IAM; Encryption; Compliance; Monitoring; Incident response
+Infrastructure Engineer (Cloud & Infrastructure),Linux; Windows; Networking; Virtualization; Cloud; Automation
+Network Engineer (Cloud & Infrastructure),Networking; Routing; Switching; Security; VPN; Firewalls
+Kubernetes Engineer (Cloud & Infrastructure),Kubernetes; Docker; Deployment; Scaling; Observability; Helm; CI/CD
+Cybersecurity Engineer (Security & Cybersecurity),Pen-testing; Vulnerability assessment; Network security; Secure coding; SIEM; Incident response
+Security Analyst (Security & Cybersecurity),Threat analysis; SIEM; Monitoring; Incident response; Risk assessment
+Security Architect (Security & Cybersecurity),Network security; Application security; Architecture; IAM; Encryption; Risk management
+Penetration Tester / Ethical Hacker (Security & Cybersecurity),Pen-testing tools; Exploits; Network assessment; Security audits
+Threat Intelligence Analyst (Security & Cybersecurity),Threat research; Malware analysis; SIEM; Reporting; Incident response
+Application Security Engineer (Security & Cybersecurity),Secure coding; Code review; Vulnerability scanning; OWASP; DevSecOps
+Cloud Security Specialist (Security & Cybersecurity),Cloud security; IAM; Compliance; Monitoring; Encryption
+Governance Risk & Compliance (GRC) (Security & Cybersecurity),Compliance frameworks; Policies; Risk management; Audit
+Technical Product Manager (Product & Project Roles),Product strategy; Roadmapping; Stakeholder mgmt; Requirements; Agile; Data-driven
+AI Product Manager (Product & Project Roles),AI knowledge; Product management; Roadmap; ML lifecycle; Stakeholder mgmt
+Technical Program Manager (Product & Project Roles),Project management; Agile; Coordination; Roadmaps; Risk mgmt
+Scrum Master (Product & Project Roles),Scrum; Agile; Facilitation; Backlog management; Team coaching
+Product Analyst (Product & Project Roles),Data analysis; Reporting; Requirements; Metrics; Dashboarding
+UX Researcher (Product & Project Roles),User research; Interviews; Usability testing; Personas; Analytics
+UI/UX Designer (Product & Project Roles),Figma; Sketch; Wireframing; Prototyping; Visual design; Interaction design
+Service Designer (Product & Project Roles),Service blueprint; Journey mapping; Process design; User research
+Robotics Engineer (Robotics & Autonomous Systems),ROS/ROS2; C++; Python; Control systems; Kinematics; Path planning; Sensor fusion; Embedded systems
+Autonomous Systems Engineer (Robotics & Autonomous Systems),ROS; Python; C++; SLAM; Path planning; Sensors; Algorithms; Simulation
+Mechatronics Engineer (Robotics & Autonomous Systems),Mechanical design; Electronics; Control systems; Embedded systems
+Sensor Fusion Engineer (Robotics & Autonomous Systems),Python; C++; Sensor calibration; Kalman filter; Data fusion
+Robot Learning Engineer (Robotics & Autonomous Systems),Python; RL; Simulation; Control; Multi-agent; Computer vision
+Hardware/Embedded Robotics Engineer (Robotics & Autonomous Systems),Embedded C/C++; Microcontrollers; Sensors; Real-time systems; Robotics integration
+Hardware Engineer (Hardware & Semiconductor),PCB design; Circuit analysis; Debugging; Embedded systems; FPGA; ASIC
+FPGA Engineer (Hardware & Semiconductor),Verilog; VHDL; FPGA toolchains; Simulation; Timing analysis
+ASIC Engineer (Hardware & Semiconductor),RTL design; Verification; Timing; Synthesis; ASIC flows
+Chip Design Engineer (Hardware & Semiconductor),Digital design; RTL; Verification; Simulation; Timing analysis
+Computer Architect (Hardware & Semiconductor),Microarchitecture; CPU/GPU design; Performance modeling
+Embedded Systems Engineer (Hardware & Semiconductor),C/C++; Microcontrollers; RTOS; Hardware interfacing
+IoT Engineer (Hardware & Semiconductor),Sensors; Microcontrollers; Networking; MQTT; Embedded systems
+CTO (Tech Leadership),Technical architecture; Team mgmt; Strategy; Roadmapping; Budget; Mentorship; Stakeholder alignment
+VP Engineering (Tech Leadership),Engineering management; Strategy; Team growth; Process improvement; Roadmapping
+Head of AI (Tech Leadership),AI strategy; Research oversight; Team mgmt; Project prioritization
+Head of Product (Tech Leadership),Product strategy; Roadmap; Stakeholder mgmt; Team leadership
+Chief Data Officer (Tech Leadership),Data strategy; Governance; Analytics oversight; Team mgmt
+Chief Information Security Officer (Tech Leadership),Security strategy; Risk mgmt; Compliance; Team leadership
+AI Team Lead / Engineering Manager (Tech Leadership),Team management; Project planning; Mentorship; AI stack knowledge
+Tech Lead / Staff Engineer / Principal Engineer (Tech Leadership),System design; Technical leadership; Mentorship; Code quality; Architecture
+Systems Administrator (IT & Systems),Windows/Linux admin; Networking; Monitoring; Backup; Security; Troubleshooting
+IT Support / Helpdesk (IT & Systems),End-user support; Troubleshooting; Ticketing; Hardware/software support
+Network Administrator (IT & Systems),Networking; Firewall; VPN; Routing; Switching; Monitoring
+IT Operations Specialist (IT & Systems),ITIL; System monitoring; Incident response; Automation
+Systems Analyst (IT & Systems),Requirements gathering; System design; Testing; Documentation
+ERP/CRM Engineer (IT & Systems),ERP/CRM configuration; Customization; Integration; Reporting
+AI for Finance (Tech in Business Functions),Finance domain; AI workflows; Automation; Risk analysis; Reporting; Compliance
+AI in Marketing (Tech in Business Functions),Marketing analytics; Personalization; Segmentation; AI tools; Campaign optimization
+AI in Operations (Tech in Business Functions),Process automation; Optimization; Analytics; Workflow management; AI tools
+AI in HR (Tech in Business Functions),HR analytics; Talent acquisition; AI workflow; Reporting; Automation
+AI in Supply Chain (Tech in Business Functions),Supply chain analytics; Optimization; Forecasting; Automation; AI systems
+LLM Application Developer (GenerativeAI),LLM development; API integration; Prompt engineering; Fine-tuning; Embeddings; RAG; MLOps
+AI Agent Engineer (GenerativeAI),Multi-agent frameworks; Orchestration; Task planning; Python; RL; Evaluation metrics
+AI Workflow Automation Engineer (GenerativeAI),Automation; RPA; LLM; Workflow orchestration; API integration
+Prompt Engineer (GenerativeAI),Prompt design; LLM tuning; Evaluation; Chain-of-thought; Prompt testing
+Synthetic Data Engineer (GenerativeAI),Data simulation; Generation; Privacy; Augmentation; ML integration
+Digital Twin Engineer (GenerativeAI),Modeling; Simulation; IoT integration; Analytics; Visualization
+AI Safety & Alignment Researcher (GenerativeAI),Safety testing; Alignment metrics; Red-teaming; RLHF; Policy design
+Human-AI Interaction Engineer (GenerativeAI),UX; HCI; AI agent design; Feedback loops; Evaluation
+AI Quality & Evaluation Engineer (GenerativeAI),Metrics; Benchmarking; Evaluation pipelines; Bias detection; Model testing
+Autonomous Agent Safety Analyst (GenerativeAI),Safety testing; Simulation; Monitoring; Evaluation; Multi-agent systems
+AI Compliance / Audit Engineer (GenerativeAI),AI governance; Compliance; Auditing; Risk assessment; Documentation
+Product Designer (Design),Design thinking; Wireframing; Prototyping; Figma; User research; UX principles; UI design
+UX Designer (Design),User research; Usability testing; Wireframing; Prototyping; Interaction design; Analytics
+UI Designer (Design),Visual design; Typography; Color theory; Layout; Figma/Sketch; Design systems
+Interaction Designer (Design),Interaction patterns; User flows; Wireframing; Prototyping; Motion design
+Visual Designer (Design),Typography; Branding; Layout; Illustration; Photoshop/Illustrator
+Design Researcher (Design),User interviews; Surveys; Analytics; Personas; Usability testing; Journey mapping
+Design Systems Designer (Design),Component libraries; Figma/Sketch; UI consistency; Tokens; Style guides
+Motion Designer (Design),Animation principles; After Effects; Prototyping; Storyboarding
+Creative Technologist (Design),Coding; Prototyping; Interactive media; AR/VR; Creative software
+AI UX Designer (Design),AI integration; Prompt flows; Multi-agent UX; Human-AI interaction; Testing

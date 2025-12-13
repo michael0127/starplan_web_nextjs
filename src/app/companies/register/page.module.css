@@ -1,0 +1,41 @@
+/* Employer Register页面特定样式 - 与普通Register页面保持一致 */
+
+.labelRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.showButton {
+  background: none;
+  border: none;
+  color: #4a5bf4;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.2s ease;
+}
+
+.showButton:hover {
+  opacity: 0.8;
+}
+
+.showButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.passwordHint {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #666;
+  line-height: 1.5;
+}
+
+
+
+
+
+

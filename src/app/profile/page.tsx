@@ -6,6 +6,7 @@ import { PageTransition } from '@/components/PageTransition';
 import { SidebarLayout } from '@/components/navigation/SidebarLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { useUser } from '@/hooks/useUser';
+import { useUserType } from '@/hooks/useUserType';
 import styles from './page.module.css';
 import { UserProfile, CVEducation, CVWorkExperience } from '@/types/profile';
 import EditPanel from '@/components/profile/EditPanel';
@@ -14,6 +15,13 @@ type TabType = 'personal' | 'education' | 'work' | 'skills' | 'employment';
 
 export default function ProfilePage() {
   const router = useRouter();
+  
+  // 权限检查：只允许 CANDIDATE 访问
+  const { loading: userTypeLoading, isCandidate } = useUserType({
+    required: 'CANDIDATE',
+    redirectTo: '/employer/dashboard',
+  });
+  
   const { user: authUser, loading: authLoading } = useAuth();
   const { user: dbUser, loading: userLoading, refreshUser } = useUser(authUser?.id);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -217,7 +225,7 @@ export default function ProfilePage() {
   };
 
   // 显示加载状态
-  if (authLoading || userLoading) {
+  if (authLoading || userLoading || userTypeLoading || !isCandidate) {
     return (
       <PageTransition>
         <main className={styles.main}>

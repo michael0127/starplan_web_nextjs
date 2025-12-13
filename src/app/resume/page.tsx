@@ -5,11 +5,18 @@ import { useRouter } from 'next/navigation';
 import { PageTransition } from '@/components/PageTransition';
 import { SidebarLayout } from '@/components/navigation/SidebarLayout';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserType } from '@/hooks/useUserType';
 import styles from './page.module.css';
 
 export default function ResumePage() {
   const router = useRouter();
   const { user, loading } = useAuth();
+  
+  // 权限检查：只允许 CANDIDATE 访问
+  const { loading: userTypeLoading, isCandidate } = useUserType({
+    required: 'CANDIDATE',
+    redirectTo: '/employer/dashboard',
+  });
 
   useEffect(() => {
     if (!loading && !user) {
@@ -18,7 +25,7 @@ export default function ResumePage() {
   }, [user, loading, router]);
 
   // 显示加载状态
-  if (loading) {
+  if (loading || userTypeLoading || !isCandidate) {
     return (
       <PageTransition>
         <main className={styles.main}>
