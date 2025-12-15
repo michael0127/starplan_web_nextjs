@@ -654,3 +654,13 @@ categorySkills.filter(skill => skill !== skillToRemove)
 
 
 
+
+
+
+
+
+
+
+
+
+

@@ -1,4 +1,4 @@
-# Job Categories 更新说明
+ # Job Categories 更新说明
 
 ## 更新内容
 
@@ -415,6 +415,16 @@ const handleCustomCategorySubmit = () => {
 - 0 type 错误
 
 用户现在可以选择 115 个预定义 categories 或创建自己的自定义 category！🎉
+
+
+
+
+
+
+
+
+
+
 
 
 

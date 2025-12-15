@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { PageTransition } from '@/components/PageTransition';
 import { CustomQuestionBuilder } from '@/components/CustomQuestionBuilder';
 import { usePageAnimation } from '@/hooks/usePageAnimation';
 import { useUserType } from '@/hooks/useUserType';
+import { useSession } from '@/hooks/useSession';
 import { supabase } from '@/lib/supabase';
 import { 
   getRecommendedCategories, 
@@ -47,8 +48,8 @@ const STEPS = [
 interface JobFormData {
   // Step 1: Classify
   jobTitle: string;
-  category: string;
-  categorySkills: string[]; // Skills associated with the category
+  categories: string[]; // Multiple categories can be selected
+  categorySkills: string[]; // Skills associated with the categories
   isCategoryManuallySelected: boolean; // Track if user manually selected category
   countryRegion: string;
   experienceLevel: string;
@@ -81,10 +82,14 @@ interface JobFormData {
   applicationDeadline: string;
 }
 
-export default function CreateJobAd() {
+function CreateJobAdForm() {
   const mounted = usePageAnimation();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get('edit');
+  const { session, loading: sessionLoading } = useSession(); // ✅ 使用缓存的 session
   const [currentStep, setCurrentStep] = useState(1);
+  const [isLoadingEdit, setIsLoadingEdit] = useState(!!editId);
   const [recommendedCategories, setRecommendedCategories] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showCustomInput, setShowCustomInput] = useState(false);
@@ -97,6 +102,8 @@ export default function CreateJobAd() {
   const [coverPreview, setCoverPreview] = useState<string>('');
   const [showCustomQuestionBuilder, setShowCustomQuestionBuilder] = useState(false);
   const [editingCustomQuestion, setEditingCustomQuestion] = useState<CustomScreeningQuestion | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   
   // 使用权限检查 hook
   const { user, loading, isEmployer } = useUserType({
@@ -107,7 +114,7 @@ export default function CreateJobAd() {
   // 表单数据
   const [formData, setFormData] = useState<JobFormData>({
     jobTitle: '',
-    category: '',
+    categories: [],
     categorySkills: [],
     isCategoryManuallySelected: false,
     countryRegion: 'Australia',
@@ -137,24 +144,91 @@ export default function CreateJobAd() {
     applicationDeadline: '',
   });
 
+  // Load job data for editing - optimized with useSession
+  useEffect(() => {
+    const loadEditData = async () => {
+      if (!editId || !user || !session) return; // ✅ 使用缓存的 session
+      
+      setIsLoadingEdit(true);
+      try {
+        const response = await fetch(`/api/job-postings/${editId}`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          const job = data.data;
+          
+          // Convert currency string back to object
+          const currencyObj = CURRENCIES.find(c => c.code === job.currency) || CURRENCIES[0];
+          
+          setFormData({
+            jobTitle: job.jobTitle,
+            categories: job.categories,
+            categorySkills: job.categorySkills,
+            isCategoryManuallySelected: job.isCategoryManuallySelected,
+            countryRegion: job.countryRegion,
+            experienceLevel: job.experienceLevel,
+            experienceYearsFrom: job.experienceYearsFrom,
+            experienceYearsTo: job.experienceYearsTo === 'Unlimited' ? 'Unlimited' : parseInt(job.experienceYearsTo),
+            workType: job.workType,
+            payType: job.payType,
+            currency: currencyObj,
+            payFrom: job.payFrom,
+            payTo: job.payTo,
+            showSalaryOnAd: job.showSalaryOnAd,
+            salaryDisplayText: job.salaryDisplayText || '',
+            companyName: job.companyName,
+            jobDescription: job.jobDescription,
+            jobSummary: job.jobSummary,
+            keySellingPoint1: job.keySellingPoint1 || '',
+            keySellingPoint2: job.keySellingPoint2 || '',
+            keySellingPoint3: job.keySellingPoint3 || '',
+            companyLogo: job.companyLogo || '',
+            companyCoverImage: job.companyCoverImage || '',
+            videoLink: job.videoLink || '',
+            selectedCountries: job.selectedCountries,
+            workAuthByCountry: job.workAuthByCountry || {},
+            systemScreeningAnswers: job.systemScreeningAnswers || [],
+            customScreeningQuestions: job.customScreeningQuestions || [],
+            applicationDeadline: job.applicationDeadline || '',
+          });
+          
+          // Set previews for images
+          if (job.companyLogo) setLogoPreview(job.companyLogo);
+          if (job.companyCoverImage) setCoverPreview(job.companyCoverImage);
+        }
+      } catch (error) {
+        console.error('Error loading job data:', error);
+      } finally {
+        setIsLoadingEdit(false);
+      }
+    };
+    
+    loadEditData();
+  }, [editId, user, session]); // ✅ 添加 session 依赖
+
   // Job title 变化时触发智能推荐
   useEffect(() => {
-    if (formData.jobTitle && formData.jobTitle.trim().length > 0) {
+    if (formData.jobTitle && formData.jobTitle.trim().length > 0 && !editId) {
       const recommendations = getRecommendedCategories(formData.jobTitle);
       const categoryNames = recommendations.map(r => r.category);
       setRecommendedCategories(categoryNames);
       
-      // 只有在未手动选择时，才自动设置推荐的 category
+      // 只有在未手动选择时，才自动设置推荐的 category（选择第一个）
       if (!formData.isCategoryManuallySelected && categoryNames.length > 0) {
         setFormData(prev => ({
           ...prev,
-          category: categoryNames[0]
+          categories: [categoryNames[0]]
         }));
       }
     } else {
       setRecommendedCategories([]);
     }
-  }, [formData.jobTitle, formData.isCategoryManuallySelected]);
+  }, [formData.jobTitle, formData.isCategoryManuallySelected, editId]);
 
   // Country/Region 变化时自动建议货币
   useEffect(() => {
@@ -179,6 +253,32 @@ export default function CreateJobAd() {
     }
   }, [formData.experienceLevel]);
 
+  // Step 3: 自动选择 Step 1 中的国家 + Remote
+  useEffect(() => {
+    if (currentStep === 3) {
+      const availableCountries = [formData.countryRegion];
+      // 只添加 Remote 如果不是已经在列表中
+      if (!availableCountries.includes('Remote')) {
+        availableCountries.push('Remote');
+      }
+      
+      // 自动选中这些国家（如果还没选）
+      setFormData(prev => {
+        const newSelectedCountries = availableCountries.filter(country => 
+          !prev.selectedCountries.includes(country)
+        );
+        
+        if (newSelectedCountries.length > 0) {
+          return {
+            ...prev,
+            selectedCountries: [...prev.selectedCountries, ...newSelectedCountries]
+          };
+        }
+        return prev;
+      });
+    }
+  }, [currentStep, formData.countryRegion]);
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.push('/companies');
@@ -197,13 +297,24 @@ export default function CreateJobAd() {
   };
 
   const handleCategorySelect = (category: string) => {
-    const skills = getSkillsForCategory(category);
-    setFormData(prev => ({
+    setFormData(prev => {
+      const isSelected = prev.categories.includes(category);
+      const newCategories = isSelected
+        ? prev.categories.filter(c => c !== category)
+        : [...prev.categories, category];
+      
+      // 收集所有选中 categories 的技能
+      const allSkills = newCategories.flatMap(cat => getSkillsForCategory(cat));
+      // 去重
+      const uniqueSkills = Array.from(new Set(allSkills));
+      
+      return {
       ...prev,
-      category,
-      categorySkills: skills,
+        categories: newCategories,
+        categorySkills: uniqueSkills,
       isCategoryManuallySelected: true
-    }));
+      };
+    });
     setShowCustomInput(false);
     setCustomCategoryInput('');
     setIsEditingSkills(false);
@@ -214,8 +325,8 @@ export default function CreateJobAd() {
     if (customCategoryInput.trim()) {
       setFormData(prev => ({
         ...prev,
-        category: customCategoryInput.trim(),
-        categorySkills: [], // No predefined skills for custom category
+        categories: [...prev.categories, customCategoryInput.trim()],
+        categorySkills: prev.categorySkills, // Keep existing skills
         isCategoryManuallySelected: true
       }));
       setShowCustomInput(false);
@@ -295,8 +406,8 @@ export default function CreateJobAd() {
     if (!formData.jobTitle.trim()) {
       newErrors.jobTitle = 'Job title is required';
     }
-    if (!formData.category) {
-      newErrors.category = 'Category is required';
+    if (formData.categories.length === 0) {
+      newErrors.categories = 'At least one category is required';
     }
     if (!formData.countryRegion) {
       newErrors.countryRegion = 'Country/Region is required';
@@ -529,16 +640,143 @@ export default function CreateJobAd() {
     }
   };
 
-  const handleSubmit = async () => {
-    // TODO: 实现提交逻辑
-    console.log('Submitting job ad:', formData);
+  // 保存草稿
+  const handleSaveDraft = async () => {
+    setIsSaving(true);
+    setSaveMessage(null);
+    
+    try {
+      // ✅ 使用缓存的 session，无需重新获取
+      if (!session) {
+        throw new Error('Please login to save your job posting');
+      }
+      
+      const payload = {
+        ...formData,
+        id: editId || undefined,  // Include ID if editing
+        // Convert currency object to string (code only)
+        currency: typeof formData.currency === 'object' ? formData.currency.code : formData.currency,
+        status: 'DRAFT' as const,
+      };
+      
+      const response = await fetch('/api/job-postings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      
+      // Check if response is ok
+      if (!response.ok) {
+        const text = await response.text();
+        console.error('Server Error Response:', text);
+        throw new Error(`Server error (${response.status}): ${text || 'Unknown error'}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setSaveMessage({ type: 'success', text: 'Draft saved successfully!' });
+        setTimeout(() => setSaveMessage(null), 3000);
+      } else {
+        // Log detailed error for debugging
+        console.error('API Error:', data);
+        const errorMessage = data.details 
+          ? `${data.error}: ${data.details}` 
+          : data.error || 'Failed to save draft';
+        throw new Error(errorMessage);
+      }
+    } catch (error) {
+      console.error('Error saving draft:', error);
+      setSaveMessage({ 
+        type: 'error', 
+        text: error instanceof Error ? error.message : 'Failed to save draft'
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  if (loading || !isEmployer) {
+  // 发布职位
+  const handlePublish = async () => {
+    // 最终验证
+    if (!validateStep1() || !validateStep2()) {
+      setSaveMessage({ type: 'error', text: 'Please complete all required fields' });
+      return;
+    }
+    
+    setIsSaving(true);
+    setSaveMessage(null);
+    
+    try {
+      // ✅ 使用缓存的 session，无需重新获取
+      if (!session) {
+        throw new Error('Please login to publish your job posting');
+      }
+      
+      const payload = {
+        ...formData,
+        id: editId || undefined,  // Include ID if editing
+        // Convert currency object to string (code only)
+        currency: typeof formData.currency === 'object' ? formData.currency.code : formData.currency,
+        status: 'PUBLISHED' as const,
+      };
+      
+      const response = await fetch('/api/job-postings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      
+      // Check if response is ok
+      if (!response.ok) {
+        const text = await response.text();
+        console.error('Server Error Response:', text);
+        throw new Error(`Server error (${response.status}): ${text || 'Unknown error'}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setSaveMessage({ type: 'success', text: 'Job posted successfully!' });
+        // 跳转到 jobs 页面
+        setTimeout(() => {
+          router.push('/employer/jobs');
+        }, 1500);
+      } else {
+        // Log detailed error for debugging
+        console.error('API Error:', data);
+        const errorMessage = data.details 
+          ? `${data.error}: ${data.details}` 
+          : data.error || 'Failed to publish job';
+        throw new Error(errorMessage);
+      }
+    } catch (error) {
+      console.error('Error publishing job:', error);
+      setSaveMessage({ 
+        type: 'error', 
+        text: error instanceof Error ? error.message : 'Failed to publish job'
+      });
+      setIsSaving(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    await handlePublish();
+  };
+
+  if (loading || !isEmployer || sessionLoading || isLoadingEdit) {
     return (
       <PageTransition>
         <div className={styles.container}>
-          <div className={styles.loading}>Loading...</div>
+          <div className={styles.loading}>
+            {isLoadingEdit ? 'Loading job data...' : sessionLoading ? 'Initializing...' : 'Loading...'}
+          </div>
         </div>
       </PageTransition>
     );
@@ -672,16 +910,20 @@ export default function CreateJobAd() {
                         
                         <div className={styles.categoryGrid}>
                           {recommendedCategories.slice(0, 4).map((cat) => (
-                            <button
+                            <label
                               key={cat}
-                              type="button"
                               className={`${styles.categoryCard} ${
-                                formData.category === cat ? styles.categoryCardActive : ''
+                                formData.categories.includes(cat) ? styles.categoryCardActive : ''
                               }`}
-                              onClick={() => handleCategorySelect(cat)}
                             >
-                              {cat}
-                            </button>
+                              <input
+                                type="checkbox"
+                                checked={formData.categories.includes(cat)}
+                                onChange={() => handleCategorySelect(cat)}
+                                style={{ marginRight: '8px' }}
+                              />
+                              <span>{cat}</span>
+                            </label>
                           ))}
                         </div>
                       </div>
@@ -730,7 +972,7 @@ export default function CreateJobAd() {
                       </div>
                     ) : (
                       <>
-                        {/* Category dropdown with collapsible scroll */}
+                        {/* Category multiselect with collapsible scroll */}
                         <div className={styles.categoryDropdownWrapper}>
                           {/* Collapsed single-line view */}
                           {!isCategoryExpanded ? (
@@ -738,23 +980,13 @@ export default function CreateJobAd() {
                               className={styles.categoryCollapsed}
                               onClick={toggleCategoryExpand}
                             >
-                              <select
-                                className={`${styles.select} ${errors.category ? styles.inputError : ''}`}
-                                value={formData.category && allCategories.includes(formData.category) ? formData.category : ''}
-                                onChange={(e) => handleDropdownChange(e.target.value)}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleCategoryExpand();
-                                }}
-                              >
-                                <option value="">Select from categories or create custom...</option>
-                                {allCategories.map((cat) => (
-                                  <option key={cat} value={cat}>
-                                    {cat}
-                                  </option>
-                                ))}
-                                <option value="__custom__">➕ Create Custom Category</option>
-                              </select>
+                              <div className={`${styles.select} ${errors.categories ? styles.inputError : ''}`}>
+                                {formData.categories.length === 0 ? (
+                                  <span style={{ color: '#999' }}>Select categories or create custom...</span>
+                                ) : (
+                                  <span>{formData.categories.length} categor{formData.categories.length === 1 ? 'y' : 'ies'} selected</span>
+                                )}
+                              </div>
                               <div className={styles.expandHint}>
                                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                                   <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -766,7 +998,7 @@ export default function CreateJobAd() {
                             /* Expanded scrollable list view */
                             <div className={styles.categoryExpanded}>
                               <div className={styles.expandedHeader}>
-                                <span>Select a category (scrollable list)</span>
+                                <span>Select categories (scrollable list, multiple selection)</span>
                                 <button
                                   type="button"
                                   className={styles.collapseBtn}
@@ -778,44 +1010,64 @@ export default function CreateJobAd() {
                                   Collapse
                                 </button>
                               </div>
-                              <select
-                                className={`${styles.select} ${styles.scrollableSelect} ${errors.category ? styles.inputError : ''}`}
-                                value={formData.category && allCategories.includes(formData.category) ? formData.category : ''}
-                                onChange={(e) => handleDropdownChange(e.target.value)}
-                                size={8}
-                              >
-                                <option value="">Select from categories or create custom...</option>
+                              <div className={`${styles.scrollableSelect} ${errors.categories ? styles.inputError : ''}`}>
                                 {allCategories.map((cat) => (
-                                  <option key={cat} value={cat}>
-                                    {cat}
-                                  </option>
+                                  <label key={cat} className={styles.categoryOption}>
+                                    <input
+                                      type="checkbox"
+                                      checked={formData.categories.includes(cat)}
+                                      onChange={() => handleCategorySelect(cat)}
+                                    />
+                                    <span>{cat}</span>
+                                  </label>
                                 ))}
-                                <option value="__custom__">➕ Create Custom Category</option>
-                              </select>
+                                <div className={styles.categoryOption} style={{ borderTop: '2px solid #e0e0e0', marginTop: '8px', paddingTop: '8px' }}>
+                                  <button
+                                    type="button"
+                                    className={styles.btnSecondary}
+                                    onClick={() => {
+                                      setShowCustomInput(true);
+                                      setIsCategoryExpanded(false);
+                                    }}
+                                    style={{ width: '100%' }}
+                                  >
+                                    ➕ Create Custom Category
+                                  </button>
+                                </div>
+                              </div>
                             </div>
                           )}
                         </div>
                         
-                        {/* Show current custom category if set */}
-                        {formData.category && !allCategories.includes(formData.category) && (
-                          <div className={styles.customCategoryBadge}>
+                        {/* Show current custom categories and selected categories */}
+                        {formData.categories.length > 0 && (
+                          <div className={styles.selectedCategoriesWrapper}>
+                            <label className={styles.label}>Selected Categories:</label>
+                            <div className={styles.selectedCategoriesList}>
+                              {formData.categories.map((cat) => (
+                                <div key={cat} className={styles.customCategoryBadge}>
+                                  {!allCategories.includes(cat) && (
                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                               <path d="M8 2V14M2 8H14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                             </svg>
-                            <span>Custom: {formData.category}</span>
+                                  )}
+                                  <span>{!allCategories.includes(cat) ? `Custom: ${cat}` : cat}</span>
                             <button
                               type="button"
                               className={styles.removeCustomBtn}
-                              onClick={() => setFormData(prev => ({ ...prev, category: '', categorySkills: [] }))}
-                              title="Remove custom category"
+                                    onClick={() => handleCategorySelect(cat)}
+                                    title="Remove category"
                             >
                               ×
                             </button>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         )}
                         
-                        {errors.category && (
-                          <span className={styles.errorText}>{errors.category}</span>
+                        {errors.categories && (
+                          <span className={styles.errorText}>{errors.categories}</span>
                         )}
                         <span className={styles.hint}>
                           Select from 115 predefined categories or create your own custom category
@@ -824,7 +1076,7 @@ export default function CreateJobAd() {
                     )}
                     
                     {/* Skills display/edit section */}
-                    {formData.category && (
+                    {formData.categories.length > 0 && (
                       <div className={styles.skillsSection}>
                         <div className={styles.skillsHeader}>
                           <label className={styles.label}>Associated Skills</label>
@@ -1425,10 +1677,14 @@ export default function CreateJobAd() {
                     <div className={styles.formGroup}>
                       <label className={styles.label}>Countries/Regions</label>
                       <span className={styles.hint}>
-                        Select all locations where candidates can work from
+                        Based on your job location selection in Step 1
                       </span>
                       <div className={styles.countriesGrid}>
-                        {COUNTRIES_REGIONS.map((country) => (
+                        {COUNTRIES_REGIONS
+                          .filter(country => 
+                            country.value === formData.countryRegion || country.value === 'Remote'
+                          )
+                          .map((country) => (
                           <label
                             key={country.value}
                             className={`${styles.countryCard} ${
@@ -1649,36 +1905,83 @@ export default function CreateJobAd() {
                 </div>
               )}
 
+              {/* Save Message */}
+              {saveMessage && (
+                <div className={`${styles.saveMessage} ${
+                  saveMessage.type === 'success' ? styles.saveMessageSuccess : styles.saveMessageError
+                }`}>
+                  {saveMessage.type === 'success' ? '✓' : '✕'} {saveMessage.text}
+                </div>
+              )}
+
               {/* Navigation Buttons */}
               <div className={styles.formActions}>
-                {currentStep > 1 && (
+                <div className={styles.leftActions}>
+                  {currentStep > 1 && (
+                    <button 
+                      className={styles.btnSecondary}
+                      onClick={handleBack}
+                      disabled={isSaving}
+                    >
+                      Back
+                    </button>
+                  )}
+                </div>
+                
+                <div className={styles.rightActions}>
+                  {/* Save Draft Button - Always visible */}
                   <button 
                     className={styles.btnSecondary}
-                    onClick={handleBack}
+                    onClick={handleSaveDraft}
+                    disabled={isSaving || !formData.jobTitle || formData.categories.length === 0}
+                    title="Save current progress as draft"
                   >
-                    Back
+                    {isSaving ? 'Saving...' : 'Save Draft'}
                   </button>
-                )}
-                {currentStep < STEPS.length ? (
-                  <button 
-                    className={styles.btnPrimary}
-                    onClick={handleNext}
-                  >
-                    Continue
-                  </button>
-                ) : (
-                  <button 
-                    className={styles.btnPrimary}
-                    onClick={handleSubmit}
-                  >
-                    Publish Job Ad
-                  </button>
-                )}
+                  
+                  {currentStep < STEPS.length ? (
+                    <button 
+                      className={styles.btnPrimary}
+                      onClick={handleNext}
+                      disabled={isSaving}
+                    >
+                      Continue
+                    </button>
+                  ) : (
+                    <button 
+                      className={styles.btnPrimary}
+                      onClick={handleSubmit}
+                      disabled={isSaving}
+                    >
+                      {isSaving ? 'Publishing...' : 'Publish Job Ad'}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </main>
       </div>
     </PageTransition>
+  );
+}
+
+// Wrapper component with Suspense for useSearchParams
+export default function CreateJobAd() {
+  return (
+    <Suspense fallback={
+      <PageTransition>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          minHeight: '100vh' 
+        }}>
+          <div>Loading...</div>
+        </div>
+      </PageTransition>
+    }>
+      <CreateJobAdForm />
+    </Suspense>
   );
 }

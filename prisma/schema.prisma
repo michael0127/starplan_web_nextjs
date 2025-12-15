@@ -13,6 +13,36 @@ enum UserType {
   EMPLOYER
 }
 
+enum JobStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+  ARCHIVED
+}
+
+enum WorkType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+}
+
+enum PayType {
+  ANNUAL_SALARY
+  HOURLY_RATE
+  DAILY_RATE
+  PROJECT_BASED
+}
+
+enum ExperienceLevel {
+  INTERN
+  JUNIOR
+  MID_LEVEL
+  SENIOR
+  LEAD
+  PRINCIPAL
+}
+
 // 用户表（C端和B端统一）
 model User {
   id                     String   @id @default(uuid()) @db.Uuid
@@ -34,8 +64,9 @@ model User {
   // Profile额外信息（JSON格式）
   profile                Json?    @map("profile")
 
-  cvs CV[]
-  jds JobDescription[]
+  cvs         CV[]
+  jds         JobDescription[]
+  jobPostings JobPosting[]
 
   @@map("users")
 }
@@ -66,4 +97,84 @@ model JobDescription {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("job_descriptions")
+}
+
+// 职位发布表
+model JobPosting {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  status    JobStatus @default(DRAFT)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  // Step 1: Job Classification
+  jobTitle                   String   @map("job_title")
+  categories                 String[] @default([]) // Multiple categories can be selected
+  categorySkills             String[] @default([]) @map("category_skills")
+  isCategoryManuallySelected Boolean  @default(false) @map("is_category_manually_selected")
+  countryRegion              String   @map("country_region")
+  experienceLevel            String   @map("experience_level")
+  experienceYearsFrom        Int      @map("experience_years_from")
+  experienceYearsTo          String   @map("experience_years_to") // Can be "Unlimited" or number
+  workType                   String   @map("work_type")
+  payType                    String   @map("pay_type")
+  currency                   String
+  payFrom                    String   @map("pay_from")
+  payTo                      String   @map("pay_to")
+  showSalaryOnAd             Boolean  @default(true) @map("show_salary_on_ad")
+  salaryDisplayText          String?  @map("salary_display_text")
+
+  // Step 2: Job Details
+  companyName       String  @default("") @map("company_name")
+  jobDescription    String  @default("") @map("job_description") @db.Text
+  jobSummary        String  @default("") @map("job_summary")
+  keySellingPoint1  String? @map("key_selling_point_1")
+  keySellingPoint2  String? @map("key_selling_point_2")
+  keySellingPoint3  String? @map("key_selling_point_3")
+  companyLogo       String? @map("company_logo") @db.Text // Base64 or URL
+  companyCoverImage String? @map("company_cover_image") @db.Text // Base64 or URL
+  videoLink         String? @map("video_link")
+
+  // Step 3: Screening & Filters
+  selectedCountries String[] @default([]) @map("selected_countries")
+  workAuthByCountry Json?    @map("work_auth_by_country") // Record<string, string>
+  applicationDeadline DateTime? @map("application_deadline")
+
+  // Relations
+  user                       User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  systemScreeningAnswers     SystemScreeningAnswer[]
+  customScreeningQuestions   CustomScreeningQuestion[]
+
+  @@map("job_postings")
+}
+
+// 系统筛选问题答案
+model SystemScreeningAnswer {
+  id             String   @id @default(uuid()) @db.Uuid
+  jobPostingId   String   @map("job_posting_id") @db.Uuid
+  questionId     String   @map("question_id")
+  requirement    String // 'must-have' | 'preferred' | 'accept-any'
+  selectedAnswers String[] @default([]) @map("selected_answers")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  jobPosting JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+
+  @@map("system_screening_answers")
+}
+
+// 自定义筛选问题
+model CustomScreeningQuestion {
+  id                    String   @id @default(uuid()) @db.Uuid
+  jobPostingId          String   @map("job_posting_id") @db.Uuid
+  questionText          String   @map("question_text")
+  answerType            String   @map("answer_type") // 'single' | 'multiple' | 'yes-no' | 'short-text'
+  options               String[] @default([]) // For single/multiple choice
+  mustAnswer            Boolean  @default(false) @map("must_answer")
+  idealAnswer           Json?    @map("ideal_answer") // string | string[]
+  disqualifyIfNotIdeal  Boolean  @default(false) @map("disqualify_if_not_ideal")
+  createdAt             DateTime @default(now()) @map("created_at")
+
+  jobPosting JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+
+  @@map("custom_screening_questions")
 }

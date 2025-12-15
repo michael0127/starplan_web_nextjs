@@ -1,0 +1,175 @@
+.jobCard {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 24px;
+  transition: all 0.2s ease;
+}
+
+.jobCard:hover {
+  border-color: #2563eb;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+}
+
+.jobHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.jobTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.jobTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.jobMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #666;
+  flex-wrap: wrap;
+}
+
+.jobCategories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.categoryTag {
+  background: #f1f5f9;
+  color: #475569;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.jobSummary {
+  color: #666;
+  font-size: 15px;
+  line-height: 1.6;
+  margin: 16px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.jobActions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+/* Status Badges */
+.statusBadge {
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.statusDraft {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.statusPublished {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.statusClosed {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.statusArchived {
+  background: #e5e7eb;
+  color: #6b7280;
+}
+
+/* Buttons */
+.btnPrimary,
+.btnSecondary,
+.btnDanger {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}
+
+.btnPrimary {
+  background: #2563eb;
+  color: white;
+  border: 1px solid #2563eb;
+}
+
+.btnPrimary:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.btnSecondary {
+  background: transparent;
+  color: #64748b;
+  border: 1px solid #e0e0e0;
+}
+
+.btnSecondary:hover {
+  background: #f8f9fa;
+  border-color: #cbd5e1;
+}
+
+.btnDanger {
+  background: transparent;
+  border: 1px solid #dc2626;
+  color: #dc2626;
+}
+
+.btnDanger:hover {
+  background: #dc2626;
+  color: white;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .jobCard {
+    padding: 16px;
+  }
+  
+  .jobTitle {
+    font-size: 18px;
+  }
+  
+  .jobActions {
+    flex-direction: column;
+  }
+  
+  .btnPrimary,
+  .btnSecondary,
+  .btnDanger {
+    width: 100%;
+  }
+}
+
