@@ -458,28 +458,55 @@ function CreateJobAdForm() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        setErrors(prev => ({ ...prev, companyLogo: 'Please upload an image file' }));
-        return;
+    if (!file) return;
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setErrors(prev => ({ ...prev, companyLogo: 'Please upload an image file' }));
+      return;
+    }
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setErrors(prev => ({ ...prev, companyLogo: 'Image size must be less than 5MB' }));
+      return;
+    }
+    
+    try {
+      // Create a preview using object URL for immediate feedback
+      const previewUrl = URL.createObjectURL(file);
+      setLogoPreview(previewUrl);
+      
+      // Get session for API call
+      if (!session) {
+        throw new Error('User not authenticated');
       }
       
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setErrors(prev => ({ ...prev, companyLogo: 'Image size must be less than 5MB' }));
-        return;
+      // Create form data for upload
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', 'logo');
+      
+      // Upload via API route
+      const response = await fetch('/api/upload-image', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to upload logo');
       }
       
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setLogoPreview(reader.result as string);
-        setFormData(prev => ({ ...prev, companyLogo: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
+      const data = await response.json();
+      
+      // Update form data with URL
+      setFormData(prev => ({ ...prev, companyLogo: data.data.url }));
       
       // Clear error
       setErrors(prev => {
@@ -487,31 +514,65 @@ function CreateJobAdForm() {
         delete newErrors.companyLogo;
         return newErrors;
       });
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      setErrors(prev => ({ 
+        ...prev, 
+        companyLogo: error instanceof Error ? error.message : 'Failed to upload logo'
+      }));
+      setLogoPreview('');
     }
   };
 
-  const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        setErrors(prev => ({ ...prev, companyCoverImage: 'Please upload an image file' }));
-        return;
+    if (!file) return;
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setErrors(prev => ({ ...prev, companyCoverImage: 'Please upload an image file' }));
+      return;
+    }
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setErrors(prev => ({ ...prev, companyCoverImage: 'Image size must be less than 5MB' }));
+      return;
+    }
+    
+    try {
+      // Create a preview using object URL for immediate feedback
+      const previewUrl = URL.createObjectURL(file);
+      setCoverPreview(previewUrl);
+      
+      // Get session for API call
+      if (!session) {
+        throw new Error('User not authenticated');
       }
       
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setErrors(prev => ({ ...prev, companyCoverImage: 'Image size must be less than 5MB' }));
-        return;
+      // Create form data for upload
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', 'cover');
+      
+      // Upload via API route
+      const response = await fetch('/api/upload-image', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to upload cover image');
       }
       
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setCoverPreview(reader.result as string);
-        setFormData(prev => ({ ...prev, companyCoverImage: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
+      const data = await response.json();
+      
+      // Update form data with URL
+      setFormData(prev => ({ ...prev, companyCoverImage: data.data.url }));
       
       // Clear error
       setErrors(prev => {
@@ -519,15 +580,78 @@ function CreateJobAdForm() {
         delete newErrors.companyCoverImage;
         return newErrors;
       });
+    } catch (error) {
+      console.error('Error uploading cover image:', error);
+      setErrors(prev => ({ 
+        ...prev, 
+        companyCoverImage: error instanceof Error ? error.message : 'Failed to upload cover image'
+      }));
+      setCoverPreview('');
     }
   };
 
-  const handleRemoveLogo = () => {
+  const handleRemoveLogo = async () => {
+    // If there's a URL stored, try to delete from storage via API
+    if (formData.companyLogo && formData.companyLogo.includes('supabase')) {
+      try {
+        if (!session) {
+          console.warn('No session available for deletion');
+        } else {
+          await fetch('/api/upload-image', {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({
+              url: formData.companyLogo,
+              type: 'logo'
+            }),
+          });
+        }
+      } catch (error) {
+        console.error('Error deleting logo from storage:', error);
+      }
+    }
+    
+    // Revoke object URL if it exists
+    if (logoPreview && logoPreview.startsWith('blob:')) {
+      URL.revokeObjectURL(logoPreview);
+    }
+    
     setLogoPreview('');
     setFormData(prev => ({ ...prev, companyLogo: '' }));
   };
 
-  const handleRemoveCover = () => {
+  const handleRemoveCover = async () => {
+    // If there's a URL stored, try to delete from storage via API
+    if (formData.companyCoverImage && formData.companyCoverImage.includes('supabase')) {
+      try {
+        if (!session) {
+          console.warn('No session available for deletion');
+        } else {
+          await fetch('/api/upload-image', {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({
+              url: formData.companyCoverImage,
+              type: 'cover'
+            }),
+          });
+        }
+      } catch (error) {
+        console.error('Error deleting cover from storage:', error);
+      }
+    }
+    
+    // Revoke object URL if it exists
+    if (coverPreview && coverPreview.startsWith('blob:')) {
+      URL.revokeObjectURL(coverPreview);
+    }
+    
     setCoverPreview('');
     setFormData(prev => ({ ...prev, companyCoverImage: '' }));
   };

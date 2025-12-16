@@ -131,8 +131,8 @@ model JobPosting {
   keySellingPoint1  String? @map("key_selling_point_1")
   keySellingPoint2  String? @map("key_selling_point_2")
   keySellingPoint3  String? @map("key_selling_point_3")
-  companyLogo       String? @map("company_logo") @db.Text // Base64 or URL
-  companyCoverImage String? @map("company_cover_image") @db.Text // Base64 or URL
+  companyLogo       String? @map("company_logo") @db.Text // Supabase Storage URL
+  companyCoverImage String? @map("company_cover_image") @db.Text // Supabase Storage URL
   videoLink         String? @map("video_link")
 
   // Step 3: Screening & Filters

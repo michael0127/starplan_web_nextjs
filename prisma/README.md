@@ -224,3 +224,4 @@ SELECT * FROM pg_trigger WHERE tgname LIKE 'on_auth_user%';
 
 
 
+
