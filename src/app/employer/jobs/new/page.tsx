@@ -1917,15 +1917,15 @@ function CreateJobAdForm() {
               {/* Navigation Buttons */}
               <div className={styles.formActions}>
                 <div className={styles.leftActions}>
-                  {currentStep > 1 && (
-                    <button 
-                      className={styles.btnSecondary}
-                      onClick={handleBack}
+                {currentStep > 1 && (
+                  <button 
+                    className={styles.btnSecondary}
+                    onClick={handleBack}
                       disabled={isSaving}
-                    >
-                      Back
-                    </button>
-                  )}
+                  >
+                    Back
+                  </button>
+                )}
                 </div>
                 
                 <div className={styles.rightActions}>
@@ -1939,23 +1939,23 @@ function CreateJobAdForm() {
                     {isSaving ? 'Saving...' : 'Save Draft'}
                   </button>
                   
-                  {currentStep < STEPS.length ? (
-                    <button 
-                      className={styles.btnPrimary}
-                      onClick={handleNext}
+                {currentStep < STEPS.length ? (
+                  <button 
+                    className={styles.btnPrimary}
+                    onClick={handleNext}
                       disabled={isSaving}
-                    >
-                      Continue
-                    </button>
-                  ) : (
-                    <button 
-                      className={styles.btnPrimary}
-                      onClick={handleSubmit}
+                  >
+                    Continue
+                  </button>
+                ) : (
+                  <button 
+                    className={styles.btnPrimary}
+                    onClick={handleSubmit}
                       disabled={isSaving}
-                    >
+                  >
                       {isSaving ? 'Publishing...' : 'Publish Job Ad'}
-                    </button>
-                  )}
+                  </button>
+                )}
                 </div>
               </div>
             </div>

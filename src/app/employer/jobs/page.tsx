@@ -90,9 +90,9 @@ export default function EmployerJobs() {
       if (!session) {
         console.error('No session found');
         setIsDeleting(false);
-        return;
-      }
-      
+      return;
+    }
+    
       const response = await fetch(`/api/job-postings/${jobToDelete.id}`, {
         method: 'DELETE',
         headers: {
