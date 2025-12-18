@@ -34,6 +34,7 @@ import {
   type SystemScreeningAnswer,
   type CustomScreeningQuestion,
 } from '@/lib/screeningOptions';
+import { getStripeProductConfig, formatCurrency } from '@/lib/stripeProducts';
 import styles from './page.module.css';
 
 // 步骤定义
@@ -87,8 +88,10 @@ function CreateJobAdForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get('edit');
+  const stepParam = searchParams.get('step');
+  const paymentStatus = searchParams.get('payment');
   const { session, loading: sessionLoading } = useSession(); // ✅ 使用缓存的 session
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(stepParam ? parseInt(stepParam) : 1);
   const [isLoadingEdit, setIsLoadingEdit] = useState(!!editId);
   const [recommendedCategories, setRecommendedCategories] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -105,6 +108,9 @@ function CreateJobAdForm() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [currentJobPostingId, setCurrentJobPostingId] = useState<string | null>(editId);
+  const [purchaseLoading, setPurchaseLoading] = useState(false);
+  const [purchaseError, setPurchaseError] = useState<string | null>(null);
+  const [isPurchaseComplete, setIsPurchaseComplete] = useState(false);
   
   // 使用权限检查 hook
   const { user, loading, isEmployer } = useUserType({
@@ -241,6 +247,17 @@ function CreateJobAdForm() {
       }));
     }
   }, [formData.countryRegion]);
+
+  // Handle payment cancellation
+  useEffect(() => {
+    if (paymentStatus === 'canceled') {
+      setPurchaseError('Payment was canceled. You can try again when ready.');
+      // Clear the payment status from URL
+      const url = new URL(window.location.href);
+      url.searchParams.delete('payment');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, [paymentStatus]);
 
   // Experience Level 变化时自动建议年限
   useEffect(() => {
@@ -768,6 +785,52 @@ function CreateJobAdForm() {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
       window.scrollTo(0, 0);
+    }
+  };
+
+  // 保存职位（返回 job ID 或 null）
+  const saveJobPosting = async (status: 'DRAFT' | 'PUBLISHED' = 'DRAFT'): Promise<string | null> => {
+    try {
+      if (!session) {
+        throw new Error('Please login to save your job posting');
+      }
+      
+      const payload = {
+        ...formData,
+        id: currentJobPostingId || undefined,
+        currency: typeof formData.currency === 'object' ? formData.currency.code : formData.currency,
+        status,
+      };
+      
+      const response = await fetch('/api/job-postings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      
+      if (!response.ok) {
+        const text = await response.text();
+        console.error('Server Error Response:', text);
+        return null;
+      }
+      
+      const data = await response.json();
+      
+      if (data.success && data.data?.id) {
+        // Update state
+        if (!currentJobPostingId) {
+          setCurrentJobPostingId(data.data.id);
+        }
+        // Return the job ID
+        return data.data.id;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error saving job posting:', error);
+      return null;
     }
   };
 
@@ -2036,11 +2099,264 @@ function CreateJobAdForm() {
                 <div className={styles.stepContent}>
                   <h2 className={styles.stepTitle}>Review & Payment</h2>
                   <p className={styles.stepDescription}>
-                    Review your job ad and proceed with payment.
+                    Review your job posting and complete payment to publish.
                   </p>
-                  <p style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
-                    Step 4 content (existing implementation)
-                  </p>
+                  
+                  <div className={styles.paymentContainer}>
+                    {/* Left: Job Review */}
+                    <div className={styles.reviewSection}>
+                      <div className={styles.reviewHeader}>
+                        <h3>Review Your Job Posting</h3>
+                      </div>
+
+                      <div className={styles.reviewCard}>
+                        <div className={styles.jobHeader}>
+                          <h4>{formData.jobTitle}</h4>
+                          <p className={styles.companyName}>{formData.companyName}</p>
+                        </div>
+
+                        <div className={styles.jobDetails}>
+                          <div className={styles.detailRow}>
+                            <span className={styles.detailLabel}>📍 Location:</span>
+                            <span className={styles.detailValue}>{formData.countryRegion}</span>
+                          </div>
+                          <div className={styles.detailRow}>
+                            <span className={styles.detailLabel}>💼 Work Type:</span>
+                            <span className={styles.detailValue}>{formData.workType}</span>
+                          </div>
+                          <div className={styles.detailRow}>
+                            <span className={styles.detailLabel}>⭐ Experience:</span>
+                            <span className={styles.detailValue}>{formData.experienceLevel}</span>
+                          </div>
+                          <div className={styles.detailRow}>
+                            <span className={styles.detailLabel}>💰 Salary:</span>
+                            <span className={styles.detailValue}>
+                              {formData.showSalaryOnAd 
+                                ? `${formData.currency.symbol}${formData.payFrom} - ${formData.currency.symbol}${formData.payTo}`
+                                : formData.salaryDisplayText || 'Not disclosed'}
+                            </span>
+                          </div>
+                          {formData.categories.length > 0 && (
+                            <div className={styles.detailRow}>
+                              <span className={styles.detailLabel}>🏷️ Categories:</span>
+                              <span className={styles.detailValue}>
+                                {formData.categories.join(', ')}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {formData.jobSummary && (
+                          <div className={styles.jobSummary}>
+                            <h4>Job Summary</h4>
+                            <p>{formData.jobSummary}</p>
+                          </div>
+                        )}
+
+                        {formData.jobDescription && (
+                          <div className={styles.jobDescription}>
+                            <h4>Job Description</h4>
+                            <div className={styles.descriptionPreview}>
+                              {formData.jobDescription.substring(0, 300)}
+                              {formData.jobDescription.length > 300 && '...'}
+                            </div>
+                          </div>
+                        )}
+
+                        {formData.selectedCountries.length > 0 && (
+                          <div className={styles.targetCountries}>
+                            <h4>Target Countries</h4>
+                            <div className={styles.countryTags}>
+                              {formData.selectedCountries.map((country) => (
+                                <span key={country} className={styles.countryTag}>
+                                  {country}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {formData.applicationDeadline && (
+                          <div className={styles.deadline}>
+                            <span className={styles.detailLabel}>📅 Deadline:</span>
+                            <span className={styles.detailValue}>
+                              {new Date(formData.applicationDeadline).toLocaleDateString()}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Right: Payment */}
+                    <div className={styles.paymentSection}>
+                      {!isPurchaseComplete ? (
+                        <div className={styles.pricingCard}>
+                          <div className={styles.pricingHeader}>
+                            <h3>Complete Payment</h3>
+                            <span className={styles.badge}>
+                              {['Intern', 'Junior'].includes(formData.experienceLevel) 
+                                ? 'Junior Package' 
+                                : 'Senior Package'}
+                            </span>
+                          </div>
+
+                          <div className={styles.priceDisplay}>
+                            <div className={styles.priceAmount}>
+                              {formatCurrency(
+                                getStripeProductConfig(formData.experienceLevel).amount,
+                                getStripeProductConfig(formData.experienceLevel).currency
+                              )}
+                            </div>
+                            <div className={styles.priceLabel}>one-time payment</div>
+                          </div>
+
+                          <div className={styles.packageInfo}>
+                            <p className={styles.packageNote}>
+                              {['Intern', 'Junior'].includes(formData.experienceLevel)
+                                ? 'Perfect for entry-level positions'
+                                : 'Ideal for experienced professionals'}
+                            </p>
+                          </div>
+
+                          <div className={styles.features}>
+                            <h4>What's included:</h4>
+                            <ul>
+                              <li><span className={styles.checkmark}>✓</span> 30 days of visibility</li>
+                              <li><span className={styles.checkmark}>✓</span> Unlimited applications</li>
+                              <li><span className={styles.checkmark}>✓</span> Advanced screening tools</li>
+                              <li><span className={styles.checkmark}>✓</span> Candidate matching</li>
+                              <li><span className={styles.checkmark}>✓</span> Email notifications</li>
+                              {!['Intern', 'Junior'].includes(formData.experienceLevel) && (
+                                <>
+                                  <li><span className={styles.checkmark}>✓</span> Featured placement</li>
+                                  <li><span className={styles.checkmark}>✓</span> Priority support</li>
+                                  <li><span className={styles.checkmark}>✓</span> Enhanced analytics</li>
+                                </>
+                              )}
+                            </ul>
+                          </div>
+
+                          <div className={styles.pricingBreakdown}>
+                            <div className={styles.breakdownRow}>
+                              <span>Job Posting Package</span>
+                              <span>{formatCurrency(
+                                getStripeProductConfig(formData.experienceLevel).amount,
+                                getStripeProductConfig(formData.experienceLevel).currency
+                              )}</span>
+                            </div>
+                            <div className={styles.breakdownRow}>
+                              <span>Platform Fee</span>
+                              <span>Included</span>
+                            </div>
+                            <div className={styles.breakdownTotal}>
+                              <span>Total</span>
+                              <span>{formatCurrency(
+                                getStripeProductConfig(formData.experienceLevel).amount,
+                                getStripeProductConfig(formData.experienceLevel).currency
+                              )}</span>
+                            </div>
+                          </div>
+
+                          {purchaseError && (
+                            <div className={styles.errorMessage}>
+                              <p>{purchaseError}</p>
+                            </div>
+                          )}
+
+                          <button
+                            className={styles.purchaseButton}
+                            onClick={async () => {
+                              setPurchaseLoading(true);
+                              setPurchaseError(null);
+                              
+                              try {
+                                // First save the job posting if not already saved
+                                let jobId = currentJobPostingId;
+                                if (!jobId) {
+                                  jobId = await saveJobPosting('DRAFT');
+                                  if (!jobId) {
+                                    throw new Error('Failed to save job posting');
+                                  }
+                                }
+
+                                // Create checkout session
+                                const token = session?.access_token;
+                                if (!token) {
+                                  throw new Error('Not authenticated');
+                                }
+
+                                const response = await fetch(`/api/job-postings/${jobId}/purchase`, {
+                                  method: 'POST',
+                                  headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${token}`,
+                                  },
+                                  body: JSON.stringify({
+                                    successUrl: `${window.location.origin}/employer/jobs?success=true&job=${jobId}`,
+                                    cancelUrl: `${window.location.origin}/employer/jobs/new?edit=${jobId}&step=4&payment=canceled`,
+                                  }),
+                                });
+
+                                if (!response.ok) {
+                                  const errorData = await response.json();
+                                  throw new Error(errorData.error || 'Failed to create checkout session');
+                                }
+
+                                const data = await response.json();
+
+                                // Redirect to Stripe Checkout
+                                if (data.sessionUrl) {
+                                  window.location.href = data.sessionUrl;
+                                } else {
+                                  throw new Error('No checkout URL returned');
+                                }
+                              } catch (err) {
+                                console.error('Purchase error:', err);
+                                setPurchaseError(err instanceof Error ? err.message : 'Failed to process purchase');
+                                setPurchaseLoading(false);
+                              }
+                            }}
+                            disabled={purchaseLoading}
+                          >
+                            {purchaseLoading ? (
+                              <>
+                                <span className={styles.spinner}></span>
+                                Processing...
+                              </>
+                            ) : (
+                              <>🔒 Proceed to Payment</>
+                            )}
+                          </button>
+
+                          <div className={styles.securePayment}>
+                            <p>🔒 Secure payment powered by Stripe</p>
+                            <p className={styles.secureNote}>
+                              Your payment information is encrypted and secure
+                            </p>
+                          </div>
+
+                          <div className={styles.moneyBack}>
+                            <p>💯 100% Money-Back Guarantee</p>
+                            <p className={styles.moneyBackNote}>
+                              Not satisfied? Get a full refund within 7 days.
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className={styles.successCard}>
+                          <div className={styles.successIcon}>✓</div>
+                          <h3>Payment Successful!</h3>
+                          <p>Your job posting has been published.</p>
+                          <button
+                            className={styles.btnPrimary}
+                            onClick={() => router.push('/employer/jobs')}
+                          >
+                            View My Jobs
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -2053,50 +2369,65 @@ function CreateJobAdForm() {
                 </div>
               )}
 
-              {/* Navigation Buttons */}
-              <div className={styles.formActions}>
-                <div className={styles.leftActions}>
-                {currentStep > 1 && (
+              {/* Navigation Buttons - Hidden on Step 4 (Payment) */}
+              {currentStep !== 4 && (
+                <div className={styles.formActions}>
+                  <div className={styles.leftActions}>
+                  {currentStep > 1 && (
+                    <button 
+                      className={styles.btnSecondary}
+                      onClick={handleBack}
+                        disabled={isSaving}
+                    >
+                      Back
+                    </button>
+                  )}
+                  </div>
+                  
+                  <div className={styles.rightActions}>
+                    {/* Save Draft Button - Always visible */}
+                    <button 
+                      className={styles.btnSecondary}
+                      onClick={handleSaveDraft}
+                      disabled={isSaving || !formData.jobTitle || formData.categories.length === 0}
+                      title="Save current progress as draft"
+                    >
+                      {isSaving ? 'Saving...' : 'Save Draft'}
+                    </button>
+                    
+                  {currentStep < STEPS.length ? (
+                    <button 
+                      className={styles.btnPrimary}
+                      onClick={handleNext}
+                        disabled={isSaving}
+                    >
+                      Continue
+                    </button>
+                  ) : (
+                    <button 
+                      className={styles.btnPrimary}
+                      onClick={handleSubmit}
+                        disabled={isSaving}
+                    >
+                        {isSaving ? 'Publishing...' : 'Publish Job Ad'}
+                    </button>
+                  )}
+                  </div>
+                </div>
+              )}
+              
+              {/* Step 4: Back button only */}
+              {currentStep === 4 && (
+                <div className={styles.formActions}>
                   <button 
                     className={styles.btnSecondary}
                     onClick={handleBack}
-                      disabled={isSaving}
+                    disabled={purchaseLoading}
                   >
-                    Back
+                    ← Back to Edit
                   </button>
-                )}
                 </div>
-                
-                <div className={styles.rightActions}>
-                  {/* Save Draft Button - Always visible */}
-                  <button 
-                    className={styles.btnSecondary}
-                    onClick={handleSaveDraft}
-                    disabled={isSaving || !formData.jobTitle || formData.categories.length === 0}
-                    title="Save current progress as draft"
-                  >
-                    {isSaving ? 'Saving...' : 'Save Draft'}
-                  </button>
-                  
-                {currentStep < STEPS.length ? (
-                  <button 
-                    className={styles.btnPrimary}
-                    onClick={handleNext}
-                      disabled={isSaving}
-                  >
-                    Continue
-                  </button>
-                ) : (
-                  <button 
-                    className={styles.btnPrimary}
-                    onClick={handleSubmit}
-                      disabled={isSaving}
-                  >
-                      {isSaving ? 'Publishing...' : 'Publish Job Ad'}
-                  </button>
-                )}
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </main>

@@ -1679,3 +1679,471 @@
   }
 }
 
+
+/* Step 4: Payment Section */
+.paymentContainer {
+  display: grid;
+  grid-template-columns: 1fr 450px;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.reviewSection {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.reviewHeader {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.reviewHeader h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #1a202c;
+  font-weight: 700;
+}
+
+.reviewCard {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.jobHeader {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.jobHeader h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.35rem;
+  color: #1a202c;
+  font-weight: 700;
+}
+
+.companyName {
+  margin: 0;
+  font-size: 1.05rem;
+  color: #4a5bf4;
+  font-weight: 600;
+}
+
+.jobDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.detailRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  background: #f7fafc;
+  border-radius: 8px;
+}
+
+.detailLabel {
+  font-weight: 600;
+  color: #4a5568;
+  min-width: 140px;
+  font-size: 0.9rem;
+}
+
+.detailValue {
+  color: #2d3748;
+  font-size: 0.9rem;
+}
+
+.jobSummary,
+.jobDescription,
+.targetCountries {
+  padding: 1.25rem;
+  background: #f7fafc;
+  border-radius: 10px;
+  border-left: 4px solid #4a5bf4;
+}
+
+.jobSummary h4,
+.jobDescription h4,
+.targetCountries h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  color: #2d3748;
+  font-weight: 700;
+}
+
+.jobSummary p {
+  margin: 0;
+  color: #4a5568;
+  line-height: 1.6;
+  font-size: 0.9rem;
+}
+
+.descriptionPreview {
+  color: #4a5568;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  font-size: 0.9rem;
+}
+
+.countryTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.countryTag {
+  display: inline-block;
+  background: white;
+  color: #4a5bf4;
+  padding: 0.4rem 0.9rem;
+  border-radius: 16px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 2px solid #4a5bf4;
+}
+
+.deadline {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.9rem;
+  background: #fff5f5;
+  border-radius: 8px;
+  border-left: 4px solid #f56565;
+}
+
+.paymentSection {
+  position: sticky;
+  top: 100px;
+  align-self: start;
+}
+
+.pricingCard {
+  background: white;
+  border-radius: 12px;
+  padding: 1.75rem;
+  box-shadow: 0 4px 16px rgba(74, 91, 244, 0.15);
+  border: 2px solid #e2e8f0;
+}
+
+.pricingHeader {
+  text-align: center;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.pricingHeader h3 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.35rem;
+  color: #1a202c;
+  font-weight: 700;
+}
+
+.badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #4a5bf4 0%, #6366f1 100%);
+  color: white;
+  padding: 0.4rem 1.2rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  box-shadow: 0 2px 8px rgba(74, 91, 244, 0.3);
+}
+
+.priceDisplay {
+  text-align: center;
+  margin: 1.25rem 0;
+}
+
+.priceAmount {
+  font-size: 3rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #4a5bf4 0%, #6366f1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+  display: block;
+}
+
+.priceLabel {
+  display: block;
+  font-size: 0.85rem;
+  color: #718096;
+  margin-top: 0.5rem;
+  font-weight: 600;
+}
+
+.packageInfo {
+  text-align: center;
+  margin: 0.9rem 0 1.25rem 0;
+}
+
+.packageNote {
+  margin: 0;
+  color: #4a5568;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.features {
+  margin: 1.25rem 0;
+  padding: 1.25rem;
+  background: #f7fafc;
+  border-radius: 10px;
+}
+
+.features h4 {
+  margin: 0 0 0.9rem 0;
+  font-size: 1rem;
+  color: #2d3748;
+  font-weight: 700;
+}
+
+.features ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.features li {
+  color: #4a5568;
+  font-size: 0.87rem;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.45rem;
+  background: white;
+  border-radius: 6px;
+}
+
+.checkmark {
+  color: #48bb78;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.pricingBreakdown {
+  margin: 1.25rem 0;
+  padding: 1.25rem;
+  background: #f7fafc;
+  border-radius: 10px;
+}
+
+.breakdownRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.65rem 0;
+  color: #4a5568;
+  font-size: 0.87rem;
+}
+
+.breakdownTotal {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.9rem 0 0 0;
+  margin-top: 0.65rem;
+  border-top: 2px solid #cbd5e0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1a202c;
+}
+
+.errorMessage {
+  margin: 1rem 0;
+  padding: 0.9rem;
+  background: #fed7d7;
+  border: 2px solid #fc8181;
+  border-radius: 8px;
+}
+
+.errorMessage p {
+  margin: 0;
+  color: #c53030;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.purchaseButton {
+  width: 100%;
+  background: linear-gradient(135deg, #4a5bf4 0%, #6366f1 100%);
+  color: white;
+  border: none;
+  padding: 1.1rem 1.75rem;
+  border-radius: 10px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 14px rgba(74, 91, 244, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 1.25rem 0;
+}
+
+.purchaseButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(74, 91, 244, 0.5);
+}
+
+.purchaseButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.securePayment {
+  text-align: center;
+  margin-top: 1.25rem;
+  padding: 1.25rem;
+  background: #e6fffa;
+  border-radius: 10px;
+  border: 2px solid #81e6d9;
+}
+
+.securePayment p {
+  margin: 0;
+  color: #234e52;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.secureNote {
+  margin-top: 0.25rem !important;
+  font-size: 0.75rem !important;
+  font-weight: 400 !important;
+  color: #2c7a7b !important;
+}
+
+.moneyBack {
+  text-align: center;
+  margin-top: 0.9rem;
+  padding: 1.25rem;
+  background: #fef5e7;
+  border-radius: 10px;
+  border: 2px solid #f6ad55;
+}
+
+.moneyBack p {
+  margin: 0;
+  color: #744210;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.moneyBackNote {
+  margin-top: 0.25rem !important;
+  font-size: 0.75rem !important;
+  font-weight: 400 !important;
+  color: #975a16 !important;
+}
+
+.successCard {
+  background: white;
+  border-radius: 12px;
+  padding: 3rem 2rem;
+  box-shadow: 0 4px 16px rgba(74, 91, 244, 0.15);
+  text-align: center;
+}
+
+.successIcon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 1.5rem;
+  background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  color: white;
+  font-weight: 700;
+}
+
+.successCard h3 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.75rem;
+  color: #1a202c;
+  font-weight: 700;
+}
+
+.successCard p {
+  margin: 0 0 1.75rem 0;
+  color: #4a5568;
+  font-size: 1.05rem;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .paymentContainer {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .paymentSection {
+    position: static;
+  }
+}
+
+@media (max-width: 640px) {
+  .reviewSection,
+  .pricingCard {
+    padding: 1.25rem;
+  }
+
+  .reviewHeader h3 {
+    font-size: 1.25rem;
+  }
+
+  .jobHeader h4 {
+    font-size: 1.15rem;
+  }
+
+  .priceAmount {
+    font-size: 2.5rem;
+  }
+
+  .detailLabel {
+    min-width: 110px;
+    font-size: 0.85rem;
+  }
+
+  .detailValue {
+    font-size: 0.85rem;
+  }
+
+  .purchaseButton {
+    padding: 0.95rem 1.5rem;
+    font-size: 0.95rem;
+  }
+}
