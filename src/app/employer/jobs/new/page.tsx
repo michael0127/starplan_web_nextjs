@@ -104,6 +104,7 @@ function CreateJobAdForm() {
   const [editingCustomQuestion, setEditingCustomQuestion] = useState<CustomScreeningQuestion | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [currentJobPostingId, setCurrentJobPostingId] = useState<string | null>(editId);
   
   // 使用权限检查 hook
   const { user, loading, isEmployer } = useUserType({
@@ -488,6 +489,9 @@ function CreateJobAdForm() {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('type', 'logo');
+      if (currentJobPostingId) {
+        formData.append('jobPostingId', currentJobPostingId);
+      }
       
       // Upload via API route
       const response = await fetch('/api/upload-image', {
@@ -554,6 +558,9 @@ function CreateJobAdForm() {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('type', 'cover');
+      if (currentJobPostingId) {
+        formData.append('jobPostingId', currentJobPostingId);
+      }
       
       // Upload via API route
       const response = await fetch('/api/upload-image', {
@@ -802,6 +809,10 @@ function CreateJobAdForm() {
       const data = await response.json();
       
       if (data.success) {
+        // Update currentJobPostingId if this is a new job posting
+        if (data.data?.id && !currentJobPostingId) {
+          setCurrentJobPostingId(data.data.id);
+        }
         setSaveMessage({ type: 'success', text: 'Draft saved successfully!' });
         setTimeout(() => setSaveMessage(null), 3000);
       } else {
@@ -867,6 +878,10 @@ function CreateJobAdForm() {
       const data = await response.json();
       
       if (data.success) {
+        // Update currentJobPostingId if this is a new job posting
+        if (data.data?.id && !currentJobPostingId) {
+          setCurrentJobPostingId(data.data.id);
+        }
         setSaveMessage({ type: 'success', text: 'Job posted successfully!' });
         // 跳转到 jobs 页面
         setTimeout(() => {

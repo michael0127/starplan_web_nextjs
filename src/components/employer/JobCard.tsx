@@ -90,3 +90,7 @@ export const JobCard = memo(function JobCard({ job, onDelete }: JobCardProps) {
 
 
 
+
+
+
+

@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const type = formData.get('type') as string; // 'logo' or 'cover'
+    const jobPostingId = formData.get('jobPostingId') as string | null;
 
     if (!file) {
       return NextResponse.json(
@@ -79,9 +80,11 @@ export async function POST(request: NextRequest) {
     // Determine bucket based on type
     const bucket = type === 'logo' ? 'company_logo' : 'company_cover_image';
 
-    // Generate file path: userId/type-timestamp.ext
+    // Generate file path: userId/jobPostingId/type-timestamp.ext (or userId/type-timestamp.ext if no jobPostingId)
     const fileExt = file.name.split('.').pop();
-    const fileName = `${user.id}/${type}-${Date.now()}.${fileExt}`;
+    const fileName = jobPostingId 
+      ? `${user.id}/${jobPostingId}/${type}-${Date.now()}.${fileExt}`
+      : `${user.id}/${type}-${Date.now()}.${fileExt}`;
 
     // Convert File to ArrayBuffer then to Buffer
     const arrayBuffer = await file.arrayBuffer();
@@ -225,4 +228,8 @@ export async function DELETE(request: NextRequest) {
     );
   }
 }
+
+
+
+
 
