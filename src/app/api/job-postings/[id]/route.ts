@@ -121,6 +121,13 @@ export async function DELETE(
 
     const jobPosting = await prisma.jobPosting.findUnique({
       where: { id },
+      include: {
+        purchase: {
+          select: {
+            paymentStatus: true,
+          },
+        },
+      },
     });
 
     if (!jobPosting) {
@@ -134,6 +141,14 @@ export async function DELETE(
     if (jobPosting.userId !== user.id) {
       return NextResponse.json(
         { error: 'Forbidden' },
+        { status: 403 }
+      );
+    }
+
+    // Check if job posting has a successful payment
+    if (jobPosting.purchase && jobPosting.purchase.paymentStatus === 'SUCCEEDED') {
+      return NextResponse.json(
+        { error: 'Cannot delete a paid job posting. Please archive it instead.' },
         { status: 403 }
       );
     }

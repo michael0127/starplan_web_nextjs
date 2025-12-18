@@ -531,6 +531,45 @@
   color: white;
 }
 
+.btnWarning {
+  padding: 10px 20px;
+  background: transparent;
+  border: 1px solid #f59e0b;
+  border-radius: 8px;
+  color: #f59e0b;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btnWarning:hover {
+  background: #f59e0b;
+  color: white;
+}
+
+.btnSuccess {
+  padding: 10px 20px;
+  background: transparent;
+  border: 1px solid #10b981;
+  border-radius: 8px;
+  color: #10b981;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btnSuccess:hover {
+  background: #10b981;
+  color: white;
+}
+
+.btnSuccess:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Delete Confirmation Modal */
 .modalOverlay {
   position: fixed;
@@ -697,6 +736,52 @@
 }
 
 .btnModalDelete:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btnModalArchive {
+  flex: 1;
+  padding: 12px 24px;
+  background: #f59e0b;
+  border: 1px solid #f59e0b;
+  border-radius: 8px;
+  color: white;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btnModalArchive:hover {
+  background: #d97706;
+  border-color: #d97706;
+}
+
+.btnModalArchive:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btnModalRepublish {
+  flex: 1;
+  padding: 12px 24px;
+  background: #10b981;
+  border: 1px solid #10b981;
+  border-radius: 8px;
+  color: white;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btnModalRepublish:hover {
+  background: #059669;
+  border-color: #059669;
+}
+
+.btnModalRepublish:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }

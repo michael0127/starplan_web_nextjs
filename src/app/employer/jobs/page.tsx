@@ -15,10 +15,17 @@ export default function EmployerJobs() {
   const router = useRouter();
   const [jobPostings, setJobPostings] = useState<JobPosting[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'all' | 'published' | 'draft' | 'closed'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'published' | 'draft' | 'closed' | 'archived'>('all');
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [jobToDelete, setJobToDelete] = useState<{ id: string; title: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [archiveModalOpen, setArchiveModalOpen] = useState(false);
+  const [jobToArchive, setJobToArchive] = useState<{ id: string; title: string } | null>(null);
+  const [isArchiving, setIsArchiving] = useState(false);
+  const [republishModalOpen, setRepublishModalOpen] = useState(false);
+  const [jobToRepublish, setJobToRepublish] = useState<{ id: string; title: string; expired: boolean } | null>(null);
+  const [isRepublishing, setIsRepublishing] = useState(false);
+  const [checkingExpiry, setCheckingExpiry] = useState<string | null>(null);
   
   // 使用权限检查 hook
   const { user, loading, isEmployer } = useUserType({
@@ -108,6 +115,126 @@ export default function EmployerJobs() {
       console.error('Error deleting job posting:', error);
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const openArchiveModal = (id: string, title: string) => {
+    setJobToArchive({ id, title });
+    setArchiveModalOpen(true);
+  };
+
+  const closeArchiveModal = () => {
+    setArchiveModalOpen(false);
+    setJobToArchive(null);
+  };
+
+  const handleArchive = async () => {
+    if (!jobToArchive) return;
+    
+    setIsArchiving(true);
+    
+    try {
+      // Get the current session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        console.error('No session found');
+        setIsArchiving(false);
+        return;
+      }
+    
+      const response = await fetch(`/api/job-postings/${jobToArchive.id}/archive`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+      
+      if (response.ok) {
+        closeArchiveModal();
+        fetchJobPostings();
+      }
+    } catch (error) {
+      console.error('Error archiving job posting:', error);
+    } finally {
+      setIsArchiving(false);
+    }
+  };
+
+  const openRepublishModal = async (id: string, title: string) => {
+    setCheckingExpiry(id);
+    
+    try {
+      // Check if job is expired
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        console.error('No session found');
+        return;
+      }
+
+      const response = await fetch(`/api/job-postings/${id}/expiry`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setJobToRepublish({ 
+          id, 
+          title,
+          expired: data.expiry.isExpired 
+        });
+        setRepublishModalOpen(true);
+      }
+    } catch (error) {
+      console.error('Error checking expiry:', error);
+    } finally {
+      setCheckingExpiry(null);
+    }
+  };
+
+  const closeRepublishModal = () => {
+    setRepublishModalOpen(false);
+    setJobToRepublish(null);
+  };
+
+  const handleRepublish = async () => {
+    if (!jobToRepublish) return;
+    
+    setIsRepublishing(true);
+    
+    try {
+      // Get the current session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        console.error('No session found');
+        setIsRepublishing(false);
+        return;
+      }
+    
+      const response = await fetch(`/api/job-postings/${jobToRepublish.id}/republish`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        closeRepublishModal();
+        fetchJobPostings();
+      } else {
+        alert(data.error || 'Failed to republish job posting');
+      }
+    } catch (error) {
+      console.error('Error republishing job posting:', error);
+      alert('Failed to republish job posting');
+    } finally {
+      setIsRepublishing(false);
     }
   };
 
@@ -220,6 +347,12 @@ export default function EmployerJobs() {
             >
               Closed
             </button>
+            <button
+              className={`${styles.tab} ${activeTab === 'archived' ? styles.tabActive : ''}`}
+              onClick={() => setActiveTab('archived')}
+            >
+              Archived
+            </button>
           </div>
 
           {/* Loading State */}
@@ -289,12 +422,37 @@ export default function EmployerJobs() {
                     >
                       {job.status === 'DRAFT' ? 'Continue Editing' : 'Edit'}
                     </Link>
-                    <button
-                      className={styles.btnDanger}
-                      onClick={() => openDeleteModal(job.id, job.jobTitle)}
-                    >
-                      Delete
-                    </button>
+                    {job.status === 'PUBLISHED' ? (
+                      <button
+                        className={styles.btnWarning}
+                        onClick={() => openArchiveModal(job.id, job.jobTitle)}
+                      >
+                        Archive
+                      </button>
+                    ) : job.status === 'ARCHIVED' ? (
+                      <>
+                        <button
+                          className={styles.btnSuccess}
+                          onClick={() => openRepublishModal(job.id, job.jobTitle)}
+                          disabled={checkingExpiry === job.id}
+                        >
+                          {checkingExpiry === job.id ? 'Checking...' : 'Republish'}
+                        </button>
+                        <button
+                          className={styles.btnDanger}
+                          onClick={() => openDeleteModal(job.id, job.jobTitle)}
+                        >
+                          Delete
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        className={styles.btnDanger}
+                        onClick={() => openDeleteModal(job.id, job.jobTitle)}
+                      >
+                        Delete
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -351,6 +509,136 @@ export default function EmployerJobs() {
               >
                 {isDeleting ? 'Deleting...' : 'Delete Job'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Archive Confirmation Modal */}
+      {archiveModalOpen && (
+        <div className={styles.modalOverlay} onClick={closeArchiveModal}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2 className={styles.modalTitle}>Archive Job Posting</h2>
+              <button 
+                className={styles.modalClose}
+                onClick={closeArchiveModal}
+                disabled={isArchiving}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className={styles.modalBody}>
+              <div className={styles.modalIcon} style={{ color: '#f59e0b' }}>
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 8v13H3V8" />
+                  <path d="M1 3h22v5H1z" />
+                  <polyline points="10 12 14 12" />
+                </svg>
+              </div>
+              <p className={styles.modalText}>
+                Archive <strong>"{jobToArchive?.title}"</strong>?
+              </p>
+              <p className={styles.modalSubtext}>
+                This will remove the job posting from active listings. You can still view it in the Archived tab. This action can be reversed.
+              </p>
+            </div>
+            
+            <div className={styles.modalFooter}>
+              <button
+                className={styles.btnModalCancel}
+                onClick={closeArchiveModal}
+                disabled={isArchiving}
+              >
+                Cancel
+              </button>
+              <button
+                className={styles.btnModalArchive}
+                onClick={handleArchive}
+                disabled={isArchiving}
+              >
+                {isArchiving ? 'Archiving...' : 'Archive Job'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Republish Confirmation Modal */}
+      {republishModalOpen && (
+        <div className={styles.modalOverlay} onClick={closeRepublishModal}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2 className={styles.modalTitle}>
+                {jobToRepublish?.expired ? 'Cannot Republish' : 'Republish Job Posting'}
+              </h2>
+              <button 
+                className={styles.modalClose}
+                onClick={closeRepublishModal}
+                disabled={isRepublishing}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className={styles.modalBody}>
+              {jobToRepublish?.expired ? (
+                <>
+                  <div className={styles.modalIcon} style={{ color: '#dc2626' }}>
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                  </div>
+                  <p className={styles.modalText}>
+                    <strong>"{jobToRepublish?.title}"</strong> has expired
+                  </p>
+                  <p className={styles.modalSubtext}>
+                    This job posting's 30-day validity period has ended. You cannot republish an expired job. Please create a new job posting instead.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className={styles.modalIcon} style={{ color: '#10b981' }}>
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="23 4 23 10 17 10" />
+                      <polyline points="1 20 1 14 7 14" />
+                      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                    </svg>
+                  </div>
+                  <p className={styles.modalText}>
+                    Republish <strong>"{jobToRepublish?.title}"</strong>?
+                  </p>
+                  <p className={styles.modalSubtext}>
+                    This will make the job posting visible to candidates again. It will appear in the Published tab and candidates can apply.
+                  </p>
+                </>
+              )}
+            </div>
+            
+            <div className={styles.modalFooter}>
+              <button
+                className={styles.btnModalCancel}
+                onClick={closeRepublishModal}
+                disabled={isRepublishing}
+              >
+                {jobToRepublish?.expired ? 'Close' : 'Cancel'}
+              </button>
+              {!jobToRepublish?.expired && (
+                <button
+                  className={styles.btnModalRepublish}
+                  onClick={handleRepublish}
+                  disabled={isRepublishing}
+                >
+                  {isRepublishing ? 'Republishing...' : 'Republish Job'}
+                </button>
+              )}
             </div>
           </div>
         </div>

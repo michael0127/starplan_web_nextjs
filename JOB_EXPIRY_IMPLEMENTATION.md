@@ -200,14 +200,14 @@ GET /api/job-postings/[id]/expiry
 
 **Cron 调度：** 每天凌晨 0:00 运行（UTC 时区）
 
-## 🔄 自动归档流程
+## 🔄 自动关闭过期职位流程
 
 ### Vercel Cron Jobs（推荐）
 
 1. **自动执行**：Vercel 每天自动调用 `/api/cron/archive-expired-jobs`
 2. **查找过期职位**：`expiresAt < NOW()` 且状态为 `PUBLISHED`
-3. **批量归档**：将状态更新为 `ARCHIVED`
-4. **记录日志**：输出归档数量和 ID
+3. **批量关闭**：将状态更新为 `CLOSED`（不是 ARCHIVED）
+4. **记录日志**：输出关闭数量和 ID
 
 ### 手动触发（测试用）
 
@@ -333,7 +333,7 @@ curl http://localhost:3000/api/job-postings/xxx/expiry
 # ✅ 验证返回 isExpired: true
 ```
 
-### 测试 3: Cron Job 归档
+### 测试 3: Cron Job 关闭过期职位
 
 ```bash
 # 手动触发 cron job
@@ -344,7 +344,7 @@ SELECT id, status, updated_at
 FROM job_postings 
 WHERE id IN (SELECT job_posting_id FROM job_posting_purchases WHERE expires_at < NOW());
 
-# ✅ 验证状态变为 ARCHIVED
+# ✅ 验证状态变为 CLOSED（不是 ARCHIVED）
 ```
 
 ### 测试 4: 剩余天数计算
@@ -375,10 +375,11 @@ curl http://localhost:3000/api/job-postings/xxx/expiry
 
 ### 数据保护
 
-- 过期职位状态变为 `ARCHIVED`，不会被删除
+- 过期职位状态变为 `CLOSED`，不会被删除
 - 保留所有购买记录和支付信息
-- 雇主仍可访问归档的职位
-- 候选人无法看到归档的职位
+- 雇主仍可访问关闭的职位
+- 候选人无法看到关闭的职位
+- 雇主可以手动将职位归档（Archive）
 
 ## 📈 监控和维护
 
@@ -401,10 +402,10 @@ curl http://localhost:3000/api/job-postings/xxx/expiry
 ```
 [2024-01-15 00:00:00] Cron job started
 [2024-01-15 00:00:05] Found 5 expired job postings
-[2024-01-15 00:00:06] Archived job posting: uuid1, expired at: 2024-01-14
-[2024-01-15 00:00:06] Archived job posting: uuid2, expired at: 2024-01-13
+[2024-01-15 00:00:06] Closed job posting: uuid1, expired at: 2024-01-14
+[2024-01-15 00:00:06] Closed job posting: uuid2, expired at: 2024-01-13
 [2024-01-15 00:00:06] ...
-[2024-01-15 00:00:07] Cron job completed: 5 jobs archived
+[2024-01-15 00:00:07] Cron job completed: 5 jobs closed
 ```
 
 ## 🚀 部署清单
@@ -539,11 +540,13 @@ WHERE payment_status = 'SUCCEEDED';
 
 - ✅ 支付成功时自动设置过期时间
 - ✅ 数据库级别的过期检查（`expires_at > NOW()`）
-- ✅ 自动归档过期职位（每天运行）
+- ✅ 自动关闭过期职位（每天运行，状态变为 CLOSED）
 - ✅ API 查询过期信息
 - ✅ 完整的工具函数库
 - ✅ Vercel Cron Jobs 配置
 - ✅ 生产就绪的实现
+
+**重要**: 过期职位自动变为 CLOSED 状态，不是 ARCHIVED。ARCHIVED 状态由雇主手动触发。
 
 现在需要运行数据库迁移来应用更改！
 

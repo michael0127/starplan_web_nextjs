@@ -238,11 +238,11 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
         },
       });
 
-      // Optionally update job posting status
+      // Optionally update job posting status to CLOSED when refunded
       await prisma.jobPosting.update({
         where: { id: purchase.jobPostingId },
         data: {
-          status: JobStatus.ARCHIVED,
+          status: JobStatus.CLOSED,
         },
       });
 

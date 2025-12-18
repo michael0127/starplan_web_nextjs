@@ -1,6 +1,6 @@
 /**
- * Cron Job: Archive Expired Job Postings
- * This endpoint should be called periodically (e.g., daily) to archive expired jobs
+ * Cron Job: Close Expired Job Postings
+ * This endpoint should be called periodically (e.g., daily) to close expired jobs
  * 
  * Setup with Vercel Cron:
  * Add to vercel.json:
@@ -28,15 +28,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get list of expired jobs before archiving
+    // Get list of expired jobs before closing
     const expiredJobIds = await getExpiredJobPostings();
     
-    // Archive them
-    const archivedCount = await archiveExpiredJobPostings();
+    // Close them (change status to CLOSED instead of ARCHIVED)
+    const closedCount = await archiveExpiredJobPostings();
 
     return NextResponse.json({
       success: true,
-      archivedCount,
+      closedCount,
       expiredJobIds,
       timestamp: new Date().toISOString(),
     });
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     console.error('Cron job error:', error);
     return NextResponse.json(
       { 
-        error: 'Failed to archive expired jobs',
+        error: 'Failed to close expired jobs',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }

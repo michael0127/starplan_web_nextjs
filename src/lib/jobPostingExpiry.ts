@@ -59,9 +59,9 @@ export async function getExpiredJobPostings(): Promise<string[]> {
 }
 
 /**
- * Archive all expired job postings
+ * Close all expired job postings
  * This can be run as a cron job
- * @returns Number of jobs archived
+ * @returns Number of jobs closed
  */
 export async function archiveExpiredJobPostings(): Promise<number> {
   try {
@@ -78,14 +78,14 @@ export async function archiveExpiredJobPostings(): Promise<number> {
         },
       },
       data: {
-        status: JobStatus.ARCHIVED,
+        status: JobStatus.CLOSED,
       },
     });
 
-    console.log(`Archived ${result.count} expired job postings`);
+    console.log(`Closed ${result.count} expired job postings`);
     return result.count;
   } catch (error) {
-    console.error('Error archiving expired job postings:', error);
+    console.error('Error closing expired job postings:', error);
     return 0;
   }
 }

@@ -2215,8 +2215,8 @@ function CreateJobAdForm() {
                               {['Intern', 'Junior'].includes(formData.experienceLevel)
                                 ? 'Perfect for entry-level positions'
                                 : 'Ideal for experienced professionals'}
-                            </p>
-                          </div>
+                  </p>
+                </div>
 
                           <div className={styles.features}>
                             <h4>What's included:</h4>
@@ -2371,49 +2371,49 @@ function CreateJobAdForm() {
 
               {/* Navigation Buttons - Hidden on Step 4 (Payment) */}
               {currentStep !== 4 && (
-                <div className={styles.formActions}>
-                  <div className={styles.leftActions}>
-                  {currentStep > 1 && (
-                    <button 
-                      className={styles.btnSecondary}
-                      onClick={handleBack}
-                        disabled={isSaving}
-                    >
-                      Back
-                    </button>
-                  )}
-                  </div>
-                  
-                  <div className={styles.rightActions}>
-                    {/* Save Draft Button - Always visible */}
-                    <button 
-                      className={styles.btnSecondary}
-                      onClick={handleSaveDraft}
-                      disabled={isSaving || !formData.jobTitle || formData.categories.length === 0}
-                      title="Save current progress as draft"
-                    >
-                      {isSaving ? 'Saving...' : 'Save Draft'}
-                    </button>
-                    
-                  {currentStep < STEPS.length ? (
-                    <button 
-                      className={styles.btnPrimary}
-                      onClick={handleNext}
-                        disabled={isSaving}
-                    >
-                      Continue
-                    </button>
-                  ) : (
-                    <button 
-                      className={styles.btnPrimary}
-                      onClick={handleSubmit}
-                        disabled={isSaving}
-                    >
-                        {isSaving ? 'Publishing...' : 'Publish Job Ad'}
-                    </button>
-                  )}
-                  </div>
+              <div className={styles.formActions}>
+                <div className={styles.leftActions}>
+                {currentStep > 1 && (
+                  <button 
+                    className={styles.btnSecondary}
+                    onClick={handleBack}
+                      disabled={isSaving}
+                  >
+                    Back
+                  </button>
+                )}
                 </div>
+                
+                <div className={styles.rightActions}>
+                  {/* Save Draft Button - Always visible */}
+                  <button 
+                    className={styles.btnSecondary}
+                    onClick={handleSaveDraft}
+                    disabled={isSaving || !formData.jobTitle || formData.categories.length === 0}
+                    title="Save current progress as draft"
+                  >
+                    {isSaving ? 'Saving...' : 'Save Draft'}
+                  </button>
+                  
+                {currentStep < STEPS.length ? (
+                  <button 
+                    className={styles.btnPrimary}
+                    onClick={handleNext}
+                      disabled={isSaving}
+                  >
+                    Continue
+                  </button>
+                ) : (
+                  <button 
+                    className={styles.btnPrimary}
+                    onClick={handleSubmit}
+                      disabled={isSaving}
+                  >
+                      {isSaving ? 'Publishing...' : 'Publish Job Ad'}
+                  </button>
+                )}
+                </div>
+              </div>
               )}
               
               {/* Step 4: Back button only */}
