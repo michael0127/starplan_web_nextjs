@@ -152,11 +152,11 @@ export default function ProfilePage() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            jobFunction: data.data.jobFunction,
+            categories: data.data.categories,
             jobTypes: data.data.jobTypes,
             preferredLocation: data.data.preferredLocation,
             remoteOpen: data.data.remoteOpen,
-            h1bSponsorship: data.data.h1bSponsorship,
+            workAuthCountries: data.data.workAuthCountries,
             hasCompletedOnboarding: true, // 标记已完成 onboarding
           }),
         });
@@ -504,14 +504,24 @@ export default function ProfilePage() {
                 {dbUser?.hasCompletedOnboarding ? (
                   <div className={styles.employmentInfo}>
                     <div className={styles.infoRow}>
-                      <div className={styles.infoLabel}>Job Function</div>
-                      <div className={styles.infoValue}>{dbUser.jobFunction || 'Not specified'}</div>
+                      <div className={styles.infoLabel}>Job Categories</div>
+                      <div className={styles.infoValue}>
+                        {dbUser.categories && dbUser.categories.length > 0 
+                          ? dbUser.categories.join(', ') 
+                          : 'Not specified'}
+                      </div>
                     </div>
                     <div className={styles.infoRow}>
-                      <div className={styles.infoLabel}>Job Types</div>
+                      <div className={styles.infoLabel}>Experience Level</div>
                       <div className={styles.infoValue}>
-                        {dbUser.jobTypes && dbUser.jobTypes.length > 0 
-                          ? dbUser.jobTypes.join(', ') 
+                        {dbUser.experienceLevel || 'Not specified'}
+                      </div>
+                    </div>
+                    <div className={styles.infoRow}>
+                      <div className={styles.infoLabel}>Work Types</div>
+                      <div className={styles.infoValue}>
+                        {dbUser.workTypes && dbUser.workTypes.length > 0 
+                          ? dbUser.workTypes.join(', ') 
                           : 'Not specified'}
                       </div>
                     </div>
@@ -528,11 +538,11 @@ export default function ProfilePage() {
                       </div>
                     </div>
                     <div className={styles.infoRow}>
-                      <div className={styles.infoLabel}>H1B Sponsorship</div>
+                      <div className={styles.infoLabel}>Work Authorization</div>
                       <div className={styles.infoValue}>
-                        <span className={`${styles.badge} ${dbUser.h1bSponsorship ? styles.badgeYes : styles.badgeNo}`}>
-                          {dbUser.h1bSponsorship ? 'Required' : 'Not Required'}
-                        </span>
+                        {dbUser.workAuthCountries && dbUser.workAuthCountries.length > 0 
+                          ? dbUser.workAuthCountries.join(', ') 
+                          : 'Not specified'}
                       </div>
                     </div>
                   </div>

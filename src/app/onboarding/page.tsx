@@ -1,74 +1,196 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import Fuse from 'fuse.js';
 import { supabase } from '@/lib/supabase';
 import { useUserType } from '@/hooks/useUserType';
+import { COUNTRIES_REGIONS, EXPERIENCE_LEVELS, WORK_TYPES, PAY_TYPES, CURRENCIES } from '@/lib/jobConstants';
+import { WORK_AUTH_OPTIONS } from '@/lib/screeningOptions';
+import type { Currency } from '@/lib/jobConstants';
 import styles from './page.module.css';
 
 interface OnboardingData {
-  jobFunctions: string[];  // 改为数组支持多选
+  // Categories & Skills
+  categories: string[];
+  categorySkills: string[];
+  
+  // Experience
+  experienceLevel: string;
+  experienceYearsFrom: number;
+  experienceYearsTo: number | 'Unlimited';
+  
+  // Work Type
+  workTypes: string[];
+  remoteOpen: boolean;
+  
+  // Salary Expectations
+  payType: string;
+  currency: Currency;
+  salaryExpectationFrom: string;
+  salaryExpectationTo: string;
+  
+  // Work Authorization
+  workAuthCountries: string[];
+  workAuthByCountry: Record<string, string>;
+  
+  // Preferred Locations
+  preferredLocations: Array<{ country: string; cities: string[] }>;
+  
+  // Legacy fields (kept for backward compatibility)
   jobTypes: string[];
   location: string;
   withinUS: boolean;
-  remoteOpen: boolean;
-  h1bSponsorship: boolean;
 }
 
-// 职位分类数据（AI技术相关）
-const jobCategories = [
+// Categories from CSV - extracted categories list
+const ALL_CATEGORIES = [
+  'Machine Learning Engineer (Artificial Intelligence / Machine Learning)',
+  'Deep Learning Engineer (Artificial Intelligence / Machine Learning)',
+  'Generative AI Engineer (Artificial Intelligence / Machine Learning)',
+  'Multi-Agent Systems Engineer (Artificial Intelligence / Machine Learning)',
+  'Reinforcement Learning Engineer (Artificial Intelligence / Machine Learning)',
+  'NLP Engineer (Artificial Intelligence / Machine Learning)',
+  'Computer Vision Engineer (Artificial Intelligence / Machine Learning)',
+  'Speech/Audio AI Engineer (Artificial Intelligence / Machine Learning)',
+  'AI Research Scientist (Artificial Intelligence / Machine Learning)',
+  'Applied AI Scientist (Artificial Intelligence / Machine Learning)',
+  'AI Ethics & Policy Specialist (Artificial Intelligence / Machine Learning)',
+  'AI Product Manager (Artificial Intelligence / Machine Learning)',
+  'AI Data Curator / Data Labeling Ops (Artificial Intelligence / Machine Learning)',
+  'AI Infrastructure Engineer (MLOps/LLMOps) (Artificial Intelligence / Machine Learning)',
+  'Data Scientist (Data Science & Analytics)',
+  'Data Analyst (Data Science & Analytics)',
+  'Quantitative Analyst (Data Science & Analytics)',
+  'BI Analyst (Data Science & Analytics)',
+  'Statistician (Data Science & Analytics)',
+  'Data Visualization Engineer (Data Science & Analytics)',
+  'Experimentation / Causal Inference Scientist (Data Science & Analytics)',
+  'Decision Scientist (Data Science & Analytics)',
+  'Data Engineer (Data Engineering)',
+  'Big Data Engineer (Data Engineering)',
+  'ETL Developer (Data Engineering)',
+  'Database Engineer (Data Engineering)',
+  'Analytics Engineer (Data Engineering)',
+  'Data Platform Engineer (Data Engineering)',
+  'Backend Engineer (Software Engineering)',
+  'Frontend Engineer (Software Engineering)',
+  'Full Stack Engineer (Software Engineering)',
+  'Systems Engineer (Software Engineering)',
+  'Embedded Engineer (Software Engineering)',
+  'Cloud Software Engineer (Software Engineering)',
+  'Mobile Engineer (iOS/Android) (Software Engineering)',
+  'API Engineer (Software Engineering)',
+  'DevOps Engineer (Software Engineering)',
+  'Site Reliability Engineer (SRE) (Software Engineering)',
+  'Platform Engineer (Software Engineering)',
+  'Cloud Architect (Cloud & Infrastructure)',
+  'Cloud Engineer (Cloud & Infrastructure)',
+  'Cloud Security Engineer (Cloud & Infrastructure)',
+  'Infrastructure Engineer (Cloud & Infrastructure)',
+  'Network Engineer (Cloud & Infrastructure)',
+  'Kubernetes Engineer (Cloud & Infrastructure)',
+  'Cybersecurity Engineer (Security & Cybersecurity)',
+  'Security Analyst (Security & Cybersecurity)',
+  'Security Architect (Security & Cybersecurity)',
+  'Penetration Tester / Ethical Hacker (Security & Cybersecurity)',
+  'Threat Intelligence Analyst (Security & Cybersecurity)',
+  'Application Security Engineer (Security & Cybersecurity)',
+  'Cloud Security Specialist (Security & Cybersecurity)',
+  'Governance Risk & Compliance (GRC) (Security & Cybersecurity)',
+  'Technical Product Manager (Product & Project Roles)',
+  'AI Product Manager (Product & Project Roles)',
+  'Technical Program Manager (Product & Project Roles)',
+  'Scrum Master (Product & Project Roles)',
+  'Product Analyst (Product & Project Roles)',
+  'UX Researcher (Product & Project Roles)',
+  'UI/UX Designer (Product & Project Roles)',
+  'Service Designer (Product & Project Roles)',
+  'Robotics Engineer (Robotics & Autonomous Systems)',
+  'Autonomous Systems Engineer (Robotics & Autonomous Systems)',
+  'Mechatronics Engineer (Robotics & Autonomous Systems)',
+  'Sensor Fusion Engineer (Robotics & Autonomous Systems)',
+  'Robot Learning Engineer (Robotics & Autonomous Systems)',
+  'Hardware/Embedded Robotics Engineer (Robotics & Autonomous Systems)',
+  'Hardware Engineer (Hardware & Semiconductor)',
+  'FPGA Engineer (Hardware & Semiconductor)',
+  'ASIC Engineer (Hardware & Semiconductor)',
+  'Chip Design Engineer (Hardware & Semiconductor)',
+  'Computer Architect (Hardware & Semiconductor)',
+  'Embedded Systems Engineer (Hardware & Semiconductor)',
+  'IoT Engineer (Hardware & Semiconductor)',
+  'CTO (Tech Leadership)',
+  'VP Engineering (Tech Leadership)',
+  'Head of AI (Tech Leadership)',
+  'Head of Product (Tech Leadership)',
+  'Chief Data Officer (Tech Leadership)',
+  'Chief Information Security Officer (Tech Leadership)',
+  'AI Team Lead / Engineering Manager (Tech Leadership)',
+  'Tech Lead / Staff Engineer / Principal Engineer (Tech Leadership)',
+  'Systems Administrator (IT & Systems)',
+  'IT Support / Helpdesk (IT & Systems)',
+  'Network Administrator (IT & Systems)',
+  'IT Operations Specialist (IT & Systems)',
+  'Systems Analyst (IT & Systems)',
+  'ERP/CRM Engineer (IT & Systems)',
+  'AI for Finance (Tech in Business Functions)',
+  'AI in Marketing (Tech in Business Functions)',
+  'AI in Operations (Tech in Business Functions)',
+  'AI in HR (Tech in Business Functions)',
+  'AI in Supply Chain (Tech in Business Functions)',
+  'LLM Application Developer (GenerativeAI)',
+  'AI Agent Engineer (GenerativeAI)',
+  'AI Workflow Automation Engineer (GenerativeAI)',
+  'Prompt Engineer (GenerativeAI)',
+  'Synthetic Data Engineer (GenerativeAI)',
+  'Digital Twin Engineer (GenerativeAI)',
+  'AI Safety & Alignment Researcher (GenerativeAI)',
+  'Human-AI Interaction Engineer (GenerativeAI)',
+  'AI Quality & Evaluation Engineer (GenerativeAI)',
+  'Autonomous Agent Safety Analyst (GenerativeAI)',
+  'AI Compliance / Audit Engineer (GenerativeAI)',
+  'Product Designer (Design)',
+  'UX Designer (Design)',
+  'UI Designer (Design)',
+  'Interaction Designer (Design)',
+  'Visual Designer (Design)',
+  'Design Researcher (Design)',
+  'Design Systems Designer (Design)',
+  'Motion Designer (Design)',
+  'Creative Technologist (Design)',
+  'AI UX Designer (Design)',
+];
+
+// Work authorization options are imported from screeningOptions.ts
+
+// Countries with major cities for location preferences
+const LOCATION_OPTIONS = [
   {
-    name: 'Software/Internet/AI',
-    subcategories: [
-      {
-        title: 'Backend Engineering',
-        positions: ['Backend Engineer', 'Full Stack Engineer', 'Python Engineer', 'Java Engineer', 'C/C++ Engineer', '.Net Engineer', 'Golang Engineer', 'Salesforce Developer', 'Blockchain Engineer']
-      },
-      {
-        title: 'Data & Analytics',
-        positions: ['Data Analyst', 'Data Scientist', 'Data Engineer', 'Business/BI Analyst', 'Power BI Developer', 'ETL Developer', 'Data Warehouse Engineer']
-      },
-      {
-        title: 'Machine Learning & AI',
-        positions: ['Machine Learning Engineer', 'AI Engineer', 'Machine Learning/AI Researcher', 'Machine Learning, Deep Learning', 'LLM Engineer']
-      },
-      {
-        title: 'Frontend & Mobile',
-        positions: ['Frontend Engineer', 'React Developer', 'Vue.js Developer', 'Angular Developer', 'iOS Developer', 'Android Developer', 'React Native Developer']
-      },
-      {
-        title: 'DevOps & Cloud',
-        positions: ['DevOps Engineer', 'Cloud Engineer', 'AWS Engineer', 'Azure Engineer', 'Site Reliability Engineer', 'Platform Engineer']
-      },
-      {
-        title: 'QA & Testing',
-        positions: ['QA Engineer', 'Test Automation Engineer', 'SDET', 'Manual Tester', 'Performance Test Engineer']
-      }
-    ]
+    country: 'Australia',
+    flag: '🇦🇺',
+    cities: ['Sydney', 'Melbourne', 'Brisbane', 'Perth', 'Adelaide', 'Canberra', 'Gold Coast', 'Newcastle', 'Wollongong', 'Hobart']
   },
   {
-    name: 'Product & Design',
-    subcategories: [
-      {
-        title: 'Product Management',
-        positions: ['Product Manager', 'Senior Product Manager', 'Product Owner', 'Technical Product Manager', 'AI Product Manager']
-      },
-      {
-        title: 'Design',
-        positions: ['UX Designer', 'UI Designer', 'Product Designer', 'UX Researcher', 'Interaction Designer']
-      }
-    ]
+    country: 'United States',
+    flag: '🇺🇸',
+    cities: ['New York', 'Los Angeles', 'San Francisco', 'Seattle', 'Austin', 'Boston', 'Chicago', 'Denver', 'Miami', 'Atlanta', 'San Diego', 'Portland']
   },
   {
-    name: 'Research & Science',
-    subcategories: [
-      {
-        title: 'Research',
-        positions: ['Research Scientist', 'AI Researcher', 'Machine Learning Researcher', 'Computer Vision Researcher', 'NLP Researcher']
-      }
-    ]
-  }
+    country: 'Singapore',
+    flag: '🇸🇬',
+    cities: ['Singapore City', 'Jurong', 'Woodlands', 'Tampines', 'Queenstown']
+  },
+  {
+    country: 'Mainland China',
+    flag: '🇨🇳',
+    cities: ['Beijing', 'Shanghai', 'Shenzhen', 'Guangzhou', 'Hangzhou', 'Chengdu', 'Nanjing', 'Wuhan', 'Xi\'an', 'Suzhou']
+  },
+  {
+    country: 'HKSAR of China',
+    flag: '🇭🇰',
+    cities: ['Hong Kong Island', 'Kowloon', 'New Territories', 'Lantau Island']
+  },
 ];
 
 export default function OnboardingPage() {
@@ -84,17 +206,28 @@ export default function OnboardingPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [error, setError] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState(0);
-  const [showJobDropdown, setShowJobDropdown] = useState(false);
-  const [customJobInput, setCustomJobInput] = useState('');
+  const [isCategoryExpanded, setIsCategoryExpanded] = useState(false);
+  const [categorySearchTerm, setCategorySearchTerm] = useState('');
   const [processingStep, setProcessingStep] = useState(0);
   const [formData, setFormData] = useState<OnboardingData>({
-    jobFunctions: [],
-    jobTypes: ['Full-time'],
+    categories: [],
+    categorySkills: [],
+    experienceLevel: 'Junior',
+    experienceYearsFrom: 0,
+    experienceYearsTo: 3,
+    workTypes: [],
+    remoteOpen: false,
+    payType: 'Annual salary',
+    currency: CURRENCIES[0],
+    salaryExpectationFrom: '',
+    salaryExpectationTo: '',
+    workAuthCountries: [],
+    workAuthByCountry: {},
+    preferredLocations: [],
+    // Legacy fields
+    jobTypes: [],
     location: '',
-    withinUS: true,
-    remoteOpen: true,
-    h1bSponsorship: false,
+    withinUS: false,
   });
 
   // 检查用户是否已认证
@@ -108,63 +241,150 @@ export default function OnboardingPage() {
     checkAuth();
   }, [router]);
 
-  // 点击外部关闭下拉菜单
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (showJobDropdown && !target.closest(`.${styles.jobFunctionWrapper}`)) {
-        setShowJobDropdown(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showJobDropdown]);
-
-  const handleJobTypeToggle = (type: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      jobTypes: prev.jobTypes.includes(type)
-        ? prev.jobTypes.filter((t) => t !== type)
-        : [...prev.jobTypes, type],
-    }));
-  };
-
-  const handleJobFunctionToggle = (position: string) => {
-    setFormData((prev) => {
-      const isSelected = prev.jobFunctions.includes(position);
+  // Category selection handler
+  const handleCategorySelect = (category: string) => {
+    setFormData(prev => {
+      const isSelected = prev.categories.includes(category);
+      const newCategories = isSelected
+        ? prev.categories.filter(c => c !== category)
+        : [...prev.categories, category];
+      
       return {
         ...prev,
-        jobFunctions: isSelected
-          ? prev.jobFunctions.filter(job => job !== position)
-          : [...prev.jobFunctions, position]
+        categories: newCategories,
       };
     });
   };
 
-  const handleRemoveJobFunction = (position: string) => {
-    setFormData((prev) => ({
+  // Configure Fuse.js for fuzzy search (same as Job Posting)
+  const fuse = useMemo(() => {
+    const searchData = ALL_CATEGORIES.map(cat => ({ category: cat }));
+    return new Fuse(searchData, {
+      keys: ['category'],
+      threshold: 0.4, // 0 = perfect match, 1 = match anything
+      includeScore: true,
+      minMatchCharLength: 2,
+      ignoreLocation: true, // Search in entire string, not just beginning
+    });
+  }, []);
+
+  // Filter categories using Fuse.js fuzzy search
+  const filteredCategories = useMemo(() => {
+    if (categorySearchTerm.trim() === '') {
+      return ALL_CATEGORIES;
+    }
+    
+    const results = fuse.search(categorySearchTerm);
+    return results.map(result => result.item.category);
+  }, [categorySearchTerm, fuse]);
+
+  // Work type selection handler
+  const handleWorkTypeToggle = (type: string) => {
+    setFormData(prev => {
+      const isSelected = prev.workTypes.includes(type);
+      return {
       ...prev,
-      jobFunctions: prev.jobFunctions.filter(job => job !== position)
+        workTypes: isSelected
+          ? prev.workTypes.filter(t => t !== type)
+          : [...prev.workTypes, type],
+      };
+    });
+  };
+
+  // Work authorization handlers
+  const handleWorkAuthCountryToggle = (country: string) => {
+    setFormData(prev => {
+      const isSelected = prev.workAuthCountries.includes(country);
+      const newCountries = isSelected
+        ? prev.workAuthCountries.filter(c => c !== country)
+        : [...prev.workAuthCountries, country];
+      
+      // If unchecking, remove work auth for that country
+      const newWorkAuthByCountry = { ...prev.workAuthByCountry };
+      if (!newCountries.includes(country)) {
+        delete newWorkAuthByCountry[country];
+      }
+      
+      return {
+        ...prev,
+        workAuthCountries: newCountries,
+        workAuthByCountry: newWorkAuthByCountry,
+      };
+    });
+  };
+
+  const handleWorkAuthSelect = (country: string, authOption: string) => {
+    setFormData(prev => ({
+      ...prev,
+      workAuthByCountry: {
+        ...prev.workAuthByCountry,
+        [country]: authOption,
+      },
     }));
   };
 
-  const handleAddCustomJob = () => {
-    const trimmed = customJobInput.trim();
-    if (trimmed && !formData.jobFunctions.includes(trimmed)) {
-      setFormData((prev) => ({
+  // Experience level handler
+  const handleExperienceLevelChange = (level: string) => {
+    const selectedLevel = EXPERIENCE_LEVELS.find(l => l.level === level);
+    if (selectedLevel) {
+      setFormData(prev => ({
         ...prev,
-        jobFunctions: [...prev.jobFunctions, trimmed]
+        experienceLevel: level,
+        experienceYearsFrom: selectedLevel.suggestedYearsFrom,
+        experienceYearsTo: selectedLevel.suggestedYearsTo,
       }));
-      setCustomJobInput('');
     }
   };
 
-  const handleCustomJobKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleAddCustomJob();
-    }
+  // Preferred location handlers
+  const handleLocationCountryToggle = (country: string) => {
+    setFormData(prev => {
+      const existingIndex = prev.preferredLocations.findIndex(loc => loc.country === country);
+      
+      if (existingIndex >= 0) {
+        // Remove country and its cities
+        return {
+          ...prev,
+          preferredLocations: prev.preferredLocations.filter((_, idx) => idx !== existingIndex)
+        };
+      } else {
+        // Add country with empty cities
+        return {
+          ...prev,
+          preferredLocations: [...prev.preferredLocations, { country, cities: [] }]
+        };
+      }
+    });
+  };
+
+  const handleLocationCityToggle = (country: string, city: string) => {
+    setFormData(prev => {
+      const locationIndex = prev.preferredLocations.findIndex(loc => loc.country === country);
+      
+      if (locationIndex < 0) return prev;
+      
+      const updatedLocations = [...prev.preferredLocations];
+      const currentCities = updatedLocations[locationIndex].cities;
+      
+      if (currentCities.includes(city)) {
+        // Remove city
+        updatedLocations[locationIndex] = {
+          ...updatedLocations[locationIndex],
+          cities: currentCities.filter(c => c !== city)
+        };
+      } else {
+        // Add city
+        updatedLocations[locationIndex] = {
+          ...updatedLocations[locationIndex],
+          cities: [...currentCities, city]
+        };
+      }
+      
+      return {
+        ...prev,
+        preferredLocations: updatedLocations
+      };
+    });
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -186,13 +406,24 @@ export default function OnboardingPage() {
 
   const handleNext = () => {
     if (step === 1) {
-      if (formData.jobFunctions.length === 0) {
-        setError('Please select at least one job function');
+      if (formData.categories.length === 0) {
+        setError('Please select at least one job category');
         return;
       }
-      if (formData.jobTypes.length === 0) {
-        setError('Please select at least one job type');
+      if (formData.workTypes.length === 0) {
+        setError('Please select at least one work type');
         return;
+      }
+      if (formData.workAuthCountries.length === 0) {
+        setError('Please select at least one country for work authorization');
+        return;
+      }
+      // Validate that each selected country has work auth specified
+      for (const country of formData.workAuthCountries) {
+        if (!formData.workAuthByCountry[country]) {
+          setError(`Please select work authorization type for ${country}`);
+          return;
+        }
       }
       setError('');
       setStep(2);
@@ -244,11 +475,29 @@ export default function OnboardingPage() {
             'Authorization': `Bearer ${session.access_token}`,
           },
           body: JSON.stringify({
-            jobFunction: formData.jobFunctions.join(', '),
-            jobTypes: formData.jobTypes,
-            location: formData.withinUS ? 'Within the US' : 'International',
+            categories: formData.categories,
+            categorySkills: formData.categorySkills,
+            experienceLevel: formData.experienceLevel,
+            experienceYearsFrom: formData.experienceYearsFrom,
+            experienceYearsTo: formData.experienceYearsTo.toString(),
+            workTypes: formData.workTypes,
             remoteOpen: formData.remoteOpen,
-            h1bSponsorship: formData.h1bSponsorship,
+            payType: formData.payType,
+            currency: typeof formData.currency === 'object' ? formData.currency.code : formData.currency,
+            salaryExpectationFrom: formData.salaryExpectationFrom,
+            salaryExpectationTo: formData.salaryExpectationTo,
+            workAuthCountries: formData.workAuthCountries,
+            workAuthByCountry: formData.workAuthByCountry,
+            preferredLocations: formData.preferredLocations,
+            // Legacy fields for backward compatibility
+            jobTypes: formData.workTypes,
+            location: formData.preferredLocations.length > 0 
+              ? formData.preferredLocations.map(loc => 
+                  loc.cities.length > 0 
+                    ? `${loc.country} (${loc.cities.join(', ')})` 
+                    : loc.country
+                ).join('; ')
+              : '',
           }),
         });
 
@@ -336,137 +585,585 @@ export default function OnboardingPage() {
                 </div>
 
                 <div className={styles.form}>
+                  {/* 1. Categories */}
                   <div className={styles.formGroup}>
                     <label className={styles.label}>
-                      <span className={styles.required}>*</span> Job Function <span className={styles.hint}>(select multiple or add custom)</span>
+                      <span className={styles.required}>*</span> Job Categories
                     </label>
-
-                    <div className={styles.jobFunctionWrapper}>
-                      <div className={styles.inputWithTags}>
-                        {/* 已选择的职位标签（在输入框内） */}
-                        {formData.jobFunctions.map((job, idx) => (
-                          <div key={idx} className={styles.inlineJobTag}>
-                            {job}
+                    <div style={{ marginBottom: '8px' }}>
+                      {!isCategoryExpanded ? (
+                        <div 
+                          onClick={() => setIsCategoryExpanded(true)}
+                          style={{ 
+                            padding: '12px', 
+                            border: '1px solid #ddd', 
+                            borderRadius: '8px', 
+                            cursor: 'pointer',
+                            backgroundColor: '#f9f9f9'
+                          }}
+                        >
+                          {formData.categories.length === 0 ? (
+                            <span style={{ color: '#999' }}>Click to select categories...</span>
+                          ) : (
+                            <span>{formData.categories.length} categor{formData.categories.length === 1 ? 'y' : 'ies'} selected</span>
+                          )}
+                        </div>
+                        ) : (
+                          <div style={{ 
+                            border: '1px solid #ddd', 
+                            borderRadius: '8px',
+                            backgroundColor: 'white'
+                          }}>
+                            {/* Header with collapse button */}
+                            <div style={{ 
+                              display: 'flex', 
+                              justifyContent: 'space-between', 
+                              padding: '12px',
+                              borderBottom: '1px solid #e0e0e0'
+                            }}>
+                              <span style={{ fontWeight: 500 }}>Select categories</span>
                             <button
                               type="button"
-                              className={styles.removeJobBtn}
-                              onClick={() => handleRemoveJobFunction(job)}
-                              aria-label={`Remove ${job}`}
-                            >
-                              ×
+                                onClick={() => {
+                                  setIsCategoryExpanded(false);
+                                  setCategorySearchTerm('');
+                                }}
+                                style={{ 
+                                  background: 'none', 
+                                  border: 'none', 
+                                  cursor: 'pointer',
+                                  color: '#4A5BF4',
+                                  fontWeight: 500
+                                }}
+                              >
+                                Collapse ▲
                             </button>
                           </div>
-                        ))}
+                            
+                            {/* Search input */}
+                            <div style={{ padding: '12px', borderBottom: '1px solid #e0e0e0' }}>
                         <input
                           type="text"
-                          placeholder={formData.jobFunctions.length === 0 ? "Type to add custom or click to select from list" : "Add more..."}
-                          value={customJobInput}
-                          onChange={(e) => setCustomJobInput(e.target.value)}
-                          onFocus={() => setShowJobDropdown(true)}
-                          onKeyPress={handleCustomJobKeyPress}
-                          className={styles.inlineInput}
-                          autoComplete="off"
-                        />
+                                placeholder="🔍 Search categories..."
+                                value={categorySearchTerm}
+                                onChange={(e) => setCategorySearchTerm(e.target.value)}
+                                style={{
+                                  width: '100%',
+                                  padding: '10px 12px',
+                                  border: '1px solid #ddd',
+                                  borderRadius: '6px',
+                                  fontSize: '14px',
+                                  outline: 'none'
+                                }}
+                                onFocus={(e) => e.target.style.borderColor = '#4A5BF4'}
+                                onBlur={(e) => e.target.style.borderColor = '#ddd'}
+                              />
+                              {categorySearchTerm && (
+                                <div style={{ 
+                                  fontSize: '13px', 
+                                  color: '#666', 
+                                  marginTop: '6px' 
+                                }}>
+                                  Found {filteredCategories.length} categor{filteredCategories.length === 1 ? 'y' : 'ies'}
                       </div>
-                      {showJobDropdown && (
-                        <div className={styles.jobDropdown}>
-                          <div className={styles.jobCategories}>
-                            {jobCategories.map((category, idx) => (
-                              <div
-                                key={idx}
-                                className={`${styles.categoryItem} ${selectedCategory === idx ? styles.categoryItemActive : ''}`}
-                                onClick={() => setSelectedCategory(idx)}
-                              >
-                                {category.name}
-                                <span className={styles.arrow}>›</span>
+                              )}
+                            </div>
+                            
+                            {/* Scrollable category list */}
+                            <div style={{ 
+                              maxHeight: '300px', 
+                              overflowY: 'auto',
+                              padding: '12px'
+                            }}>
+                              {filteredCategories.length > 0 ? (
+                                filteredCategories.map((cat) => (
+                                  <label key={cat} style={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    padding: '8px',
+                                    cursor: 'pointer',
+                                    borderRadius: '4px',
+                                    marginBottom: '4px',
+                                    backgroundColor: formData.categories.includes(cat) ? '#f0f4ff' : 'transparent'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    if (!formData.categories.includes(cat)) {
+                                      e.currentTarget.style.backgroundColor = '#f9f9f9';
+                                    }
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    if (!formData.categories.includes(cat)) {
+                                      e.currentTarget.style.backgroundColor = 'transparent';
+                                    }
+                                  }}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={formData.categories.includes(cat)}
+                                      onChange={() => handleCategorySelect(cat)}
+                                      style={{ marginRight: '8px' }}
+                                    />
+                                    <span style={{ fontSize: '14px' }}>{cat}</span>
+                                  </label>
+                                ))
+                              ) : (
+                                <div style={{ 
+                                  textAlign: 'center', 
+                                  padding: '20px', 
+                                  color: '#999',
+                                  fontSize: '14px'
+                                }}>
+                                  No categories found matching &quot;{categorySearchTerm}&quot;
                               </div>
-                            ))}
+                              )}
                           </div>
-                          <div className={styles.jobPositions}>
-                            {jobCategories[selectedCategory].subcategories.map((sub, subIdx) => (
-                              <div key={subIdx} className={styles.positionGroup}>
-                                <div className={styles.positionTitle}>{sub.title}</div>
-                                <div className={styles.positionList}>
-                                  {sub.positions.map((position, posIdx) => (
+                          </div>
+                        )}
+                    </div>
+                    {formData.categories.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }}>
+                        {formData.categories.map((cat) => (
+                          <span key={cat} style={{ 
+                            padding: '6px 12px', 
+                            backgroundColor: '#4A5BF4', 
+                            color: 'white', 
+                            borderRadius: '16px',
+                            fontSize: '13px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                          }}>
+                            {cat}
                                     <button
-                                      key={posIdx}
                                       type="button"
-                                      className={`${styles.positionTag} ${
-                                        formData.jobFunctions.includes(position) ? styles.positionTagSelected : ''
-                                      }`}
-                                      onClick={() => handleJobFunctionToggle(position)}
-                                    >
-                                      {formData.jobFunctions.includes(position) && (
-                                        <span className={styles.checkmark}>✓</span>
-                                      )}
-                                      {position}
+                              onClick={() => handleCategorySelect(cat)}
+                              style={{ 
+                                background: 'none', 
+                                border: 'none', 
+                                color: 'white', 
+                                cursor: 'pointer',
+                                fontSize: '16px',
+                                lineHeight: 1
+                              }}
+                            >
+                              ×
                                     </button>
+                          </span>
                                   ))}
                                 </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
                       )}
-                    </div>
-                  </div>
+                              </div>
 
+                  {/* 2. Experience Level */}
                   <div className={styles.formGroup}>
                     <label className={styles.label}>
-                      <span className={styles.required}>*</span> Job Type
+                      <span className={styles.required}>*</span> Experience Level
+                    </label>
+                    <select
+                      value={formData.experienceLevel}
+                      onChange={(e) => handleExperienceLevelChange(e.target.value)}
+                      style={{ 
+                        width: '100%', 
+                        padding: '12px', 
+                        border: '1px solid #ddd', 
+                        borderRadius: '8px',
+                        fontSize: '14px'
+                      }}
+                    >
+                      {EXPERIENCE_LEVELS.map((level) => (
+                        <option key={level.level} value={level.level}>
+                          {level.level} ({level.description})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* 3. Work Type */}
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>
+                      <span className={styles.required}>*</span> Work Type
                     </label>
                     <div className={styles.checkboxGroup}>
-                      {['Full-time', 'Contract', 'Part-time', 'Internship'].map((type) => (
+                      {WORK_TYPES.map((type) => (
                         <label key={type} className={styles.checkbox}>
                           <input
                             type="checkbox"
-                            checked={formData.jobTypes.includes(type)}
-                            onChange={() => handleJobTypeToggle(type)}
+                            checked={formData.workTypes.includes(type)}
+                            onChange={() => handleWorkTypeToggle(type)}
                           />
                           <span className={styles.checkboxLabel}>{type}</span>
                         </label>
                       ))}
                     </div>
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>Location</label>
-                    <div className={styles.locationGroup}>
-                      <label className={styles.checkbox}>
-                        <input
-                          type="checkbox"
-                          checked={formData.withinUS}
-                          onChange={(e) => setFormData({ ...formData, withinUS: e.target.checked })}
-                        />
-                        <span className={styles.checkboxLabel}>Within the US</span>
-                      </label>
-                      <label className={styles.checkbox}>
+                    <label className={styles.checkbox} style={{ marginTop: '12px' }}>
                         <input
                           type="checkbox"
                           checked={formData.remoteOpen}
                           onChange={(e) => setFormData({ ...formData, remoteOpen: e.target.checked })}
                         />
-                        <span className={styles.checkboxLabel}>
-                          Open to Remote
-                          <span className={styles.tooltipIcon}>?</span>
-                        </span>
+                      <span className={styles.checkboxLabel}>Open to Remote Work</span>
                       </label>
+                  </div>
+
+                  {/* 4. Salary Expectations */}
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Salary Expectations (Optional)</label>
+                    <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
+                      <select
+                        value={formData.payType}
+                        onChange={(e) => setFormData({ ...formData, payType: e.target.value })}
+                        style={{ 
+                          flex: 1, 
+                          padding: '12px', 
+                          border: '1px solid #ddd', 
+                          borderRadius: '8px',
+                          fontSize: '14px'
+                        }}
+                      >
+                        {PAY_TYPES.map((type) => (
+                          <option key={type} value={type}>{type}</option>
+                        ))}
+                      </select>
+                      <select
+                        value={typeof formData.currency === 'object' ? formData.currency.code : formData.currency}
+                        onChange={(e) => {
+                          const selected = CURRENCIES.find(c => c.code === e.target.value);
+                          if (selected) setFormData({ ...formData, currency: selected });
+                        }}
+                        style={{ 
+                          width: '120px', 
+                          padding: '12px', 
+                          border: '1px solid #ddd', 
+                          borderRadius: '8px',
+                          fontSize: '14px'
+                        }}
+                      >
+                        {CURRENCIES.map((curr) => (
+                          <option key={curr.code} value={curr.code}>
+                            {curr.symbol} {curr.code}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        placeholder="From"
+                        value={formData.salaryExpectationFrom}
+                        onChange={(e) => setFormData({ ...formData, salaryExpectationFrom: e.target.value })}
+                        style={{ 
+                          flex: 1, 
+                          padding: '12px', 
+                          border: '1px solid #ddd', 
+                          borderRadius: '8px',
+                          fontSize: '14px'
+                        }}
+                      />
+                      <span>to</span>
+                      <input
+                        type="text"
+                        placeholder="To"
+                        value={formData.salaryExpectationTo}
+                        onChange={(e) => setFormData({ ...formData, salaryExpectationTo: e.target.value })}
+                        style={{ 
+                          flex: 1, 
+                          padding: '12px', 
+                          border: '1px solid #ddd', 
+                          borderRadius: '8px',
+                          fontSize: '14px'
+                        }}
+                      />
                     </div>
                   </div>
 
+                  {/* 5. Preferred Locations */}
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Preferred Locations (Optional)</label>
+                    <p style={{ fontSize: '14px', color: '#666', marginBottom: '16px' }}>
+                      Select countries and specific cities where you&apos;d like to work
+                    </p>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {LOCATION_OPTIONS.map((location) => {
+                        const isCountrySelected = formData.preferredLocations.some(loc => loc.country === location.country);
+                        const selectedCities = formData.preferredLocations.find(loc => loc.country === location.country)?.cities || [];
+                        
+                        return (
+                          <div
+                            key={location.country}
+                            style={{
+                              padding: '16px',
+                              background: 'white',
+                              border: isCountrySelected ? '2px solid #4A5BF4' : '2px solid #e0e0e0',
+                              borderRadius: '8px',
+                              transition: 'all 0.2s ease',
+                            }}
+                          >
+                            <label style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: '12px',
+                              cursor: 'pointer'
+                            }}>
+                        <input
+                          type="checkbox"
+                                checked={isCountrySelected}
+                                onChange={() => handleLocationCountryToggle(location.country)}
+                                style={{ 
+                                  width: '18px', 
+                                  height: '18px', 
+                                  accentColor: '#4A5BF4',
+                                  cursor: 'pointer'
+                                }}
+                              />
+                              <span style={{ fontSize: '24px' }}>{location.flag}</span>
+                              <span style={{ 
+                                fontSize: '14px', 
+                                fontWeight: 600, 
+                                color: '#252525',
+                                flex: 1
+                              }}>
+                                {location.country}
+                              </span>
+                              {isCountrySelected && selectedCities.length > 0 && (
+                                <span style={{ 
+                                  fontSize: '13px', 
+                                  color: '#4A5BF4',
+                                  fontWeight: 500
+                                }}>
+                                  {selectedCities.length} {selectedCities.length === 1 ? 'city' : 'cities'} selected
+                                </span>
+                              )}
+                      </label>
+                            
+                            {isCountrySelected && (
+                              <div style={{ 
+                                marginTop: '16px',
+                                paddingTop: '16px',
+                                borderTop: '1px solid #e0e0e0'
+                              }}>
+                                <p style={{ 
+                                  fontSize: '14px', 
+                                  fontWeight: 500,
+                                  color: '#252525',
+                                  marginBottom: '12px'
+                                }}>
+                                  Select specific cities (optional):
+                                </p>
+                                <div style={{ 
+                                  display: 'flex', 
+                                  flexWrap: 'wrap', 
+                                  gap: '8px'
+                                }}>
+                                  {location.cities.map((city) => (
+                                    <label
+                                      key={city}
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        padding: '6px 12px',
+                                        background: selectedCities.includes(city) ? '#4A5BF4' : '#f5f5f5',
+                                        color: selectedCities.includes(city) ? 'white' : '#252525',
+                                        borderRadius: '16px',
+                                        fontSize: '13px',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s ease',
+                                        border: selectedCities.includes(city) ? '1px solid #4A5BF4' : '1px solid #e0e0e0',
+                                      }}
+                                      onMouseEnter={(e) => {
+                                        if (!selectedCities.includes(city)) {
+                                          e.currentTarget.style.background = '#e8e8e8';
+                                        }
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        if (!selectedCities.includes(city)) {
+                                          e.currentTarget.style.background = '#f5f5f5';
+                                        }
+                                      }}
+                                    >
+                        <input
+                          type="checkbox"
+                                        checked={selectedCities.includes(city)}
+                                        onChange={() => handleLocationCityToggle(location.country, city)}
+                                        style={{ display: 'none' }}
+                        />
+                                      {city}
+                      </label>
+                                  ))}
+                    </div>
+                                {selectedCities.length === 0 && (
+                                  <p style={{ 
+                                    fontSize: '12px', 
+                                    color: '#999', 
+                                    marginTop: '8px',
+                                    fontStyle: 'italic'
+                                  }}>
+                                    No cities selected - you&apos;re open to any location in {location.country}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                  </div>
+
+                    {formData.preferredLocations.length > 0 && (
+                      <div style={{ 
+                        marginTop: '12px',
+                        padding: '12px',
+                        background: '#f9f9f9',
+                        borderRadius: '8px'
+                      }}>
+                        <div style={{ fontSize: '13px', color: '#666', fontWeight: 500, marginBottom: '8px' }}>
+                          Selected locations:
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#252525' }}>
+                          {formData.preferredLocations.map((loc, idx) => (
+                            <div key={idx} style={{ marginBottom: '4px' }}>
+                              • {loc.country}
+                              {loc.cities.length > 0 && (
+                                <span style={{ color: '#666' }}> — {loc.cities.join(', ')}</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 6. Work Authorization */}
                   <div className={styles.formGroup}>
                     <label className={styles.label}>
-                      Work Authorization
-                      <span className={styles.tooltipIcon}>?</span>
+                      <span className={styles.required}>*</span> Work Authorization
                     </label>
-                    <label className={styles.checkbox}>
+                    <p style={{ fontSize: '14px', color: '#666', marginBottom: '16px' }}>
+                      Select the countries/regions where you have work authorization and specify your authorization status
+                    </p>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {COUNTRIES_REGIONS.slice(0, -1).map((country) => (
+                        <div
+                          key={country.value}
+                          style={{
+                            padding: '16px',
+                            background: 'white',
+                            border: formData.workAuthCountries.includes(country.value) 
+                              ? '2px solid #4A5BF4' 
+                              : '2px solid #e0e0e0',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                          }}
+                        >
+                          <label style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '12px',
+                            cursor: 'pointer'
+                          }}>
                       <input
                         type="checkbox"
-                        checked={formData.h1bSponsorship}
-                        onChange={(e) => setFormData({ ...formData, h1bSponsorship: e.target.checked })}
-                      />
-                      <span className={styles.checkboxLabel}>H1B sponsorship</span>
+                              checked={formData.workAuthCountries.includes(country.value)}
+                              onChange={() => handleWorkAuthCountryToggle(country.value)}
+                              style={{ 
+                                width: '18px', 
+                                height: '18px', 
+                                accentColor: '#4A5BF4',
+                                cursor: 'pointer'
+                              }}
+                            />
+                            <span style={{ fontSize: '24px' }}>{country.flag}</span>
+                            <span style={{ 
+                              fontSize: '14px', 
+                              fontWeight: 600, 
+                              color: '#252525',
+                              flex: 1
+                            }}>
+                              {country.label}
+                            </span>
                     </label>
+                          
+                          {formData.workAuthCountries.includes(country.value) && (
+                            <div style={{ 
+                              marginTop: '16px',
+                              paddingTop: '16px',
+                              borderTop: '1px solid #e0e0e0'
+                            }}>
+                              <p style={{ 
+                                fontSize: '14px', 
+                                fontWeight: 500,
+                                color: '#252525',
+                                marginBottom: '12px'
+                              }}>
+                                Select your work authorization status:
+                              </p>
+                              <div style={{ 
+                                display: 'flex', 
+                                flexDirection: 'column', 
+                                gap: '8px'
+                              }}>
+                                {(WORK_AUTH_OPTIONS[country.value as keyof typeof WORK_AUTH_OPTIONS] || []).map((option, index) => (
+                                  <label
+                                    key={index}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'flex-start',
+                                      gap: '12px',
+                                      padding: '12px 16px',
+                                      background: formData.workAuthByCountry[country.value] === option 
+                                        ? 'rgba(74, 91, 244, 0.05)' 
+                                        : 'white',
+                                      border: formData.workAuthByCountry[country.value] === option 
+                                        ? '2px solid #4A5BF4' 
+                                        : '2px solid #e0e0e0',
+                                      borderRadius: '8px',
+                                      cursor: 'pointer',
+                                      transition: 'all 0.2s ease',
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      if (formData.workAuthByCountry[country.value] !== option) {
+                                        e.currentTarget.style.borderColor = '#4A5BF4';
+                                        e.currentTarget.style.background = 'rgba(74, 91, 244, 0.02)';
+                                      }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      if (formData.workAuthByCountry[country.value] !== option) {
+                                        e.currentTarget.style.borderColor = '#e0e0e0';
+                                        e.currentTarget.style.background = 'white';
+                                      }
+                                    }}
+                                  >
+                                    <input
+                                      type="radio"
+                                      name={`work-auth-${country.value}`}
+                                      checked={formData.workAuthByCountry[country.value] === option}
+                                      onChange={() => handleWorkAuthSelect(country.value, option)}
+                                      style={{ 
+                                        marginTop: '3px',
+                                        width: '18px', 
+                                        height: '18px', 
+                                        accentColor: '#4A5BF4',
+                                        cursor: 'pointer',
+                                        flexShrink: 0
+                                      }}
+                                    />
+                                    <span style={{ 
+                                      fontSize: '14px', 
+                                      color: '#252525',
+                                      lineHeight: '1.6'
+                                    }}>
+                                      {option}
+                                    </span>
+                    </label>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </>

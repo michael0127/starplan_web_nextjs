@@ -69,11 +69,36 @@ model User {
   
   // Onboarding相关字段
   hasCompletedOnboarding Boolean  @default(false) @map("has_completed_onboarding")
-  jobFunction            String?  @map("job_function")
-  jobTypes               String[] @default([]) @map("job_types")
-  preferredLocation      String?  @map("preferred_location")
+  
+  // 1. Work Authorization (matching Job Posting's selectedCountries and workAuthByCountry)
+  workAuthCountries      String[] @default([]) @map("work_auth_countries") // Countries where candidate has work authorization
+  workAuthByCountry      Json?    @map("work_auth_by_country") // Record<string, string> - visa type by country
+  
+  // 2. Categories (matching Job Posting's categories and categorySkills)
+  categories             String[] @default([]) // Job categories candidate is interested in
+  categorySkills         String[] @default([]) @map("category_skills") // Skills within selected categories
+  
+  // 3. Experience (matching Job Posting's experienceLevel and years)
+  experienceLevel        String?  @map("experience_level") // INTERN, JUNIOR, MID_LEVEL, SENIOR, LEAD, PRINCIPAL
+  experienceYearsFrom    Int?     @map("experience_years_from") // Minimum years of experience
+  experienceYearsTo      String?  @map("experience_years_to") // Maximum years or "Unlimited"
+  
+  // 4. Work Type (matching Job Posting's workType)
+  workTypes              String[] @default([]) @map("work_types") // FULL_TIME, PART_TIME, CONTRACT, INTERNSHIP
   remoteOpen             Boolean  @default(false) @map("remote_open")
-  h1bSponsorship         Boolean  @default(false) @map("h1b_sponsorship")
+  
+  // 5. Salary (matching Job Posting's pay fields)
+  payType                String?  @map("pay_type") // ANNUAL_SALARY, HOURLY_RATE, DAILY_RATE, PROJECT_BASED
+  currency               String?  @default("aud")
+  salaryExpectationFrom  String?  @map("salary_expectation_from")
+  salaryExpectationTo    String?  @map("salary_expectation_to")
+  
+  // 6. Preferred Locations (structured country/city data)
+  preferredLocations     Json?    @map("preferred_locations") // Array of { country: string, cities: string[] }
+  
+  // Legacy/Additional fields (kept for backward compatibility)
+  jobTypes               String[] @default([]) @map("job_types")
+  preferredLocation      String?  @map("preferred_location") // Legacy single location string
   
   // Profile额外信息（JSON格式）
   profile                Json?    @map("profile")

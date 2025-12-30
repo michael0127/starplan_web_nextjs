@@ -32,17 +32,44 @@ export async function POST(request: NextRequest) {
     // 解析请求体
     const body = await request.json();
     const {
-      jobFunction,
+      // New fields
+      categories,
+      categorySkills,
+      experienceLevel,
+      experienceYearsFrom,
+      experienceYearsTo,
+      workTypes,
+      remoteOpen,
+      payType,
+      currency,
+      salaryExpectationFrom,
+      salaryExpectationTo,
+      workAuthCountries,
+      workAuthByCountry,
+      preferredLocations,
+      // Legacy fields
       jobTypes,
       location,
-      remoteOpen,
-      h1bSponsorship,
     } = body;
 
     // 验证必填字段
-    if (!jobFunction || !Array.isArray(jobTypes) || jobTypes.length === 0) {
+    if (!categories || !Array.isArray(categories) || categories.length === 0) {
       return NextResponse.json(
-        { error: 'Job function and job types are required' },
+        { error: 'At least one job category is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!workTypes || !Array.isArray(workTypes) || workTypes.length === 0) {
+      return NextResponse.json(
+        { error: 'At least one work type is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!workAuthCountries || !Array.isArray(workAuthCountries) || workAuthCountries.length === 0) {
+      return NextResponse.json(
+        { error: 'Work authorization information is required' },
         { status: 400 }
       );
     }
@@ -52,11 +79,24 @@ export async function POST(request: NextRequest) {
       where: { id: user.id },
       data: {
         hasCompletedOnboarding: true,
-        jobFunction,
-        jobTypes,
-        preferredLocation: location,
+        // New onboarding fields
+        categories: categories || [],
+        categorySkills: categorySkills || [],
+        experienceLevel: experienceLevel || null,
+        experienceYearsFrom: experienceYearsFrom ? parseInt(experienceYearsFrom.toString()) : null,
+        experienceYearsTo: experienceYearsTo ? experienceYearsTo.toString() : null,
+        workTypes: workTypes || [],
         remoteOpen: remoteOpen || false,
-        h1bSponsorship: h1bSponsorship || false,
+        payType: payType || null,
+        currency: currency || null,
+        salaryExpectationFrom: salaryExpectationFrom || null,
+        salaryExpectationTo: salaryExpectationTo || null,
+        workAuthCountries: workAuthCountries || [],
+        workAuthByCountry: workAuthByCountry || {},
+        preferredLocations: preferredLocations || null,
+        // Legacy fields for backward compatibility
+        jobTypes: jobTypes || workTypes || [],
+        preferredLocation: location || null,
       },
     });
 
@@ -66,11 +106,23 @@ export async function POST(request: NextRequest) {
         id: updatedUser.id,
         email: updatedUser.email,
         hasCompletedOnboarding: updatedUser.hasCompletedOnboarding,
-        jobFunction: updatedUser.jobFunction,
+        categories: updatedUser.categories,
+        categorySkills: updatedUser.categorySkills,
+        experienceLevel: updatedUser.experienceLevel,
+        experienceYearsFrom: updatedUser.experienceYearsFrom,
+        experienceYearsTo: updatedUser.experienceYearsTo,
+        workTypes: updatedUser.workTypes,
+        remoteOpen: updatedUser.remoteOpen,
+        payType: updatedUser.payType,
+        currency: updatedUser.currency,
+        salaryExpectationFrom: updatedUser.salaryExpectationFrom,
+        salaryExpectationTo: updatedUser.salaryExpectationTo,
+        workAuthCountries: updatedUser.workAuthCountries,
+        workAuthByCountry: updatedUser.workAuthByCountry,
+        preferredLocations: updatedUser.preferredLocations,
+        // Legacy fields
         jobTypes: updatedUser.jobTypes,
         preferredLocation: updatedUser.preferredLocation,
-        remoteOpen: updatedUser.remoteOpen,
-        h1bSponsorship: updatedUser.h1bSponsorship,
       },
     });
   } catch (error) {
