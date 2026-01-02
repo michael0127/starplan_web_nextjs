@@ -93,19 +93,19 @@ model User {
   salaryExpectationFrom  String?  @map("salary_expectation_from")
   salaryExpectationTo    String?  @map("salary_expectation_to")
   
-  // 6. Preferred Locations (structured country/city data)
-  preferredLocations     Json?    @map("preferred_locations") // Array of { country: string, cities: string[] }
-  
   // Legacy/Additional fields (kept for backward compatibility)
   jobTypes               String[] @default([]) @map("job_types")
-  preferredLocation      String?  @map("preferred_location") // Legacy single location string
+  preferredLocation      String?  @map("preferred_location")
   
   // Profile额外信息（JSON格式）
   profile                Json?    @map("profile")
 
-  cvs         CV[]
-  jds         JobDescription[]
-  jobPostings JobPosting[]
+  cvs              CV[]
+  jds              JobDescription[]
+  jobPostings      JobPosting[]
+  candidateMatches CandidateJobMatch[] @relation("CandidateMatches")
+
+  lastMatchedAt DateTime? @map("last_matched_at")
 
   @@map("users")
 }
@@ -119,7 +119,8 @@ model CV {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  matches CandidateJobMatch[]
 
   @@map("cvs")
 }
@@ -184,6 +185,9 @@ model JobPosting {
   systemScreeningAnswers     SystemScreeningAnswer[]
   customScreeningQuestions   CustomScreeningQuestion[]
   purchase                   JobPostingPurchase?
+  candidateMatches           CandidateJobMatch[]
+
+  lastMatchedAt DateTime? @map("last_matched_at")
 
   @@map("job_postings")
 }
@@ -259,4 +263,42 @@ model JobPostingPurchase {
   @@index([stripeCustomerId])
   @@index([expiresAt])
   @@map("job_posting_purchases")
+}
+
+// 候选人-职位匹配记录（每次上传CV触发）
+model CandidateJobMatch {
+  id           String   @id @default(uuid()) @db.Uuid
+  candidateId  String   @map("candidate_id") @db.Uuid
+  jobPostingId String   @map("job_posting_id") @db.Uuid
+  cvId         String?  @map("cv_id") @db.Uuid // 触发此次匹配的CV
+
+  // Hard gate 判断
+  passedHardGate  Boolean  @default(false) @map("passed_hard_gate")
+  hardGateReasons String[] @default([]) @map("hard_gate_reasons") // 未通过原因
+
+  // 匹配详情（JSON存储结构化匹配信息 / rule hit / LLM reasoning）
+  matchDetails Json? @map("match_details")
+
+  // 状态管理
+  isActive            Boolean @default(true) @map("is_active")
+  candidateViewed     Boolean @default(false) @map("candidate_viewed")
+  employerViewed      Boolean @default(false) @map("employer_viewed")
+  candidateInterested Boolean @default(false) @map("candidate_interested")
+  employerInterested  Boolean @default(false) @map("employer_interested")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  candidate  User       @relation("CandidateMatches", fields: [candidateId], references: [id], onDelete: Cascade)
+  jobPosting JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+  cv         CV?        @relation(fields: [cvId], references: [id], onDelete: SetNull)
+
+  @@unique([candidateId, jobPostingId])
+  @@index([candidateId])
+  @@index([jobPostingId])
+  @@index([passedHardGate])
+  @@index([isActive])
+  @@index([createdAt])
+  @@map("candidate_job_matches")
 }

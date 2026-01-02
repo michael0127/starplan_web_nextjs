@@ -3,6 +3,10 @@ import { createClient } from '@supabase/supabase-js';
 import { prisma } from '@/lib/prisma';
 import type { JobPostingFormData } from '@/types/jobPosting';
 
+// 配置 route segment config - 启用缓存
+export const dynamic = 'force-dynamic'; // GET 需要动态数据
+export const revalidate = 30; // 30 秒后重新验证缓存
+
 // POST /api/job-postings - Create or update a job posting
 export async function POST(request: NextRequest) {
   try {
@@ -230,24 +234,43 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
 
+    console.log('[API] Fetching job postings for user:', userId, 'status:', status || 'all');
+    const startTime = Date.now();
+
     const jobPostings = await prisma.jobPosting.findMany({
       where: {
         userId,
         ...(status && { status: status as 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'ARCHIVED' }),
       },
       include: {
-        systemScreeningAnswers: true,
-        customScreeningQuestions: true,
+        systemScreeningAnswers: {
+          take: 50, // 限制每个 job 最多返回 50 个 screening answers
+        },
+        customScreeningQuestions: {
+          take: 20, // 限制每个 job 最多返回 20 个自定义问题
+        },
       },
       orderBy: {
         updatedAt: 'desc',
       },
+      take: 100, // 限制返回最多 100 个 job postings
     });
 
-    return NextResponse.json({
-      success: true,
-      data: jobPostings,
-    });
+    const duration = Date.now() - startTime;
+    console.log(`[API] Fetched ${jobPostings.length} job postings in ${duration}ms`);
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: jobPostings,
+      },
+      {
+        headers: {
+          // 添加 Cache-Control 头，允许浏览器缓存 30 秒
+          'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',
+        },
+      }
+    );
 
   } catch (error) {
     console.error('Error fetching job postings:', error);

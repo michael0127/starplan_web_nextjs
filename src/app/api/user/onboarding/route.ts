@@ -46,7 +46,6 @@ export async function POST(request: NextRequest) {
       salaryExpectationTo,
       workAuthCountries,
       workAuthByCountry,
-      preferredLocations,
       // Legacy fields
       jobTypes,
       location,
@@ -93,7 +92,6 @@ export async function POST(request: NextRequest) {
         salaryExpectationTo: salaryExpectationTo || null,
         workAuthCountries: workAuthCountries || [],
         workAuthByCountry: workAuthByCountry || {},
-        preferredLocations: preferredLocations || null,
         // Legacy fields for backward compatibility
         jobTypes: jobTypes || workTypes || [],
         preferredLocation: location || null,
@@ -119,7 +117,6 @@ export async function POST(request: NextRequest) {
         salaryExpectationTo: updatedUser.salaryExpectationTo,
         workAuthCountries: updatedUser.workAuthCountries,
         workAuthByCountry: updatedUser.workAuthByCountry,
-        preferredLocations: updatedUser.preferredLocations,
         // Legacy fields
         jobTypes: updatedUser.jobTypes,
         preferredLocation: updatedUser.preferredLocation,

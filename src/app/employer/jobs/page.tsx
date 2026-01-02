@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { PageTransition } from '@/components/PageTransition';
@@ -27,21 +27,51 @@ export default function EmployerJobs() {
   const [isRepublishing, setIsRepublishing] = useState(false);
   const [checkingExpiry, setCheckingExpiry] = useState<string | null>(null);
   
+  // 防止重复 fetch 的 ref
+  const fetchingRef = useRef(false);
+  const initialFetchDone = useRef(false);
+  
   // 使用权限检查 hook
   const { user, loading, isEmployer } = useUserType({
     required: 'EMPLOYER',
     redirectTo: '/companies',
   });
 
-  // 获取职位列表
+  // 获取职位列表 - 只在必要时触发
   useEffect(() => {
-    if (user && isEmployer) {
+    // 只在用户认证完成且是雇主时才执行
+    if (!user || !isEmployer || loading) {
+      return;
+    }
+    
+    // 如果是首次加载，立即执行
+    if (!initialFetchDone.current) {
+      initialFetchDone.current = true;
+      fetchJobPostings();
+      return;
+    }
+    
+    // 后续只在 activeTab 变化时执行
+    fetchJobPostings();
+  }, [activeTab]); // 移除 user 和 isEmployer 依赖，避免重复触发
+  
+  // 单独监听用户状态变化，只在首次认证成功时触发
+  useEffect(() => {
+    if (user && isEmployer && !initialFetchDone.current) {
+      initialFetchDone.current = true;
       fetchJobPostings();
     }
-  }, [user, isEmployer, activeTab]);
+  }, [user, isEmployer]);
 
   const fetchJobPostings = async () => {
+    // 防止并发请求
+    if (fetchingRef.current) {
+      console.log('Fetch already in progress, skipping...');
+      return;
+    }
+    
     try {
+      fetchingRef.current = true;
       setIsLoading(true);
       
       // Get the current session
@@ -50,12 +80,15 @@ export default function EmployerJobs() {
       if (!session) {
         console.error('No session found');
         setIsLoading(false);
+        fetchingRef.current = false;
         return;
       }
       
       const url = activeTab === 'all' 
         ? '/api/job-postings' 
         : `/api/job-postings?status=${activeTab.toUpperCase()}`;
+      
+      console.log('Fetching job postings:', url, new Date().toISOString());
       
       const response = await fetch(url, {
         headers: {
@@ -72,6 +105,7 @@ export default function EmployerJobs() {
       console.error('Error fetching job postings:', error);
     } finally {
       setIsLoading(false);
+      fetchingRef.current = false;
     }
   };
 

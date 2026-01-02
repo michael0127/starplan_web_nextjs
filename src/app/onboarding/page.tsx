@@ -166,7 +166,7 @@ const ALL_CATEGORIES = [
 
 // Countries with major cities for location preferences
 const LOCATION_OPTIONS = [
-  {
+      {
     country: 'Australia',
     flag: '🇦🇺',
     cities: ['Sydney', 'Melbourne', 'Brisbane', 'Perth', 'Adelaide', 'Canberra', 'Gold Coast', 'Newcastle', 'Wollongong', 'Hobart']
@@ -353,7 +353,7 @@ export default function OnboardingPage() {
           ...prev,
           preferredLocations: [...prev.preferredLocations, { country, cities: [] }]
         };
-      }
+    }
     });
   };
 
@@ -635,7 +635,7 @@ export default function OnboardingPage() {
                                   color: '#4A5BF4',
                                   fontWeight: 500
                                 }}
-                              >
+                            >
                                 Collapse ▲
                             </button>
                           </div>
@@ -915,7 +915,7 @@ export default function OnboardingPage() {
                                   accentColor: '#4A5BF4',
                                   cursor: 'pointer'
                                 }}
-                              />
+                        />
                               <span style={{ fontSize: '24px' }}>{location.flag}</span>
                               <span style={{ 
                                 fontSize: '14px', 
@@ -1073,7 +1073,7 @@ export default function OnboardingPage() {
                                 accentColor: '#4A5BF4',
                                 cursor: 'pointer'
                               }}
-                            />
+                      />
                             <span style={{ fontSize: '24px' }}>{country.flag}</span>
                             <span style={{ 
                               fontSize: '14px', 

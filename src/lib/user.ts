@@ -34,6 +34,7 @@ export async function getAllUsers(): Promise<User[]> {
     orderBy: {
       createdAt: 'desc',
     },
+    take: 1000, // 添加 LIMIT 防止全表扫描
   });
 }
 

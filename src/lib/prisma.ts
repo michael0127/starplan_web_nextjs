@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
+  prismaInstanceCount: number;
 };
 
 // 为高并发 / Serverless 场景优化的连接参数
@@ -19,6 +20,10 @@ const createPrismaClient = () => {
       ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}connection_limit=1&pool_timeout=30`
       : undefined;
 
+  // 跟踪创建次数（用于调试）
+  globalForPrisma.prismaInstanceCount = (globalForPrisma.prismaInstanceCount || 0) + 1;
+  console.log(`[Prisma] Creating new PrismaClient instance #${globalForPrisma.prismaInstanceCount}`);
+
   return new PrismaClient({
     log:
       process.env.NODE_ENV === 'development'
@@ -33,5 +38,8 @@ export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 // 开发环境下复用单例，避免热重载时创建太多连接
 if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;
+  console.log('[Prisma] Singleton configured for development mode');
+} else {
+  console.log('[Prisma] Production mode - new instance per request');
 }
 

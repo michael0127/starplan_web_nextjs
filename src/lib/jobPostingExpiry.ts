@@ -49,6 +49,7 @@ export async function getExpiredJobPostings(): Promise<string[]> {
       select: {
         jobPostingId: true,
       },
+      take: 1000, // 添加 LIMIT 防止全表扫描
     });
 
     return expiredPurchases.map(p => p.jobPostingId);
@@ -145,6 +146,7 @@ export async function getJobPostingsExpiringSoon(withinDays: number = 7): Promis
         jobPostingId: true,
         expiresAt: true,
       },
+      take: 1000, // 添加 LIMIT 防止全表扫描
     });
 
     return expiringSoon.map(p => p.jobPostingId);
