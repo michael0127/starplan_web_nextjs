@@ -39,7 +39,22 @@ export default function ConfirmAuth() {
 
           if (data.session) {
             setStatus('success');
-            // Small delay to show success message
+            
+            // 检查是否是邀请类型
+            // 1. 从 URL hash 中检查 type 参数
+            // 2. 从用户元数据中检查 invitation_type
+            const isInvite = type === 'invite' || 
+                           data.session.user.user_metadata?.invitation_type === 'cv_upload';
+            
+            if (isInvite) {
+              // 邀请用户需要先设置密码
+              setTimeout(() => {
+                router.push('/auth/set-password');
+              }, 1000);
+              return;
+            }
+            
+            // 普通注册用户直接跳转到 onboarding
             setTimeout(() => {
               router.push('/onboarding');
             }, 1000);

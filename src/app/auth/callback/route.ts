@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get('code');
   const error = requestUrl.searchParams.get('error');
   const errorDescription = requestUrl.searchParams.get('error_description');
+  const type = requestUrl.searchParams.get('type'); // 邀请类型
   const next = requestUrl.searchParams.get('next') || '/onboarding';
 
   // Handle error from Supabase
@@ -28,14 +29,21 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
-    if (!exchangeError) {
+    if (!exchangeError && data.session) {
+      // 检查是否是邀请类型
+      if (type === 'invite') {
+        // 邀请用户需要先设置密码
+        return NextResponse.redirect(new URL('/auth/set-password', requestUrl.origin));
+      }
+      
+      // 普通注册用户直接跳转到 next 页面
       return NextResponse.redirect(new URL(next, requestUrl.origin));
     }
 
     return NextResponse.redirect(
-      new URL(`/login?error=exchange_failed&error_description=${exchangeError.message}`, requestUrl.origin)
+      new URL(`/login?error=exchange_failed&error_description=${exchangeError?.message || 'Unknown error'}`, requestUrl.origin)
     );
   }
 
