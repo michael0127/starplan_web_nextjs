@@ -7,6 +7,40 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { supabase } from '@/lib/supabase';
 
+const BACKEND_URL = process.env.BACKEND_URL || 'http://127.0.0.1:8000';
+
+/**
+ * 触发自动匹配（异步调用后端服务）
+ */
+async function triggerAutoMatching(candidateId: string) {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/v1/match/candidate-to-all-jobs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        candidate_id: candidateId,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('Auto-matching failed:', error);
+      return;
+    }
+
+    const result = await response.json();
+    console.log(`✅ Auto-matching completed for candidate ${candidateId}:`, {
+      total_jobs: result.total_jobs,
+      passed_count: result.passed_count,
+      failed_count: result.failed_count,
+    });
+  } catch (error) {
+    console.error('Auto-matching request error:', error);
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     // 从请求头获取认证token
@@ -96,6 +130,12 @@ export async function POST(request: NextRequest) {
         jobTypes: jobTypes || workTypes || [],
         preferredLocation: location || null,
       },
+    });
+
+    // 触发自动匹配（异步，不阻塞响应）
+    triggerAutoMatching(user.id).catch(error => {
+      console.error('Auto-matching error:', error);
+      // 不影响 onboarding 的成功响应
     });
 
     return NextResponse.json({

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 
-const ADMIN_USERNAME = 'admin';
-const ADMIN_PASSWORD = 'admin';
-const JWT_SECRET = process.env.JWT_SECRET || 'starplan-admin-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       // Generate JWT token
       const token = jwt.sign(
         { 
-          username: ADMIN_USERNAME,
+          username,
           role: 'admin',
           iat: Math.floor(Date.now() / 1000)
         },
@@ -26,14 +26,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         token,
-        message: 'Authentication successful'
+        expiresIn: '24h'
       });
-    } else {
-      return NextResponse.json(
-        { error: 'Invalid username or password' },
-        { status: 401 }
-      );
     }
+
+    // Invalid credentials
+    return NextResponse.json(
+      { error: 'Invalid username or password' },
+      { status: 401 }
+    );
   } catch (error) {
     console.error('Admin auth error:', error);
     return NextResponse.json(

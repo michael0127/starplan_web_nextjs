@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
+import AdminPageContainer from '@/components/admin/AdminPageContainer';
 import styles from './page.module.css';
 import { 
   UsersIcon, 
@@ -82,11 +82,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('adminToken');
-    router.push('/admin/login');
-  };
-
   if (loading) {
     return (
       <div className={styles.container}>
@@ -104,27 +99,11 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className={styles.container}>
-      <header className={styles.header}>
-        <div className={styles.headerContent}>
-          <div className={styles.logoSection}>
-            <Image 
-              src="/img/logo.png" 
-              alt="StarPlan" 
-              width={120} 
-              height={40}
-              priority
-            />
-            <h1 className={styles.headerTitle}>Admin Dashboard</h1>
-          </div>
-          <button onClick={handleLogout} className={styles.logoutBtn}>
-            Logout
-          </button>
-        </div>
-      </header>
-
-      <main className={styles.main}>
-        <div className={styles.statsGrid}>
+    <AdminPageContainer
+      title="Dashboard"
+      description="Overview of your StarPlan admin metrics and recent activity"
+    >
+      <div className={styles.statsGrid}>
           <div className={styles.statCard}>
             <UsersIcon className={styles.statIcon} />
             <div className={styles.statContent}>
@@ -263,8 +242,7 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
-      </main>
-    </div>
+    </AdminPageContainer>
   );
 }
 
