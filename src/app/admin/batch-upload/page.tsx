@@ -141,8 +141,15 @@ export default function BatchUpload() {
                   onChange={(e) => setAutoInvite(e.target.checked)}
                   disabled={uploading}
                 />
-                <span>Auto-invite users via email (send Supabase invitation)</span>
+                <span>Send invitation email immediately</span>
               </label>
+              <div className={styles.hint} style={{ marginTop: '8px', marginLeft: '24px' }}>
+                {autoInvite ? (
+                  <>✓ Users will be created and invitation emails will be sent</>
+                ) : (
+                  <>✓ Users will be created in Supabase but no email will be sent (you can invite them manually later)</>
+                )}
+              </div>
             </div>
           )}
 
@@ -204,8 +211,15 @@ export default function BatchUpload() {
               <h3>What happens next?</h3>
               <ul>
                 <li>Files are being processed in the background</li>
-                {uploadType === 'cv' && autoInvite && (
-                  <li>Invitation emails will be sent automatically to extracted email addresses</li>
+                {uploadType === 'cv' && (
+                  <>
+                    <li>User accounts will be created in Supabase</li>
+                    {autoInvite ? (
+                      <li>Invitation emails will be sent automatically to extracted email addresses</li>
+                    ) : (
+                      <li>No invitation emails will be sent (you can manually invite users later from Supabase dashboard)</li>
+                    )}
+                  </>
                 )}
                 <li>Processing time depends on the number of files</li>
                 <li>You can check the database or Supabase dashboard for results</li>
