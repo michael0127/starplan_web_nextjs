@@ -10,6 +10,7 @@ interface UploadResult {
   data?: any;
   error?: string;
   user_id?: string;
+  jd_id?: string;  // For JD uploads
 }
 
 interface BatchResult {
@@ -23,7 +24,8 @@ interface BatchResult {
 export default function BatchUpload() {
   const [uploadType, setUploadType] = useState<'cv' | 'jd'>('cv');
   const [files, setFiles] = useState<FileList | null>(null);
-  const [autoInvite, setAutoInvite] = useState(true);
+  const [autoInvite, setAutoInvite] = useState(false);  // For CV: send invitation email
+  const [saveToDb, setSaveToDb] = useState(false);  // For JD: save to database
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState<BatchResult | null>(null);
   const [error, setError] = useState('');
@@ -62,9 +64,16 @@ export default function BatchUpload() {
         ? (isZip ? '/api/admin/batch-cv-zip' : '/api/admin/batch-cv')
         : (isZip ? '/api/admin/batch-jd-zip' : '/api/admin/batch-jd');
 
-      const url = uploadType === 'cv' && autoInvite 
-        ? `${endpoint}?auto_invite=true` 
-        : endpoint;
+      // Build URL with appropriate query parameters
+      let url = endpoint;
+      if (uploadType === 'cv' && autoInvite) {
+        url = `${endpoint}?auto_invite=true`;
+      } else if (uploadType === 'jd' && saveToDb) {
+        // For JD, we need user_id when saving to database
+        // Using admin user ID: hello@starplan.com
+        const userId = '79d7db3e-c23b-42bf-90e9-fe57308df8d1';
+        url = `${endpoint}?save_to_db=true&user_id=${userId}`;
+      }
 
       // Fire and forget - don't wait for response
       fetch(url, {
@@ -131,7 +140,7 @@ export default function BatchUpload() {
             </div>
           </div>
 
-          {/* Auto Invite Option (only for CV) */}
+          {/* CV Options */}
           {uploadType === 'cv' && (
             <div className={styles.section}>
               <label className={styles.checkboxLabel}>
@@ -148,6 +157,28 @@ export default function BatchUpload() {
                   <>✓ Users will be created and invitation emails will be sent</>
                 ) : (
                   <>✓ Users will be created in Supabase but no email will be sent (you can invite them manually later)</>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* JD Options */}
+          {uploadType === 'jd' && (
+            <div className={styles.section}>
+              <label className={styles.checkboxLabel}>
+                <input
+                  type="checkbox"
+                  checked={saveToDb}
+                  onChange={(e) => setSaveToDb(e.target.checked)}
+                  disabled={uploading}
+                />
+                <span>Save extracted data to database</span>
+              </label>
+              <div className={styles.hint} style={{ marginTop: '8px', marginLeft: '24px' }}>
+                {saveToDb ? (
+                  <>✓ Job descriptions will be extracted and saved to the database</>
+                ) : (
+                  <>✓ Job descriptions will be extracted only (no database save)</>
                 )}
               </div>
             </div>
@@ -221,6 +252,16 @@ export default function BatchUpload() {
                     )}
                   </>
                 )}
+                {uploadType === 'jd' && (
+                  <>
+                    <li>Job descriptions will be analyzed and extracted</li>
+                    {saveToDb ? (
+                      <li>Extracted data will be saved to the database</li>
+                    ) : (
+                      <li>Data will be extracted only (not saved to database)</li>
+                    )}
+                  </>
+                )}
                 <li>Processing time depends on the number of files</li>
                 <li>You can check the database or Supabase dashboard for results</li>
                 <li>Feel free to continue with other tasks</li>
@@ -237,6 +278,11 @@ export default function BatchUpload() {
               {uploadType === 'cv' && (
                 <div className={styles.infoItem}>
                   <strong>Auto-invite:</strong> {autoInvite ? 'Enabled ✓' : 'Disabled'}
+                </div>
+              )}
+              {uploadType === 'jd' && (
+                <div className={styles.infoItem}>
+                  <strong>Save to Database:</strong> {saveToDb ? 'Enabled ✓' : 'Disabled'}
                 </div>
               )}
             </div>

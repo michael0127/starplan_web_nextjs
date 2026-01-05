@@ -4,6 +4,11 @@ const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000';
 
 export async function POST(request: NextRequest) {
   try {
+    // Get query parameters
+    const searchParams = request.nextUrl.searchParams;
+    const saveToDb = searchParams.get('save_to_db') === 'true';
+    const userId = searchParams.get('user_id');
+    
     // Get the form data from the request
     const formData = await request.formData();
     const files = formData.getAll('files') as File[];
@@ -21,8 +26,14 @@ export async function POST(request: NextRequest) {
       backendFormData.append('files', file);
     });
 
-    // Build the backend URL
+    // Build the backend URL with query parameters
     const backendUrl = new URL('/api/v1/jd/batch_analyze', BACKEND_URL);
+    if (saveToDb) {
+      backendUrl.searchParams.set('save_to_db', 'true');
+      if (userId) {
+        backendUrl.searchParams.set('user_id', userId);
+      }
+    }
 
     // Forward the request to the backend service
     const response = await fetch(backendUrl.toString(), {
