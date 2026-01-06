@@ -5,14 +5,19 @@ import styles from './page.module.css';
 
 interface MatchResult {
   match_id?: string;
-  candidate_id: string;
-  job_posting_id: string;
-  passed_hard_gate: boolean;
-  hard_gate_reasons: string[];
+  candidate_id?: string;
+  job_posting_id?: string;
+  passed_hard_gate?: boolean;
+  hard_gate_reasons?: string[];
   match_details?: any;
   created_count?: number;
   failed_count?: number;
   results?: any[];
+  total_jobs?: number;
+  total_candidates?: number;
+  passed_count?: number;
+  matches?: any[];
+  message?: string;
 }
 
 export default function AdminMatching() {
@@ -79,7 +84,8 @@ export default function AdminMatching() {
     setResult(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/match/candidate-to-all-jobs`, {
+      // Fire and forget - don't wait for response
+      fetch(`${API_BASE_URL}/api/v1/match/candidate-to-all-jobs`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -89,18 +95,23 @@ export default function AdminMatching() {
           cv_id: cvIdAll || undefined,
           skip_hard_gate: skipHardGateAll,
         }),
+      }).catch(err => {
+        console.error('Background matching error:', err);
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || 'Failed to match');
-      }
-
-      setResult(data);
+      // Immediately show success message
+      setResult({
+        candidate_id: candidateIdAll,
+        total_jobs: 0,
+        passed_count: 0,
+        failed_count: 0,
+        matches: [],
+        message: `✅ Matching started! Processing candidate ${candidateIdAll} against all jobs in the background. You can continue with other tasks.`
+      } as any);
+      
+      setLoading(false);
     } catch (err: any) {
       setError(err.message);
-    } finally {
       setLoading(false);
     }
   };
@@ -112,7 +123,8 @@ export default function AdminMatching() {
     setResult(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/match/job-to-all-candidates`, {
+      // Fire and forget - don't wait for response
+      fetch(`${API_BASE_URL}/api/v1/match/job-to-all-candidates`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -121,18 +133,23 @@ export default function AdminMatching() {
           job_posting_id: jobPostingIdAll,
           skip_hard_gate: skipHardGateJobAll,
         }),
+      }).catch(err => {
+        console.error('Background matching error:', err);
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || 'Failed to match');
-      }
-
-      setResult(data);
+      // Immediately show success message
+      setResult({
+        job_posting_id: jobPostingIdAll,
+        total_candidates: 0,
+        passed_count: 0,
+        failed_count: 0,
+        matches: [],
+        message: `✅ Matching started! Processing job ${jobPostingIdAll} against all candidates in the background. You can continue with other tasks.`
+      } as any);
+      
+      setLoading(false);
     } catch (err: any) {
       setError(err.message);
-    } finally {
       setLoading(false);
     }
   };
@@ -318,11 +335,21 @@ export default function AdminMatching() {
       {/* Result Display */}
       {result && (
         <div className={styles.resultBox}>
-          <h3 className={styles.resultTitle}>
-            {result.passed_hard_gate ? '✅ Match Created' : '❌ Match Failed'}
-          </h3>
+          {/* Background processing message */}
+          {result.message && (
+            <div className={styles.successMessage}>
+              <h3 className={styles.resultTitle}>🚀 Processing Started</h3>
+              <p>{result.message}</p>
+            </div>
+          )}
 
           {/* Single match result */}
+          {!result.message && (
+            <h3 className={styles.resultTitle}>
+              {result.passed_hard_gate ? '✅ Match Created' : '❌ Match Failed'}
+            </h3>
+          )}
+
           {result.match_id && (
             <div className={styles.resultDetails}>
               <div className={styles.resultRow}>
@@ -344,7 +371,7 @@ export default function AdminMatching() {
                 </span>
               </div>
 
-              {result.hard_gate_reasons.length > 0 && (
+              {result.hard_gate_reasons && result.hard_gate_reasons.length > 0 && (
                 <div className={styles.reasonsBox}>
                   <h4>Failed Criteria:</h4>
                   <ul>

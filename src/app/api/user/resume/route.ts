@@ -64,33 +64,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. 上传文件到存储服务
-    const uploadFormData = new FormData();
-    uploadFormData.append('file', file);
-    uploadFormData.append('bucket_name', 'cvs');
-    uploadFormData.append('folder_path', user.id); // 使用用户ID作为文件夹名
-
-    const uploadResponse = await fetch('https://starplan-service.onrender.com/api/v1/storage/upload', {
-      method: 'POST',
-      body: uploadFormData,
-    });
-
-    if (!uploadResponse.ok) {
-      const errorText = await uploadResponse.text();
-      console.error('Storage upload error:', errorText);
-      return NextResponse.json(
-        { error: 'Failed to upload file to storage' },
-        { status: 500 }
-      );
-    }
-
-    const uploadResult = await uploadResponse.json();
-    const fileUrl = uploadResult.url || uploadResult.file_url || uploadResult.path;
-
-    // 2. 调用CV解析服务（这会自动保存profile数据到数据库）
-    let extractedData = null;
-    let cvExtractionSuccess = false;
-
+    // 调用CV解析服务（异步处理：提取内容后，后台自动保存profile、创建CV记录并上传文件）
     try {
       const extractionFormData = new FormData();
       extractionFormData.append('file', file);
@@ -107,43 +81,32 @@ export async function POST(request: NextRequest) {
       );
 
       if (extractionResponse.ok) {
-        extractedData = await extractionResponse.json();
-        cvExtractionSuccess = true;
-        console.log('CV extraction successful:', extractedData);
+        const result = await extractionResponse.json();
+        console.log('CV extraction initiated, processing in background');
+        
+        return NextResponse.json({
+          success: true,
+          message: 'CV uploaded successfully. Processing in background.',
+          extraction: {
+            success: true,
+            data: result,
+          },
+        });
       } else {
         const errorText = await extractionResponse.text();
         console.error('CV extraction error:', errorText);
-        // 不阻止流程，继续保存CV记录
+        return NextResponse.json(
+          { error: 'Failed to process CV file' },
+          { status: 500 }
+        );
       }
     } catch (extractionError) {
       console.error('CV extraction request failed:', extractionError);
-      // 不阻断流程，继续保存CV记录
+      return NextResponse.json(
+        { error: 'Failed to process CV file' },
+        { status: 500 }
+      );
     }
-
-    // 3. 保存CV记录到数据库
-    const cv = await prisma.cV.create({
-      data: {
-        userId: user.id,
-        fileUrl: fileUrl,
-        extractedData: extractedData ? (extractedData as Prisma.InputJsonValue) : Prisma.JsonNull,
-      },
-    });
-
-    return NextResponse.json({
-      success: true,
-      cv: {
-        id: cv.id,
-        fileUrl: cv.fileUrl,
-        createdAt: cv.createdAt,
-      },
-      extraction: {
-        success: cvExtractionSuccess,
-        data: extractedData,
-        message: cvExtractionSuccess 
-          ? 'CV parsed and profile updated successfully' 
-          : 'CV uploaded but parsing failed - you can retry later',
-      },
-    });
   } catch (error) {
     console.error('Resume upload API error:', error);
     return NextResponse.json(

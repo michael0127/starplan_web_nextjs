@@ -159,6 +159,28 @@
   line-height: 1.6;
 }
 
+/* Success Message */
+.successMessage {
+  background: #f0fdf4;
+  border: 2px solid #86efac;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 16px;
+}
+
+.successMessage h3 {
+  color: #16a34a;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.successMessage p {
+  color: #15803d;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
 /* Result Box */
 .resultBox {
   background: white;
