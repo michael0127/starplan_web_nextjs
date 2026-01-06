@@ -8,6 +8,182 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+model User {
+  id                     String              @id @default(uuid()) @db.Uuid
+  email                  String              @unique
+  name                   String?
+  userType               UserType            @default(CANDIDATE) @map("user_type")
+  createdAt              DateTime            @default(now()) @map("created_at")
+  updatedAt              DateTime            @updatedAt @map("updated_at")
+  hasCompletedOnboarding Boolean             @default(false) @map("has_completed_onboarding")
+  jobTypes               String[]            @default([]) @map("job_types")
+  preferredLocation      String?             @map("preferred_location")
+  remoteOpen             Boolean             @default(false) @map("remote_open")
+  avatarUrl              String?             @map("avatar_url")
+  profile                Json?               @map("profile")
+  categories             String[]            @default([])
+  categorySkills         String[]            @default([]) @map("category_skills")
+  currency               String?             @default("aud")
+  experienceLevel        String?             @map("experience_level")
+  experienceYearsFrom    Int?                @map("experience_years_from")
+  experienceYearsTo      String?             @map("experience_years_to")
+  payType                String?             @map("pay_type")
+  salaryExpectationFrom  String?             @map("salary_expectation_from")
+  salaryExpectationTo    String?             @map("salary_expectation_to")
+  workAuthByCountry      Json?               @map("work_auth_by_country")
+  workAuthCountries      String[]            @default([]) @map("work_auth_countries")
+  workTypes              String[]            @default([]) @map("work_types")
+  lastMatchedAt          DateTime?           @map("last_matched_at")
+  candidateMatches       CandidateJobMatch[] @relation("CandidateMatches")
+  cvs                    CV[]
+  jobPostings            JobPosting[]
+
+  @@map("users")
+}
+
+model CV {
+  id            String              @id @default(uuid()) @db.Uuid
+  fileUrl       String              @map("file_url")
+  extractedData Json?               @map("extracted_data")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+  userId        String              @map("user_id") @db.Uuid
+  matches       CandidateJobMatch[]
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("cvs")
+}
+
+model JobPosting {
+  id                         String                    @id @default(uuid()) @db.Uuid
+  userId                     String                    @map("user_id") @db.Uuid
+  status                     JobStatus                 @default(DRAFT)
+  createdAt                  DateTime                  @default(now()) @map("created_at")
+  updatedAt                  DateTime                  @updatedAt @map("updated_at")
+  jobTitle                   String                    @map("job_title")
+  categorySkills             String[]                  @default([]) @map("category_skills")
+  isCategoryManuallySelected Boolean                   @default(false) @map("is_category_manually_selected")
+  countryRegion              String                    @map("country_region")
+  experienceLevel            String                    @map("experience_level")
+  experienceYearsFrom        Int                       @map("experience_years_from")
+  experienceYearsTo          String                    @map("experience_years_to")
+  workType                   String                    @map("work_type")
+  payType                    String                    @map("pay_type")
+  currency                   String
+  payFrom                    String                    @map("pay_from")
+  payTo                      String                    @map("pay_to")
+  showSalaryOnAd             Boolean                   @default(true) @map("show_salary_on_ad")
+  salaryDisplayText          String?                   @map("salary_display_text")
+  companyName                String                    @default("") @map("company_name")
+  jobDescription             String                    @default("") @map("job_description")
+  jobSummary                 String                    @default("") @map("job_summary")
+  keySellingPoint1           String?                   @map("key_selling_point_1")
+  keySellingPoint2           String?                   @map("key_selling_point_2")
+  keySellingPoint3           String?                   @map("key_selling_point_3")
+  companyLogo                String?                   @map("company_logo")
+  companyCoverImage          String?                   @map("company_cover_image")
+  videoLink                  String?                   @map("video_link")
+  selectedCountries          String[]                  @default([]) @map("selected_countries")
+  workAuthByCountry          Json?                     @map("work_auth_by_country")
+  applicationDeadline        DateTime?                 @map("application_deadline")
+  categories                 String[]                  @default([])
+  lastMatchedAt              DateTime?                 @map("last_matched_at")
+  jdExtractedData            Json?                     @map("jd_extracted_data")
+  jdFileUrl                  String?                   @map("jd_file_url")
+  candidateMatches           CandidateJobMatch[]
+  customScreeningQuestions   CustomScreeningQuestion[]
+  purchase                   JobPostingPurchase?
+  user                       User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  systemScreeningAnswers     SystemScreeningAnswer[]
+
+  @@map("job_postings")
+}
+
+model SystemScreeningAnswer {
+  id              String     @id @default(uuid()) @db.Uuid
+  jobPostingId    String     @map("job_posting_id") @db.Uuid
+  questionId      String     @map("question_id")
+  requirement     String
+  selectedAnswers String[]   @default([]) @map("selected_answers")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  jobPosting      JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+
+  @@map("system_screening_answers")
+}
+
+model CustomScreeningQuestion {
+  id                   String     @id @default(uuid()) @db.Uuid
+  jobPostingId         String     @map("job_posting_id") @db.Uuid
+  questionText         String     @map("question_text")
+  answerType           String     @map("answer_type")
+  options              String[]   @default([])
+  mustAnswer           Boolean    @default(false) @map("must_answer")
+  idealAnswer          Json?      @map("ideal_answer")
+  disqualifyIfNotIdeal Boolean    @default(false) @map("disqualify_if_not_ideal")
+  createdAt            DateTime   @default(now()) @map("created_at")
+  jobPosting           JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+
+  @@map("custom_screening_questions")
+}
+
+model JobPostingPurchase {
+  id                    String        @id @default(uuid()) @db.Uuid
+  jobPostingId          String        @unique @map("job_posting_id") @db.Uuid
+  userId                String        @map("user_id") @db.Uuid
+  productType           ProductType   @map("product_type")
+  stripeProductId       String        @map("stripe_product_id")
+  stripePriceId         String        @map("stripe_price_id")
+  paymentStatus         PaymentStatus @default(PENDING) @map("payment_status")
+  stripeCustomerId      String?       @map("stripe_customer_id")
+  stripePaymentIntentId String?       @map("stripe_payment_intent_id")
+  stripeSessionId       String?       @map("stripe_session_id")
+  amount                Int
+  currency              String        @default("aud")
+  paidAt                DateTime?     @map("paid_at")
+  refundedAt            DateTime?     @map("refunded_at")
+  canceledAt            DateTime?     @map("canceled_at")
+  metadata              Json?
+  createdAt             DateTime      @default(now()) @map("created_at")
+  updatedAt             DateTime      @updatedAt @map("updated_at")
+  expiresAt             DateTime?     @map("expires_at")
+  jobPosting            JobPosting    @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([paymentStatus])
+  @@index([stripePaymentIntentId])
+  @@index([stripeCustomerId])
+  @@index([expiresAt])
+  @@map("job_posting_purchases")
+}
+
+model CandidateJobMatch {
+  id                  String     @id @default(uuid()) @db.Uuid
+  candidateId         String     @map("candidate_id") @db.Uuid
+  jobPostingId        String     @map("job_posting_id") @db.Uuid
+  cvId                String?    @map("cv_id") @db.Uuid
+  passedHardGate      Boolean    @default(false) @map("passed_hard_gate")
+  hardGateReasons     String[]   @default([]) @map("hard_gate_reasons")
+  matchDetails        Json?      @map("match_details")
+  isActive            Boolean    @default(true) @map("is_active")
+  candidateViewed     Boolean    @default(false) @map("candidate_viewed")
+  employerViewed      Boolean    @default(false) @map("employer_viewed")
+  candidateInterested Boolean    @default(false) @map("candidate_interested")
+  employerInterested  Boolean    @default(false) @map("employer_interested")
+  createdAt           DateTime   @default(now()) @map("created_at")
+  updatedAt           DateTime   @updatedAt @map("updated_at")
+  candidate           User       @relation("CandidateMatches", fields: [candidateId], references: [id], onDelete: Cascade)
+  cv                  CV?        @relation(fields: [cvId], references: [id])
+  jobPosting          JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+
+  @@unique([candidateId, jobPostingId])
+  @@index([candidateId])
+  @@index([jobPostingId])
+  @@index([passedHardGate])
+  @@index([isActive])
+  @@index([createdAt])
+  @@map("candidate_job_matches")
+}
+
 enum UserType {
   CANDIDATE
   EMPLOYER
@@ -44,8 +220,8 @@ enum ExperienceLevel {
 }
 
 enum ProductType {
-  JUNIOR // For INTERN, JUNIOR experience levels
-  SENIOR // For MID_LEVEL, SENIOR, LEAD, PRINCIPAL experience levels
+  JUNIOR
+  SENIOR
 }
 
 enum PaymentStatus {
@@ -55,250 +231,4 @@ enum PaymentStatus {
   FAILED
   CANCELED
   REFUNDED
-}
-
-// 用户表（C端和B端统一）
-model User {
-  id                     String   @id @default(uuid()) @db.Uuid
-  email                  String   @unique
-  name                   String?
-  avatarUrl              String?  @map("avatar_url")
-  userType               UserType @default(CANDIDATE) @map("user_type")
-  createdAt              DateTime @default(now()) @map("created_at")
-  updatedAt              DateTime @updatedAt @map("updated_at")
-  
-  // Onboarding相关字段
-  hasCompletedOnboarding Boolean  @default(false) @map("has_completed_onboarding")
-  
-  // 1. Work Authorization (matching Job Posting's selectedCountries and workAuthByCountry)
-  workAuthCountries      String[] @default([]) @map("work_auth_countries") // Countries where candidate has work authorization
-  workAuthByCountry      Json?    @map("work_auth_by_country") // Record<string, string> - visa type by country
-  
-  // 2. Categories (matching Job Posting's categories and categorySkills)
-  categories             String[] @default([]) // Job categories candidate is interested in
-  categorySkills         String[] @default([]) @map("category_skills") // Skills within selected categories
-  
-  // 3. Experience (matching Job Posting's experienceLevel and years)
-  experienceLevel        String?  @map("experience_level") // INTERN, JUNIOR, MID_LEVEL, SENIOR, LEAD, PRINCIPAL
-  experienceYearsFrom    Int?     @map("experience_years_from") // Minimum years of experience
-  experienceYearsTo      String?  @map("experience_years_to") // Maximum years or "Unlimited"
-  
-  // 4. Work Type (matching Job Posting's workType)
-  workTypes              String[] @default([]) @map("work_types") // FULL_TIME, PART_TIME, CONTRACT, INTERNSHIP
-  remoteOpen             Boolean  @default(false) @map("remote_open")
-  
-  // 5. Salary (matching Job Posting's pay fields)
-  payType                String?  @map("pay_type") // ANNUAL_SALARY, HOURLY_RATE, DAILY_RATE, PROJECT_BASED
-  currency               String?  @default("aud")
-  salaryExpectationFrom  String?  @map("salary_expectation_from")
-  salaryExpectationTo    String?  @map("salary_expectation_to")
-  
-  // Legacy/Additional fields (kept for backward compatibility)
-  jobTypes               String[] @default([]) @map("job_types")
-  preferredLocation      String?  @map("preferred_location")
-  
-  // Profile额外信息（JSON格式）
-  profile                Json?    @map("profile")
-
-  cvs              CV[]
-  jds              JobDescription[]
-  jobPostings      JobPosting[]
-  candidateMatches CandidateJobMatch[] @relation("CandidateMatches")
-
-  lastMatchedAt DateTime? @map("last_matched_at")
-
-  @@map("users")
-}
-
-// CV简历
-model CV {
-  id            String   @id @default(uuid()) @db.Uuid
-  userId        String   @map("user_id") @db.Uuid
-  fileUrl       String   @map("file_url")
-  extractedData Json?    @map("extracted_data")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-
-  user    User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  matches CandidateJobMatch[]
-
-  @@map("cvs")
-}
-
-// JD职位描述
-model JobDescription {
-  id            String   @id @default(uuid()) @db.Uuid
-  userId        String   @map("user_id") @db.Uuid
-  fileUrl       String   @map("file_url")
-  extractedData Json?    @map("extracted_data")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("job_descriptions")
-}
-
-// 职位发布表
-model JobPosting {
-  id        String    @id @default(uuid()) @db.Uuid
-  userId    String    @map("user_id") @db.Uuid
-  status    JobStatus @default(DRAFT)
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-
-  // Step 1: Job Classification
-  jobTitle                   String   @map("job_title")
-  categories                 String[] @default([]) // Multiple categories can be selected
-  categorySkills             String[] @default([]) @map("category_skills")
-  isCategoryManuallySelected Boolean  @default(false) @map("is_category_manually_selected")
-  countryRegion              String   @map("country_region")
-  experienceLevel            String   @map("experience_level")
-  experienceYearsFrom        Int      @map("experience_years_from")
-  experienceYearsTo          String   @map("experience_years_to") // Can be "Unlimited" or number
-  workType                   String   @map("work_type")
-  payType                    String   @map("pay_type")
-  currency                   String
-  payFrom                    String   @map("pay_from")
-  payTo                      String   @map("pay_to")
-  showSalaryOnAd             Boolean  @default(true) @map("show_salary_on_ad")
-  salaryDisplayText          String?  @map("salary_display_text")
-
-  // Step 2: Job Details
-  companyName       String  @default("") @map("company_name")
-  jobDescription    String  @default("") @map("job_description") @db.Text
-  jobSummary        String  @default("") @map("job_summary")
-  keySellingPoint1  String? @map("key_selling_point_1")
-  keySellingPoint2  String? @map("key_selling_point_2")
-  keySellingPoint3  String? @map("key_selling_point_3")
-  companyLogo       String? @map("company_logo") @db.Text // Supabase Storage URL
-  companyCoverImage String? @map("company_cover_image") @db.Text // Supabase Storage URL
-  videoLink         String? @map("video_link")
-
-  // Step 3: Screening & Filters
-  selectedCountries String[] @default([]) @map("selected_countries")
-  workAuthByCountry Json?    @map("work_auth_by_country") // Record<string, string>
-  applicationDeadline DateTime? @map("application_deadline")
-
-  // Relations
-  user                       User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  systemScreeningAnswers     SystemScreeningAnswer[]
-  customScreeningQuestions   CustomScreeningQuestion[]
-  purchase                   JobPostingPurchase?
-  candidateMatches           CandidateJobMatch[]
-
-  lastMatchedAt DateTime? @map("last_matched_at")
-
-  @@map("job_postings")
-}
-
-// 系统筛选问题答案
-model SystemScreeningAnswer {
-  id             String   @id @default(uuid()) @db.Uuid
-  jobPostingId   String   @map("job_posting_id") @db.Uuid
-  questionId     String   @map("question_id")
-  requirement    String // 'must-have' | 'preferred' | 'accept-any'
-  selectedAnswers String[] @default([]) @map("selected_answers")
-  createdAt      DateTime @default(now()) @map("created_at")
-
-  jobPosting JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
-
-  @@map("system_screening_answers")
-}
-
-// 自定义筛选问题
-model CustomScreeningQuestion {
-  id                    String   @id @default(uuid()) @db.Uuid
-  jobPostingId          String   @map("job_posting_id") @db.Uuid
-  questionText          String   @map("question_text")
-  answerType            String   @map("answer_type") // 'single' | 'multiple' | 'yes-no' | 'short-text'
-  options               String[] @default([]) // For single/multiple choice
-  mustAnswer            Boolean  @default(false) @map("must_answer")
-  idealAnswer           Json?    @map("ideal_answer") // string | string[]
-  disqualifyIfNotIdeal  Boolean  @default(false) @map("disqualify_if_not_ideal")
-  createdAt             DateTime @default(now()) @map("created_at")
-
-  jobPosting JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
-
-  @@map("custom_screening_questions")
-}
-
-// 职位发布购买记录
-model JobPostingPurchase {
-  id                    String        @id @default(uuid()) @db.Uuid
-  jobPostingId          String        @unique @map("job_posting_id") @db.Uuid
-  userId                String        @map("user_id") @db.Uuid
-  
-  // Product Information
-  productType           ProductType   @map("product_type")
-  stripeProductId       String        @map("stripe_product_id") // prod_TcmwWtCeq8zV3Z or prod_TcsyqfzZ8A2vRu
-  stripePriceId         String        @map("stripe_price_id") // price_1SfXN5FNsxPjNnLXgWKViqTx or price_1SfdCTFNsxPjNnLXam3BHQ7m
-  
-  // Payment Information
-  paymentStatus         PaymentStatus @default(PENDING) @map("payment_status")
-  stripeCustomerId      String?       @map("stripe_customer_id")
-  stripePaymentIntentId String?       @map("stripe_payment_intent_id")
-  stripeSessionId       String?       @map("stripe_session_id") // For Checkout Sessions
-  
-  // Pricing
-  amount                Int           // Amount in cents (3000 for Junior, 30000 for Senior)
-  currency              String        @default("aud")
-  
-  // Metadata
-  paidAt                DateTime?     @map("paid_at")
-  refundedAt            DateTime?     @map("refunded_at")
-  canceledAt            DateTime?     @map("canceled_at")
-  expiresAt             DateTime?     @map("expires_at") // 30 days after paidAt
-  metadata              Json?         // Additional Stripe metadata
-  
-  createdAt             DateTime      @default(now()) @map("created_at")
-  updatedAt             DateTime      @updatedAt @map("updated_at")
-
-  // Relations
-  jobPosting JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([paymentStatus])
-  @@index([stripePaymentIntentId])
-  @@index([stripeCustomerId])
-  @@index([expiresAt])
-  @@map("job_posting_purchases")
-}
-
-// 候选人-职位匹配记录（每次上传CV触发）
-model CandidateJobMatch {
-  id           String   @id @default(uuid()) @db.Uuid
-  candidateId  String   @map("candidate_id") @db.Uuid
-  jobPostingId String   @map("job_posting_id") @db.Uuid
-  cvId         String?  @map("cv_id") @db.Uuid // 触发此次匹配的CV
-
-  // Hard gate 判断
-  passedHardGate  Boolean  @default(false) @map("passed_hard_gate")
-  hardGateReasons String[] @default([]) @map("hard_gate_reasons") // 未通过原因
-
-  // 匹配详情（JSON存储结构化匹配信息 / rule hit / LLM reasoning）
-  matchDetails Json? @map("match_details")
-
-  // 状态管理
-  isActive            Boolean @default(true) @map("is_active")
-  candidateViewed     Boolean @default(false) @map("candidate_viewed")
-  employerViewed      Boolean @default(false) @map("employer_viewed")
-  candidateInterested Boolean @default(false) @map("candidate_interested")
-  employerInterested  Boolean @default(false) @map("employer_interested")
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  candidate  User       @relation("CandidateMatches", fields: [candidateId], references: [id], onDelete: Cascade)
-  jobPosting JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
-  cv         CV?        @relation(fields: [cvId], references: [id], onDelete: SetNull)
-
-  @@unique([candidateId, jobPostingId])
-  @@index([candidateId])
-  @@index([jobPostingId])
-  @@index([passedHardGate])
-  @@index([isActive])
-  @@index([createdAt])
-  @@map("candidate_job_matches")
 }
