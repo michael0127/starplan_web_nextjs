@@ -10,7 +10,7 @@ interface UploadResult {
   data?: any;
   error?: string;
   user_id?: string;
-  jd_id?: string;  // For JD uploads
+  job_posting_id?: string;  // For JD uploads (JobPosting ID)
 }
 
 interface BatchResult {
@@ -70,8 +70,8 @@ export default function BatchUpload() {
         url = `${endpoint}?auto_invite=true`;
       } else if (uploadType === 'jd' && saveToDb) {
         // For JD, we need user_id when saving to database
-        // Using admin user ID: hello@starplan.com
-        const userId = '79d7db3e-c23b-42bf-90e9-fe57308df8d1';
+        // Using admin user ID: hello@starplan.ai
+        const userId = 'f5c8cfd7-493a-4edb-95bb-1a737bb947bb';
         url = `${endpoint}?save_to_db=true&user_id=${userId}`;
       }
 
