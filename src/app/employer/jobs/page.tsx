@@ -7,6 +7,7 @@ import { PageTransition } from '@/components/PageTransition';
 import { usePageAnimation } from '@/hooks/usePageAnimation';
 import { useUserType } from '@/hooks/useUserType';
 import { supabase } from '@/lib/supabase';
+import EmployerNavbar from '@/components/EmployerNavbar';
 import type { JobPosting } from '@/types/jobPosting';
 import styles from './page.module.css';
 
@@ -400,33 +401,7 @@ export default function EmployerJobs() {
   return (
     <PageTransition>
       <div className={styles.container}>
-        {/* Header */}
-        <header className={styles.header}>
-          <div className={styles.headerContent}>
-            <div className={styles.logo}>
-              <Link href="/employer/dashboard">
-                <img src="/img/logo.png" alt="StarPlan" />
-              </Link>
-            </div>
-            <nav className={styles.nav}>
-              <Link href="/employer/dashboard" className={styles.navLink}>
-                Dashboard
-              </Link>
-              <Link href="/employer/jobs" className={styles.navLink + ' ' + styles.active}>
-                Job Posts
-              </Link>
-              <Link href="/employer/candidates" className={styles.navLink}>
-                Candidates
-              </Link>
-              <div className={styles.userMenu}>
-                <span className={styles.userEmail}>{user?.email}</span>
-                <button onClick={handleSignOut} className={styles.signOutBtn}>
-                  Sign Out
-                </button>
-              </div>
-            </nav>
-          </div>
-        </header>
+        <EmployerNavbar userEmail={user?.email} />
 
         {/* Main Content */}
         <main className={styles.mainLayout}>
