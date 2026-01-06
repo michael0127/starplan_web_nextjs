@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { PageTransition } from '@/components/PageTransition';
 import { usePageAnimation } from '@/hooks/usePageAnimation';
 import { useUserType } from '@/hooks/useUserType';
-import { supabase } from '@/lib/supabase';
+import EmployerNavbar from '@/components/EmployerNavbar';
 import styles from './page.module.css';
 
 export default function EmployerDashboard() {
@@ -40,10 +40,6 @@ export default function EmployerDashboard() {
     }
   }, [loading, isEmployer, userType]);
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/companies');
-  };
 
   // 如果正在加载或用户类型不是 employer，显示加载状态
   if (loading || !isEmployer) {
@@ -59,68 +55,7 @@ export default function EmployerDashboard() {
   return (
     <PageTransition>
       <div className={styles.container}>
-        {/* Header */}
-        <header className={styles.header}>
-          <div className={styles.headerContent}>
-            <div className={styles.logo}>
-              <Link href="/employer/dashboard">
-                <img src="/img/logo.png" alt="StarPlan" />
-              </Link>
-            </div>
-            <nav className={styles.nav}>
-              <Link href="/employer/dashboard" className={styles.navLink}>
-                Dashboard
-              </Link>
-              
-              {/* Job Posts 下拉菜单 */}
-              <div className={styles.dropdown} ref={dropdownRef}>
-                <button 
-                  className={styles.dropdownBtn}
-                  onClick={() => setIsJobPostsDropdownOpen(!isJobPostsDropdownOpen)}
-                >
-                Job Posts
-                  <svg 
-                    width="12" 
-                    height="8" 
-                    viewBox="0 0 12 8" 
-                    fill="none"
-                    className={`${styles.dropdownIcon} ${isJobPostsDropdownOpen ? styles.open : ''}`}
-                  >
-                    <path d="M1 1L6 6L11 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  </svg>
-                </button>
-                {isJobPostsDropdownOpen && (
-                  <div className={styles.dropdownMenu}>
-                    <Link 
-                      href="/employer/jobs" 
-                      className={styles.dropdownItem}
-                      onClick={() => setIsJobPostsDropdownOpen(false)}
-                    >
-                      All jobs
-                    </Link>
-                    <Link 
-                      href="/employer/jobs/new" 
-                      className={styles.dropdownItem}
-                      onClick={() => setIsJobPostsDropdownOpen(false)}
-                    >
-                      Create a Job ad
-              </Link>
-                  </div>
-                )}
-              </div>
-
-              <Link href="/employer/candidates" className={styles.navLink}>
-                Candidates
-              </Link>
-              <div className={styles.userMenu}>
-                <span className={styles.userEmail}>{user?.email}</span>
-                <button onClick={handleSignOut} className={styles.signOutBtn}>
-                  Sign Out
-                </button>
-              </div>
-            </nav>
-          </div>
-        </header>
+        <EmployerNavbar userEmail={user?.email} />
 
         {/* Main Content */}
         <main className={styles.main}>

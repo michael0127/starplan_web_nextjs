@@ -1,0 +1,104 @@
+/* Header */
+.header {
+  background: white;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 12px 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  left: 0;
+  right: 0;
+}
+
+.headerContent {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.logo img {
+  height: 34px;
+  cursor: pointer;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.navLink {
+  color: #666;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.2s ease;
+  position: relative;
+  padding: 8px 12px;
+}
+
+.navLink:hover {
+  color: #4a5bf4;
+}
+
+.navLink.active {
+  color: #4a5bf4;
+}
+
+.navLink.active::after {
+  content: '';
+  position: absolute;
+  bottom: -14px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #4a5bf4;
+}
+
+.userMenu {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-left: 24px;
+  border-left: 1px solid #e0e0e0;
+}
+
+.userEmail {
+  color: #666;
+  font-size: 13px;
+}
+
+.signOutBtn {
+  padding: 6px 16px;
+  background: transparent;
+  border: 1px solid #4a5bf4;
+  border-radius: 16px;
+  color: #4a5bf4;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.signOutBtn:hover {
+  background: rgba(74, 91, 244, 0.08);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .nav {
+    display: none;
+  }
+
+  .headerContent {
+    padding: 0 16px;
+  }
+}
+

@@ -41,6 +41,8 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* 防止滚动条出现/消失导致页面偏移 */
+  overflow-y: scroll;
 }
 
 a {

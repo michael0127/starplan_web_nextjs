@@ -1,6 +1,6 @@
 .container {
   min-height: 100vh;
-  background: #f8f9fa;
+  background: #f3f2ef;
 }
 
 .loading {
@@ -10,95 +10,6 @@
   min-height: 100vh;
   font-size: 18px;
   color: #666;
-}
-
-/* Header */
-.header {
-  background: white;
-  border-bottom: 1px solid #e0e0e0;
-  padding: 16px 0;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.headerContent {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 32px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.logo img {
-  height: 32px;
-  cursor: pointer;
-}
-
-.nav {
-  display: flex;
-  align-items: center;
-  gap: 32px;
-}
-
-.navLink {
-  color: #252525;
-  font-size: 15px;
-  font-weight: 500;
-  text-decoration: none;
-  transition: color 0.2s ease;
-  position: relative;
-}
-
-.navLink:hover {
-  color: #4a5bf4;
-}
-
-.navLink.active {
-  color: #4a5bf4;
-}
-
-.navLink.active::after {
-  content: '';
-  position: absolute;
-  bottom: -20px;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: #4a5bf4;
-}
-
-.userMenu {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding-left: 32px;
-  border-left: 1px solid #e0e0e0;
-}
-
-.userEmail {
-  color: #666;
-  font-size: 14px;
-}
-
-.signOutBtn {
-  padding: 8px 16px;
-  background: transparent;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  color: #666;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.signOutBtn:hover {
-  border-color: #4a5bf4;
-  color: #4a5bf4;
-  background: rgba(74, 91, 244, 0.05);
 }
 
 /* Main */
@@ -184,35 +95,7 @@
 
 /* Responsive */
 @media (max-width: 768px) {
-  .nav {
-    display: none;
-  }
-
   .emptyState {
     padding: 60px 24px;
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

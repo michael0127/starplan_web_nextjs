@@ -8,6 +8,7 @@ import {
   UploadIcon,
   UsersIcon,
   BriefcaseIcon,
+  MatchingIcon,
   SettingsIcon,
   LogoutIcon,
 } from '@/components/admin/SidebarIcons';
@@ -40,6 +41,11 @@ export default function AdminLayout({
       name: 'Batch Upload',
       path: '/admin/batch-upload',
       icon: UploadIcon,
+    },
+    {
+      name: 'Matching',
+      path: '/admin/matching',
+      icon: MatchingIcon,
     },
     {
       name: 'Users',

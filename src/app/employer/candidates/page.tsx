@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { PageTransition } from '@/components/PageTransition';
 import { usePageAnimation } from '@/hooks/usePageAnimation';
 import { useUserType } from '@/hooks/useUserType';
-import { supabase } from '@/lib/supabase';
+import EmployerNavbar from '@/components/EmployerNavbar';
 import styles from './page.module.css';
 
 export default function EmployerCandidates() {
@@ -17,10 +17,6 @@ export default function EmployerCandidates() {
     redirectTo: '/companies',
   });
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/companies');
-  };
 
   if (loading || !isEmployer) {
     return (
@@ -35,32 +31,7 @@ export default function EmployerCandidates() {
   return (
     <PageTransition>
       <div className={styles.container}>
-        <header className={styles.header}>
-          <div className={styles.headerContent}>
-            <div className={styles.logo}>
-              <Link href="/employer/dashboard">
-                <img src="/img/logo.png" alt="StarPlan" />
-              </Link>
-            </div>
-            <nav className={styles.nav}>
-              <Link href="/employer/dashboard" className={styles.navLink}>
-                Dashboard
-              </Link>
-              <Link href="/employer/jobs" className={styles.navLink}>
-                Job Posts
-              </Link>
-              <Link href="/employer/candidates" className={styles.navLink + ' ' + styles.active}>
-                Candidates
-              </Link>
-              <div className={styles.userMenu}>
-                <span className={styles.userEmail}>{user?.email}</span>
-                <button onClick={handleSignOut} className={styles.signOutBtn}>
-                  Sign Out
-                </button>
-              </div>
-            </nav>
-          </div>
-        </header>
+        <EmployerNavbar userEmail={user?.email} />
 
         <main className={styles.main}>
           <div className={styles.pageHeader}>
