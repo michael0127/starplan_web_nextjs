@@ -58,6 +58,33 @@ interface Applicant {
   };
   hasResume: boolean;
   resumeUrl?: string;
+  aiRank?: number;  // AI ranking position (1 = best)
+}
+
+interface RankedCandidate {
+  candidateId: string;
+  rank: number;
+  name: string | null;
+  email: string | null;
+  avatarUrl: string | null;
+}
+
+interface RankingStats {
+  totalComparisons: number;
+  totalTokens: number;
+  totalCost: number;
+  inputTokens: number;
+  outputTokens: number;
+  inputCost: number;
+  outputCost: number;
+}
+
+interface RankingResult {
+  jobPostingId: string;
+  jobTitle: string;
+  rankedCandidates: RankedCandidate[];
+  totalCandidates: number;
+  stats: RankingStats;
 }
 
 interface Job {
@@ -123,6 +150,11 @@ function EmployerCandidatesContent() {
   
   // Track archived applicants
   const [archivedCount, setArchivedCount] = useState(0);
+  
+  // AI Ranking state
+  const [isRanking, setIsRanking] = useState(false);
+  const [rankingResult, setRankingResult] = useState<RankingResult | null>(null);
+  const [rankingError, setRankingError] = useState<string | null>(null);
   
   const fetchingRef = useRef(false);
   
@@ -244,6 +276,66 @@ function EmployerCandidatesContent() {
     }
     setFn(newSet);
     setCurrentPage(1);
+  };
+
+  // AI Ranking function
+  const handleStartRanking = async () => {
+    if (!selectedJob) {
+      setRankingError('Please select a job to rank candidates');
+      return;
+    }
+    
+    setIsRanking(true);
+    setRankingError(null);
+    setRankingResult(null);
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setRankingError('Session expired. Please log in again.');
+        setIsRanking(false);
+        return;
+      }
+      
+      const response = await fetch(`/api/ranking/job/${selectedJob}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setRankingResult(result.data);
+        
+        // Update applicants with AI ranking
+        setData(prev => {
+          if (!prev) return prev;
+          
+          const rankMap = new Map<string, number>();
+          result.data.rankedCandidates.forEach((rc: RankedCandidate) => {
+            rankMap.set(rc.candidateId, rc.rank);
+          });
+          
+          return {
+            ...prev,
+            applicants: prev.applicants.map(a => ({
+              ...a,
+              aiRank: rankMap.get(a.candidateId) || undefined,
+            })),
+          };
+        });
+      } else {
+        setRankingError(result.error || 'Failed to rank candidates');
+      }
+    } catch (error) {
+      console.error('Ranking error:', error);
+      setRankingError(error instanceof Error ? error.message : 'An error occurred while ranking');
+    } finally {
+      setIsRanking(false);
+    }
   };
 
   const clearAllFilters = () => {
@@ -374,25 +466,51 @@ function EmployerCandidatesContent() {
                 
                 {/* Job Filter Button - Show in AI Ranked tab */}
                 {activeTab === 'recommended' && (
-                  <div className={styles.jobFilterBtn}>
-                    <select
-                      value={selectedJob}
-                      onChange={(e) => {
-                        setSelectedJob(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                      className={styles.jobFilterSelect}
+                  <>
+                    <div className={styles.jobFilterBtn}>
+                      <select
+                        value={selectedJob}
+                        onChange={(e) => {
+                          setSelectedJob(e.target.value);
+                          setCurrentPage(1);
+                          setRankingResult(null); // Clear ranking when job changes
+                        }}
+                        className={styles.jobFilterSelect}
+                      >
+                        {data?.jobs.map(job => (
+                          <option key={job.id} value={job.id}>
+                            {job.title}
+                          </option>
+                        ))}
+                      </select>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                    </div>
+                    
+                    {/* Start Ranking Button */}
+                    <button 
+                      className={`${styles.startRankingBtn} ${isRanking ? styles.rankingInProgress : ''}`}
+                      onClick={handleStartRanking}
+                      disabled={isRanking || !selectedJob}
                     >
-                      {data?.jobs.map(job => (
-                        <option key={job.id} value={job.id}>
-                          {job.title}
-                        </option>
-                      ))}
-                    </select>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polyline points="6 9 12 15 18 9"></polyline>
-                    </svg>
-                  </div>
+                      {isRanking ? (
+                        <>
+                          <div className={styles.miniSpinner}></div>
+                          Ranking...
+                        </>
+                      ) : (
+                        <>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M12 20V10"></path>
+                            <path d="M18 20V4"></path>
+                            <path d="M6 20v-4"></path>
+                          </svg>
+                          Start AI Ranking
+                        </>
+                      )}
+                    </button>
+                  </>
                 )}
               </div>
             </nav>
@@ -515,43 +633,96 @@ function EmployerCandidatesContent() {
 
           {/* Main Content */}
           <div className={styles.mainContent}>
-            {/* Spotlights */}
-            <div className={styles.spotlights}>
-              <h2 className={styles.spotlightsTitle}>
-                Spotlights
-                <button className={styles.infoBtn}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="16" x2="12" y2="12"></line>
-                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                  </svg>
-                </button>
-              </h2>
-              
-              <div className={styles.spotlightCards}>
-                <div className={styles.spotlightCard}>
-                  <div className={styles.spotlightNumber}>{data?.spotlights.activeApplicants || 0}</div>
-                  <div className={styles.spotlightLabel}>Active applicants</div>
-                </div>
-                <div className={styles.spotlightCard}>
-                  <div className={styles.spotlightNumber}>{data?.spotlights.passedScreening || 0}</div>
-                  <div className={styles.spotlightLabel}>Passed screening</div>
-                </div>
-                <div className={styles.spotlightCard}>
-                  <div className={styles.spotlightNumber}>{data?.spotlights.interestedInCompany || 0}</div>
-                  <div className={styles.spotlightLabel}>
-                    Interested in your company
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={styles.dropdownIcon}>
-                      <polyline points="6 9 12 15 18 9"></polyline>
+            {/* Spotlights / AI Ranking Info */}
+            {activeTab === 'recommended' && rankingResult ? (
+              <div className={styles.rankingResultPanel}>
+                <div className={styles.rankingResultHeader}>
+                  <h2 className={styles.rankingResultTitle}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                     </svg>
+                    AI Ranking Complete
+                  </h2>
+                  <span className={styles.rankingJobTitle}>for {rankingResult.jobTitle}</span>
+                </div>
+                <div className={styles.rankingStats}>
+                  <div className={styles.rankingStat}>
+                    <span className={styles.rankingStatValue}>{rankingResult.totalCandidates}</span>
+                    <span className={styles.rankingStatLabel}>Candidates Ranked</span>
+                  </div>
+                  <div className={styles.rankingStat}>
+                    <span className={styles.rankingStatValue}>{rankingResult.stats.totalComparisons}</span>
+                    <span className={styles.rankingStatLabel}>AI Comparisons</span>
+                  </div>
+                  <div className={styles.rankingStat}>
+                    <span className={styles.rankingStatValue}>{rankingResult.stats.totalTokens.toLocaleString()}</span>
+                    <span className={styles.rankingStatLabel}>Tokens Used</span>
+                  </div>
+                  <div className={styles.rankingStat}>
+                    <span className={styles.rankingStatValue}>${rankingResult.stats.totalCost.toFixed(4)}</span>
+                    <span className={styles.rankingStatLabel}>Total Cost</span>
                   </div>
                 </div>
-                <div className={styles.spotlightCard}>
-                  <div className={styles.spotlightNumber}>{data?.stats.newApplicants || 0}</div>
-                  <div className={styles.spotlightLabel}>New applicants</div>
+              </div>
+            ) : activeTab === 'recommended' && rankingError ? (
+              <div className={styles.rankingErrorPanel}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="15" y1="9" x2="9" y2="15"></line>
+                  <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+                <span>{rankingError}</span>
+                <button onClick={() => setRankingError(null)} className={styles.dismissErrorBtn}>Dismiss</button>
+              </div>
+            ) : activeTab === 'recommended' && isRanking ? (
+              <div className={styles.rankingProgressPanel}>
+                <div className={styles.rankingProgressContent}>
+                  <div className={styles.progressSpinner}></div>
+                  <div className={styles.progressText}>
+                    <h3>AI Ranking in Progress</h3>
+                    <p>Comparing candidates using binary insertion algorithm...</p>
+                    <p className={styles.progressHint}>This may take a moment depending on the number of candidates</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className={styles.spotlights}>
+                <h2 className={styles.spotlightsTitle}>
+                  Spotlights
+                  <button className={styles.infoBtn}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="12" y1="16" x2="12" y2="12"></line>
+                      <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                  </button>
+                </h2>
+                
+                <div className={styles.spotlightCards}>
+                  <div className={styles.spotlightCard}>
+                    <div className={styles.spotlightNumber}>{data?.spotlights.activeApplicants || 0}</div>
+                    <div className={styles.spotlightLabel}>Active applicants</div>
+                  </div>
+                  <div className={styles.spotlightCard}>
+                    <div className={styles.spotlightNumber}>{data?.spotlights.passedScreening || 0}</div>
+                    <div className={styles.spotlightLabel}>Passed screening</div>
+                  </div>
+                  <div className={styles.spotlightCard}>
+                    <div className={styles.spotlightNumber}>{data?.spotlights.interestedInCompany || 0}</div>
+                    <div className={styles.spotlightLabel}>
+                      Interested in your company
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={styles.dropdownIcon}>
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                    </div>
+                  </div>
+                  <div className={styles.spotlightCard}>
+                    <div className={styles.spotlightNumber}>{data?.stats.newApplicants || 0}</div>
+                    <div className={styles.spotlightLabel}>New applicants</div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Archived Notice */}
             {archivedCount > 0 && (
@@ -578,11 +749,13 @@ function EmployerCandidatesContent() {
                   }
                 </span>
                 {activeTab === 'recommended' && (
-                  <span className={styles.rankingIndicator}>
+                  <span className={`${styles.rankingIndicator} ${rankingResult ? styles.rankingComplete : ''}`}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                       <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                     </svg>
-                    AI Ranked by Match Score
+                    {rankingResult 
+                      ? `AI Ranked (${rankingResult.stats.totalComparisons} comparisons)` 
+                      : 'Click "Start AI Ranking" to rank candidates'}
                   </span>
                 )}
               </div>
@@ -675,11 +848,28 @@ function EmployerCandidatesContent() {
               </div>
             ) : (
               <div className={styles.applicantList}>
-                {/* Filter applicants based on active tab */}
-                {(activeTab === 'recommended' 
-                  ? data?.applicants.filter(a => a.passedHardGate) 
-                  : data?.applicants
-                )?.map((applicant, index) => (
+                {/* Filter and sort applicants based on active tab */}
+                {(() => {
+                  let applicants = activeTab === 'recommended' 
+                    ? data?.applicants.filter(a => a.passedHardGate) || []
+                    : data?.applicants || [];
+                  
+                  // If we have AI ranking results, sort by rank
+                  if (activeTab === 'recommended' && rankingResult) {
+                    const rankMap = new Map<string, number>();
+                    rankingResult.rankedCandidates.forEach(rc => {
+                      rankMap.set(rc.candidateId, rc.rank);
+                    });
+                    
+                    applicants = [...applicants].sort((a, b) => {
+                      const rankA = rankMap.get(a.candidateId) ?? Infinity;
+                      const rankB = rankMap.get(b.candidateId) ?? Infinity;
+                      return rankA - rankB;
+                    });
+                  }
+                  
+                  return applicants;
+                })().map((applicant, index) => (
                   <div 
                     key={applicant.id} 
                     className={`${styles.applicantCard} ${!applicant.employerViewed ? styles.unviewed : ''} ${activeTab === 'recommended' ? styles.rankedCard : ''}`}
@@ -688,14 +878,27 @@ function EmployerCandidatesContent() {
                       {/* Show ranking number in recommended tab */}
                       {activeTab === 'recommended' ? (
                         <div className={styles.rankingNumber}>
-                          <span className={styles.rankNum}>#{index + 1}</span>
-                          <div className={styles.matchScoreBar}>
-                            <div 
-                              className={styles.matchScoreFill} 
-                              style={{ width: `${applicant.skillsMatch.percentage}%` }}
-                            />
-                          </div>
-                          <span className={styles.matchPercent}>{applicant.skillsMatch.percentage}%</span>
+                          {rankingResult ? (
+                            <>
+                              <span className={`${styles.rankNum} ${index < 3 ? styles[`rank${index + 1}`] : ''}`}>
+                                #{index + 1}
+                              </span>
+                              {index === 0 && <span className={styles.rankMedal}>🥇</span>}
+                              {index === 1 && <span className={styles.rankMedal}>🥈</span>}
+                              {index === 2 && <span className={styles.rankMedal}>🥉</span>}
+                            </>
+                          ) : (
+                            <>
+                              <span className={styles.rankNum}>#{index + 1}</span>
+                              <div className={styles.matchScoreBar}>
+                                <div 
+                                  className={styles.matchScoreFill} 
+                                  style={{ width: `${applicant.skillsMatch.percentage}%` }}
+                                />
+                              </div>
+                              <span className={styles.matchPercent}>{applicant.skillsMatch.percentage}%</span>
+                            </>
+                          )}
                         </div>
                       ) : (
                         <input type="checkbox" className={styles.applicantCheckbox} />
@@ -723,12 +926,23 @@ function EmployerCandidatesContent() {
                           </h3>
                           <span className={styles.connectionDegree}>3rd</span>
                           {activeTab === 'recommended' ? (
-                            <span className={styles.rankedBadge}>
-                              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
-                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                              </svg>
-                              Top Match
-                            </span>
+                            rankingResult && index < 3 ? (
+                              <span className={`${styles.rankedBadge} ${styles[`rankedBadge${index + 1}`]}`}>
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                                </svg>
+                                {index === 0 ? 'Top Match' : index === 1 ? '2nd Best' : '3rd Best'}
+                              </span>
+                            ) : rankingResult ? (
+                              <span className={styles.rankedBadgeNormal}>AI Ranked</span>
+                            ) : (
+                              <span className={styles.rankedBadge}>
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                                </svg>
+                                Top Match
+                              </span>
+                            )
                           ) : (
                             <span className={styles.applicantBadge}>Applicant</span>
                           )}
