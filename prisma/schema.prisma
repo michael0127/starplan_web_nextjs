@@ -95,6 +95,7 @@ model JobPosting {
   purchase                   JobPostingPurchase?
   user                       User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
   systemScreeningAnswers     SystemScreeningAnswer[]
+  candidateRanking           CandidateRanking?
 
   @@map("job_postings")
 }
@@ -182,6 +183,39 @@ model CandidateJobMatch {
   @@index([isActive])
   @@index([createdAt])
   @@map("candidate_job_matches")
+}
+
+// AI Ranking Results - stores cached ranking results for job postings
+model CandidateRanking {
+  id                  String     @id @default(uuid()) @db.Uuid
+  jobPostingId        String     @unique @map("job_posting_id") @db.Uuid
+  
+  // Ranking results - JSON array of {candidateId, rank}
+  rankedCandidates    Json       @map("ranked_candidates")
+  
+  // Hash of candidate IDs to detect changes (sorted candidate IDs joined)
+  candidateHash       String     @map("candidate_hash")
+  
+  // Statistics
+  totalCandidates     Int        @map("total_candidates")
+  totalComparisons    Int        @map("total_comparisons")
+  totalInputTokens    Int        @default(0) @map("total_input_tokens")
+  totalOutputTokens   Int        @default(0) @map("total_output_tokens")
+  totalTokens         Int        @default(0) @map("total_tokens")
+  inputCost           Float      @default(0) @map("input_cost")
+  outputCost          Float      @default(0) @map("output_cost")
+  totalCost           Float      @default(0) @map("total_cost")
+  
+  // Timestamps
+  createdAt           DateTime   @default(now()) @map("created_at")
+  updatedAt           DateTime   @updatedAt @map("updated_at")
+  
+  // Relation
+  jobPosting          JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+
+  @@index([jobPostingId])
+  @@index([candidateHash])
+  @@map("candidate_rankings")
 }
 
 enum UserType {

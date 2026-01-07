@@ -29,6 +29,11 @@ interface RankingResponse {
   input_cost: number;
   output_cost: number;
   total_cost: number;
+  // Cache status fields
+  from_cache: boolean;
+  is_incremental: boolean;
+  new_candidates_count: number;
+  cached_at: string | null;
 }
 
 interface RankingRequestBody {
@@ -106,6 +111,13 @@ export async function POST(
           inputCost: data.input_cost,
           outputCost: data.output_cost,
         },
+        // Cache status
+        cacheStatus: {
+          fromCache: data.from_cache,
+          isIncremental: data.is_incremental,
+          newCandidatesCount: data.new_candidates_count,
+          cachedAt: data.cached_at,
+        },
       },
     });
     
@@ -122,17 +134,89 @@ export async function POST(
   }
 }
 
-// GET endpoint to check ranking status or get cached results
+// GET endpoint to fetch existing cached ranking results
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ jobId: string }> }
 ) {
-  const { jobId } = await params;
-  
-  return NextResponse.json({
-    jobId,
-    message: 'Use POST method to trigger candidate ranking',
-    endpoint: '/api/ranking/job/[jobId]',
-  });
+  try {
+    const { jobId } = await params;
+    
+    if (!jobId) {
+      return NextResponse.json(
+        { error: 'Job posting ID is required' },
+        { status: 400 }
+      );
+    }
+    
+    // Import prisma dynamically to avoid issues
+    const { prisma } = await import('@/lib/prisma');
+    
+    // Fetch existing ranking from database
+    const ranking = await prisma.candidateRanking.findUnique({
+      where: { jobPostingId: jobId },
+      include: {
+        jobPosting: {
+          select: {
+            jobTitle: true,
+          },
+        },
+      },
+    });
+    
+    if (!ranking) {
+      return NextResponse.json({
+        success: true,
+        data: null,
+        message: 'No ranking exists for this job posting',
+      });
+    }
+    
+    // Parse ranked candidates from JSON
+    const rankedCandidates = typeof ranking.rankedCandidates === 'string' 
+      ? JSON.parse(ranking.rankedCandidates) 
+      : ranking.rankedCandidates;
+    
+    return NextResponse.json({
+      success: true,
+      data: {
+        jobPostingId: ranking.jobPostingId,
+        jobTitle: ranking.jobPosting.jobTitle,
+        rankedCandidates: rankedCandidates.map((c: { candidateId: string; rank: number; name?: string; email?: string; avatar_url?: string }) => ({
+          candidateId: c.candidateId,
+          rank: c.rank,
+          name: c.name || null,
+          email: c.email || null,
+          avatarUrl: c.avatar_url || null,
+        })),
+        totalCandidates: ranking.totalCandidates,
+        stats: {
+          totalComparisons: ranking.totalComparisons,
+          totalTokens: ranking.totalTokens,
+          totalCost: ranking.totalCost,
+          inputTokens: ranking.totalInputTokens,
+          outputTokens: ranking.totalOutputTokens,
+          inputCost: ranking.inputCost,
+          outputCost: ranking.outputCost,
+        },
+        cacheStatus: {
+          fromCache: true,
+          isIncremental: false,
+          newCandidatesCount: 0,
+          cachedAt: ranking.updatedAt.toISOString(),
+        },
+      },
+    });
+    
+  } catch (error) {
+    console.error('Error fetching ranking:', error);
+    
+    return NextResponse.json(
+      { 
+        error: 'Failed to fetch ranking',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    );
+  }
 }
-

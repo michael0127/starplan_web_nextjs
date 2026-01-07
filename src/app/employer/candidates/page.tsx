@@ -79,12 +79,20 @@ interface RankingStats {
   outputCost: number;
 }
 
+interface CacheStatus {
+  fromCache: boolean;
+  isIncremental: boolean;
+  newCandidatesCount: number;
+  cachedAt: string | null;
+}
+
 interface RankingResult {
   jobPostingId: string;
   jobTitle: string;
   rankedCandidates: RankedCandidate[];
   totalCandidates: number;
   stats: RankingStats;
+  cacheStatus?: CacheStatus;
 }
 
 interface Job {
@@ -155,6 +163,7 @@ function EmployerCandidatesContent() {
   const [isRanking, setIsRanking] = useState(false);
   const [rankingResult, setRankingResult] = useState<RankingResult | null>(null);
   const [rankingError, setRankingError] = useState<string | null>(null);
+  const [isLoadingRanking, setIsLoadingRanking] = useState(false);
   
   const fetchingRef = useRef(false);
   
@@ -162,6 +171,65 @@ function EmployerCandidatesContent() {
     required: 'EMPLOYER',
     redirectTo: '/companies',
   });
+
+  // Fetch existing ranking data when job changes
+  useEffect(() => {
+    if (user && isEmployer && selectedJob && activeTab === 'recommended') {
+      fetchExistingRanking(selectedJob);
+    }
+  }, [user, isEmployer, selectedJob, activeTab]);
+
+  // Fetch existing ranking from database
+  const fetchExistingRanking = async (jobId: string) => {
+    try {
+      setIsLoadingRanking(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        setIsLoadingRanking(false);
+        return;
+      }
+      
+      const response = await fetch(`/api/ranking/job/${jobId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+      
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        setRankingResult(result.data);
+        
+        // Update applicants with AI ranking
+        setData(prev => {
+          if (!prev) return prev;
+          
+          const rankMap = new Map<string, number>();
+          result.data.rankedCandidates.forEach((rc: RankedCandidate) => {
+            rankMap.set(rc.candidateId, rc.rank);
+          });
+          
+          return {
+            ...prev,
+            applicants: prev.applicants.map(a => ({
+              ...a,
+              aiRank: rankMap.get(a.candidateId),
+            })),
+          };
+        });
+      } else {
+        // No existing ranking, that's okay
+        setRankingResult(null);
+      }
+    } catch (error) {
+      console.error('Error fetching existing ranking:', error);
+      // Don't show error - it's fine if no ranking exists
+    } finally {
+      setIsLoadingRanking(false);
+    }
+  };
 
   // Fetch applicants
   useEffect(() => {
@@ -473,7 +541,7 @@ function EmployerCandidatesContent() {
                         onChange={(e) => {
                           setSelectedJob(e.target.value);
                           setCurrentPage(1);
-                          setRankingResult(null); // Clear ranking when job changes
+                          // Ranking will be fetched by useEffect when selectedJob changes
                         }}
                         className={styles.jobFilterSelect}
                       >
@@ -635,33 +703,60 @@ function EmployerCandidatesContent() {
           <div className={styles.mainContent}>
             {/* Spotlights / AI Ranking Info */}
             {activeTab === 'recommended' && rankingResult ? (
-              <div className={styles.rankingResultPanel}>
-                <div className={styles.rankingResultHeader}>
-                  <h2 className={styles.rankingResultTitle}>
+              <div className={styles.topCandidatesPanel}>
+                <div className={styles.topCandidatesHeader}>
+                  <div className={styles.topCandidatesTitle}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                       <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                     </svg>
-                    AI Ranking Complete
-                  </h2>
-                  <span className={styles.rankingJobTitle}>for {rankingResult.jobTitle}</span>
+                    <span>Top AI Matches</span>
+                  </div>
+                  <span className={styles.topCandidatesSubtitle}>
+                    {rankingResult.totalCandidates} candidates ranked
+                    {rankingResult.cacheStatus?.cachedAt && (
+                      <> • Updated {new Date(rankingResult.cacheStatus.cachedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</>
+                    )}
+                  </span>
                 </div>
-                <div className={styles.rankingStats}>
-                  <div className={styles.rankingStat}>
-                    <span className={styles.rankingStatValue}>{rankingResult.totalCandidates}</span>
-                    <span className={styles.rankingStatLabel}>Candidates Ranked</span>
-                  </div>
-                  <div className={styles.rankingStat}>
-                    <span className={styles.rankingStatValue}>{rankingResult.stats.totalComparisons}</span>
-                    <span className={styles.rankingStatLabel}>AI Comparisons</span>
-                  </div>
-                  <div className={styles.rankingStat}>
-                    <span className={styles.rankingStatValue}>{rankingResult.stats.totalTokens.toLocaleString()}</span>
-                    <span className={styles.rankingStatLabel}>Tokens Used</span>
-                  </div>
-                  <div className={styles.rankingStat}>
-                    <span className={styles.rankingStatValue}>${rankingResult.stats.totalCost.toFixed(4)}</span>
-                    <span className={styles.rankingStatLabel}>Total Cost</span>
-                  </div>
+                <div className={styles.topCandidatesGrid}>
+                  {rankingResult.rankedCandidates.slice(0, 3).map((candidate, index) => {
+                    const applicant = data?.applicants.find(a => a.candidateId === candidate.candidateId);
+                    const rankColors = ['#FFD700', '#C0C0C0', '#CD7F32'];
+                    const rankLabels = ['Top Match', '2nd Best', '3rd Best'];
+                    
+                    return (
+                      <div key={candidate.candidateId} className={`${styles.topCandidateCard} ${styles[`topCandidate${index + 1}`]}`}>
+                        <div className={styles.topCandidateRank} style={{ backgroundColor: rankColors[index] }}>
+                          <span>#{index + 1}</span>
+                        </div>
+                        <div className={styles.topCandidateInfo}>
+                          <div className={styles.topCandidateAvatar}>
+                            {candidate.avatarUrl ? (
+                              <img src={candidate.avatarUrl} alt={candidate.name || ''} />
+                            ) : (
+                              <div className={styles.avatarPlaceholder}>
+                                {(candidate.name || candidate.email || '?').charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                          </div>
+                          <div className={styles.topCandidateDetails}>
+                            <h4 className={styles.topCandidateName}>
+                              {candidate.name || candidate.email?.split('@')[0] || 'Unknown'}
+                            </h4>
+                            <p className={styles.topCandidateRole}>
+                              {applicant?.experience?.[0]?.title || applicant?.candidate?.headline || 'Candidate'}
+                            </p>
+                          </div>
+                        </div>
+                        <div className={styles.topCandidateBadge}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                          </svg>
+                          <span>{rankLabels[index]}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ) : activeTab === 'recommended' && rankingError ? (
@@ -683,6 +778,38 @@ function EmployerCandidatesContent() {
                     <p>Comparing candidates using binary insertion algorithm...</p>
                     <p className={styles.progressHint}>This may take a moment depending on the number of candidates</p>
                   </div>
+                </div>
+              </div>
+            ) : activeTab === 'recommended' && !rankingResult && sortBy === 'ranking' ? (
+              <div className={styles.rankingPromptPanel}>
+                <div className={styles.rankingPromptContent}>
+                  <div className={styles.rankingPromptIcon}>
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M12 20V10M18 20V4M6 20v-4"/>
+                    </svg>
+                  </div>
+                  <div className={styles.rankingPromptText}>
+                    <h3>AI Ranking Not Started</h3>
+                    <p>Click the <strong>"Start AI Ranking"</strong> button above to rank candidates using AI-powered binary insertion comparison.</p>
+                    <p className={styles.rankingPromptHint}>
+                      {selectedJob 
+                        ? `${data?.stats.passed || 0} candidates passed screening and are ready to be ranked.`
+                        : 'Please select a job position first to start ranking.'
+                      }
+                    </p>
+                  </div>
+                  {selectedJob && (
+                    <button 
+                      className={styles.rankingPromptBtn}
+                      onClick={handleStartRanking}
+                      disabled={isRanking}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 20V10M18 20V4M6 20v-4"/>
+                      </svg>
+                      Start AI Ranking
+                    </button>
+                  )}
                 </div>
               </div>
             ) : (
@@ -846,25 +973,58 @@ function EmployerCandidatesContent() {
                   Once candidates apply to your job postings, they will appear here
                 </p>
               </div>
+            ) : activeTab === 'recommended' && sortBy === 'ranking' && !rankingResult && !isRanking ? (
+              // Don't show candidates list when AI Ranking is selected but not yet executed
+              <div className={styles.noRankingResults}>
+                <div className={styles.noRankingIcon}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M12 20V10M18 20V4M6 20v-4"/>
+                  </svg>
+                </div>
+                <p>Start AI Ranking to see candidates sorted by match quality</p>
+              </div>
             ) : (
               <div className={styles.applicantList}>
-                {/* Filter and sort applicants based on active tab */}
+                {/* Filter and sort applicants based on active tab and sort option */}
                 {(() => {
                   let applicants = activeTab === 'recommended' 
                     ? data?.applicants.filter(a => a.passedHardGate) || []
                     : data?.applicants || [];
                   
-                  // If we have AI ranking results, sort by rank
-                  if (activeTab === 'recommended' && rankingResult) {
+                  // Apply sorting based on sortBy option
+                  if (activeTab === 'recommended' && sortBy === 'ranking' && rankingResult) {
+                    // AI Match Ranking: only show and sort by ranked candidates
                     const rankMap = new Map<string, number>();
                     rankingResult.rankedCandidates.forEach(rc => {
                       rankMap.set(rc.candidateId, rc.rank);
                     });
                     
+                    applicants = applicants
+                      .filter(a => rankMap.has(a.candidateId))
+                      .sort((a, b) => {
+                        const rankA = rankMap.get(a.candidateId) ?? Infinity;
+                        const rankB = rankMap.get(b.candidateId) ?? Infinity;
+                        return rankA - rankB;
+                      });
+                  } else if (sortBy === 'screening') {
+                    // Screening Requirements: passed first, then by percentage
                     applicants = [...applicants].sort((a, b) => {
-                      const rankA = rankMap.get(a.candidateId) ?? Infinity;
-                      const rankB = rankMap.get(b.candidateId) ?? Infinity;
-                      return rankA - rankB;
+                      // First by passedHardGate
+                      if (a.passedHardGate !== b.passedHardGate) {
+                        return a.passedHardGate ? -1 : 1;
+                      }
+                      // Then by skills match percentage
+                      return (b.skillsMatch?.percentage || 0) - (a.skillsMatch?.percentage || 0);
+                    });
+                  } else if (sortBy === 'newest') {
+                    // Newest first
+                    applicants = [...applicants].sort((a, b) => {
+                      return new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime();
+                    });
+                  } else if (sortBy === 'oldest') {
+                    // Oldest first
+                    applicants = [...applicants].sort((a, b) => {
+                      return new Date(a.appliedAt).getTime() - new Date(b.appliedAt).getTime();
                     });
                   }
                   
@@ -879,14 +1039,9 @@ function EmployerCandidatesContent() {
                       {activeTab === 'recommended' ? (
                         <div className={styles.rankingNumber}>
                           {rankingResult ? (
-                            <>
-                              <span className={`${styles.rankNum} ${index < 3 ? styles[`rank${index + 1}`] : ''}`}>
-                                #{index + 1}
-                              </span>
-                              {index === 0 && <span className={styles.rankMedal}>🥇</span>}
-                              {index === 1 && <span className={styles.rankMedal}>🥈</span>}
-                              {index === 2 && <span className={styles.rankMedal}>🥉</span>}
-                            </>
+                            <div className={`${styles.rankBadge} ${index < 3 ? styles[`rankBadge${index + 1}`] : styles.rankBadgeDefault}`}>
+                              <span className={styles.rankBadgeNum}>#{index + 1}</span>
+                            </div>
                           ) : (
                             <>
                               <span className={styles.rankNum}>#{index + 1}</span>
