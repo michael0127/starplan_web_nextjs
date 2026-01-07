@@ -745,16 +745,22 @@
   flex-wrap: wrap;
 }
 
+.applicantNameLink {
+  text-decoration: none;
+}
+
 .applicantName {
   font-size: 16px;
   font-weight: 600;
   color: #4a5bf4;
   margin: 0;
   cursor: pointer;
+  transition: color 0.2s;
 }
 
-.applicantName:hover {
+.applicantNameLink:hover .applicantName {
   text-decoration: underline;
+  color: #3d4ed1;
 }
 
 .connectionDegree {
@@ -1417,6 +1423,11 @@
   min-width: 0;
 }
 
+.topCandidateNameLink {
+  text-decoration: none;
+  display: block;
+}
+
 .topCandidateName {
   font-size: 14px;
   font-weight: 600;
@@ -1425,6 +1436,12 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: color 0.2s;
+}
+
+.topCandidateNameLink:hover .topCandidateName {
+  color: #4a5bf4;
+  text-decoration: underline;
 }
 
 .topCandidateRole {

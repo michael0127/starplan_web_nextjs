@@ -473,29 +473,27 @@ function EmployerCandidatesContent() {
         {/* Secondary Navigation - Job Selector */}
         <div className={styles.secondaryNav}>
           <div className={styles.secondaryNavContent}>
-            {/* Job Selector - Only show in Applicants tab */}
-            {activeTab === 'applicants' && (
-              <div className={styles.jobSelector}>
-                <select
-                  value={selectedJob}
-                  onChange={(e) => {
-                    setSelectedJob(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className={styles.jobSelect}
-                >
-                  <option value="">All Jobs</option>
-                  {data?.jobs.map(job => (
-                    <option key={job.id} value={job.id}>
-                      {job.title}
-                    </option>
-                  ))}
-                </select>
-                <svg className={styles.selectArrow} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              </div>
-            )}
+            {/* Job Selector - Always visible on left */}
+            <div className={styles.jobSelector}>
+              <select
+                value={selectedJob}
+                onChange={(e) => {
+                  setSelectedJob(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className={styles.jobSelect}
+              >
+                {activeTab === 'applicants' && <option value="">All Jobs</option>}
+                {data?.jobs.map(job => (
+                  <option key={job.id} value={job.id}>
+                    {job.title}
+                  </option>
+                ))}
+              </select>
+              <svg className={styles.selectArrow} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
             
             <nav className={styles.tabNav}>
               <button 
@@ -506,84 +504,55 @@ function EmployerCandidatesContent() {
                 }}
               >
                 Applicants
-                {data?.stats.total ? <span className={styles.tabBadge}>{data.stats.total.toLocaleString()}</span> : null}
               </button>
               
               {/* Divider */}
               <div className={styles.tabDivider}></div>
               
-              {/* AI Ranked Matches with Job Selector */}
-              <div className={styles.rankedTabGroup}>
-                <button 
-                  className={`${styles.tabBtn} ${activeTab === 'recommended' ? styles.tabActive : ''}`}
-                  onClick={() => {
-                    setActiveTab('recommended');
-                    setSortBy('ranking');
-                    // Auto-select first job if no job is selected
-                    if (!selectedJob && data?.jobs && data.jobs.length > 0) {
-                      setSelectedJob(data.jobs[0].id);
-                    }
-                  }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 4 }}>
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                  </svg>
-                  AI Ranked Matches
-                  {data?.stats.passed ? <span className={styles.tabBadge}>{data.stats.passed}</span> : null}
-                </button>
-                
-                {/* Job Filter Button - Show in AI Ranked tab */}
-                {activeTab === 'recommended' && (
-                  <>
-                    <div className={styles.jobFilterBtn}>
-                      <select
-                        value={selectedJob}
-                        onChange={(e) => {
-                          setSelectedJob(e.target.value);
-                          setCurrentPage(1);
-                          // Ranking will be fetched by useEffect when selectedJob changes
-                        }}
-                        className={styles.jobFilterSelect}
-                      >
-                        {data?.jobs.map(job => (
-                          <option key={job.id} value={job.id}>
-                            {job.title}
-                          </option>
-                        ))}
-                      </select>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <polyline points="6 9 12 15 18 9"></polyline>
-                      </svg>
-                    </div>
-                    
-                    {/* Start Ranking Button */}
-                    <button 
-                      className={`${styles.startRankingBtn} ${isRanking ? styles.rankingInProgress : ''}`}
-                      onClick={handleStartRanking}
-                      disabled={isRanking || !selectedJob}
-                    >
-                      {isRanking ? (
-                        <>
-                          <div className={styles.miniSpinner}></div>
-                          Ranking...
-                        </>
-                      ) : (
-                        <>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M12 20V10"></path>
-                            <path d="M18 20V4"></path>
-                            <path d="M6 20v-4"></path>
-                          </svg>
-                          Start AI Ranking
-                        </>
-                      )}
-                    </button>
-                  </>
-                )}
-              </div>
+              {/* AI Ranked Matches */}
+              <button 
+                className={`${styles.tabBtn} ${activeTab === 'recommended' ? styles.tabActive : ''}`}
+                onClick={() => {
+                  setActiveTab('recommended');
+                  setSortBy('ranking');
+                  // Auto-select first job if no job is selected
+                  if (!selectedJob && data?.jobs && data.jobs.length > 0) {
+                    setSelectedJob(data.jobs[0].id);
+                  }
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 4 }}>
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+                AI Ranked Matches
+              </button>
             </nav>
             
             <div className={styles.secondaryNavRight}>
+              {/* Start Ranking Button - Only in AI Ranked tab */}
+              {activeTab === 'recommended' && (
+                <button 
+                  className={`${styles.startRankingBtn} ${isRanking ? styles.rankingInProgress : ''}`}
+                  onClick={handleStartRanking}
+                  disabled={isRanking || !selectedJob}
+                >
+                  {isRanking ? (
+                    <>
+                      <div className={styles.miniSpinner}></div>
+                      Ranking...
+                    </>
+                  ) : (
+                    <>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 20V10"></path>
+                        <path d="M18 20V4"></path>
+                        <path d="M6 20v-4"></path>
+                      </svg>
+                      Start AI Ranking
+                    </>
+                  )}
+                </button>
+              )}
               <span className={styles.privacyBadge}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
@@ -740,9 +709,14 @@ function EmployerCandidatesContent() {
                             )}
                           </div>
                           <div className={styles.topCandidateDetails}>
-                            <h4 className={styles.topCandidateName}>
-                              {candidate.name || candidate.email?.split('@')[0] || 'Unknown'}
-                            </h4>
+                            <Link 
+                              href={`/employer/candidates/${candidate.candidateId}`}
+                              className={styles.topCandidateNameLink}
+                            >
+                              <h4 className={styles.topCandidateName}>
+                                {candidate.name || candidate.email?.split('@')[0] || 'Unknown'}
+                              </h4>
+                            </Link>
                             <p className={styles.topCandidateRole}>
                               {applicant?.experience?.[0]?.title || applicant?.candidate?.headline || 'Candidate'}
                             </p>
@@ -1075,10 +1049,15 @@ function EmployerCandidatesContent() {
                       
                       <div className={styles.applicantInfo}>
                         <div className={styles.applicantHeader}>
-                          <h3 className={styles.applicantName}>
-                            {applicant.candidate.name.split(' ')[0]}{' '}
-                            {applicant.candidate.name.split(' ').slice(1).map(n => n[0] + '.').join(' ')}
-                          </h3>
+                          <Link 
+                            href={`/employer/candidates/${applicant.candidateId}`}
+                            className={styles.applicantNameLink}
+                          >
+                            <h3 className={styles.applicantName}>
+                              {applicant.candidate.name.split(' ')[0]}{' '}
+                              {applicant.candidate.name.split(' ').slice(1).map(n => n[0] + '.').join(' ')}
+                            </h3>
+                          </Link>
                           <span className={styles.connectionDegree}>3rd</span>
                           {activeTab === 'recommended' ? (
                             rankingResult && index < 3 ? (
