@@ -218,6 +218,48 @@ function CreateJobAdForm() {
     loadEditData();
   }, [editId, user, session]); // ✅ 添加 session 依赖
 
+  // Load company settings for new job postings (not edit mode)
+  useEffect(() => {
+    const loadCompanySettings = async () => {
+      // Only load if it's a new job (not editing) and user is logged in
+      if (editId || !user || !session) return;
+      
+      try {
+        const response = await fetch('/api/employer/company', {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.data) {
+          const company = data.data;
+          
+          // Update form data with company settings as defaults
+          setFormData(prev => {
+            // Only set values that are currently empty
+            const updates: Partial<typeof prev> = {};
+            if (!prev.companyName && company.companyName) updates.companyName = company.companyName;
+            if (!prev.companyLogo && company.companyLogo) updates.companyLogo = company.companyLogo;
+            if (!prev.companyCoverImage && company.companyCoverImage) updates.companyCoverImage = company.companyCoverImage;
+            if (!prev.videoLink && company.videoLink) updates.videoLink = company.videoLink;
+            
+            return Object.keys(updates).length > 0 ? { ...prev, ...updates } : prev;
+          });
+          
+          // Set previews for images from company settings
+          if (company.companyLogo) setLogoPreview(prev => prev || company.companyLogo);
+          if (company.companyCoverImage) setCoverPreview(prev => prev || company.companyCoverImage);
+        }
+      } catch (error) {
+        console.error('Error loading company settings:', error);
+      }
+    };
+    
+    loadCompanySettings();
+  }, [editId, user, session]);
+
   // Job title 变化时触发智能推荐
   useEffect(() => {
     if (formData.jobTitle && formData.jobTitle.trim().length > 0 && !editId) {

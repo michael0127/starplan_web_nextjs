@@ -266,13 +266,6 @@
   margin-bottom: 20px;
 }
 
-.filterTitle {
-  font-size: 14px;
-  font-weight: 700;
-  color: #000;
-  margin-bottom: 12px;
-}
-
 .addFilter {
   display: flex;
   align-items: center;
@@ -317,6 +310,148 @@
   margin-left: auto;
   color: #666;
   font-size: 13px;
+}
+
+.filterCountSuccess {
+  color: #057642;
+}
+
+.filterCountFailed {
+  color: #dc2626;
+}
+
+.filterOptions {
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.filterOptionName {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.noFilterOptions {
+  padding: 12px 0;
+  color: #999;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.showMoreFiltersBtn {
+  display: block;
+  width: 100%;
+  padding: 8px 0;
+  background: transparent;
+  border: none;
+  color: #4a5bf4;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  margin-top: 4px;
+}
+
+.showMoreFiltersBtn:hover {
+  text-decoration: underline;
+}
+
+.selectedCount {
+  font-size: 12px;
+  color: #4a5bf4;
+  font-weight: 600;
+  margin-left: 6px;
+}
+
+.filterTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #000;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+}
+
+.searchInputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #f5f5f5;
+  border-radius: 8px;
+  padding: 0 12px;
+  border: 1px solid #e0e0e0;
+  transition: all 0.2s;
+}
+
+.searchInputWrapper:focus-within {
+  border-color: #4a5bf4;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(74, 91, 244, 0.1);
+}
+
+.searchInputWrapper svg {
+  color: #999;
+  flex-shrink: 0;
+}
+
+.searchInput {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 10px 8px;
+  font-size: 14px;
+  color: #252525;
+  outline: none;
+}
+
+.searchInput::placeholder {
+  color: #999;
+}
+
+.clearInputBtn {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #e0e0e0;
+  border: none;
+  color: #666;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.clearInputBtn:hover {
+  background: #d0d0d0;
+  color: #333;
+}
+
+.filterSearchWrapper {
+  margin-bottom: 10px;
+}
+
+.filterSearchInput {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #252525;
+  background: #f8f9fa;
+  transition: all 0.2s;
+}
+
+.filterSearchInput:focus {
+  outline: none;
+  border-color: #4a5bf4;
+  background: #fff;
+}
+
+.filterSearchInput::placeholder {
+  color: #999;
 }
 
 .advancedSearchBtn {

@@ -99,6 +99,9 @@ export interface JobPosting {
   // Relations
   systemScreeningAnswers?: SystemScreeningAnswer[];
   customScreeningQuestions?: CustomScreeningQuestion[];
+  
+  // Stats
+  applicantCount?: number;
 }
 
 export interface SystemScreeningAnswer {

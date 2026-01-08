@@ -101,6 +101,11 @@ interface Job {
   status: string;
 }
 
+interface FilterOption {
+  name: string;
+  count: number;
+}
+
 interface ApplicantsData {
   jobs: Job[];
   applicants: Applicant[];
@@ -122,8 +127,9 @@ interface ApplicantsData {
     interestedInCompany: number;
   };
   filterOptions: {
-    skills: string[];
-    locations: string[];
+    skills: FilterOption[];
+    locations: FilterOption[];
+    experienceLevels: FilterOption[];
   };
 }
 
@@ -135,21 +141,29 @@ function EmployerCandidatesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
+  // Get URL params
+  const jobIdParam = searchParams.get('jobId');
+  const tabParam = searchParams.get('tab');
+  
   const [data, setData] = useState<ApplicantsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedJob, setSelectedJob] = useState<string>('');
-  const [sortBy, setSortBy] = useState<SortOption>('newest');
+  const [selectedJob, setSelectedJob] = useState<string>(jobIdParam || '');
+  const [sortBy, setSortBy] = useState<SortOption>(tabParam === 'recommended' ? 'ranking' : 'newest');
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilters, setShowFilters] = useState(true);
   
   // Tab state
-  const [activeTab, setActiveTab] = useState<TabOption>('applicants');
+  const [activeTab, setActiveTab] = useState<TabOption>(tabParam === 'recommended' ? 'recommended' : 'applicants');
   
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set());
   const [selectedLocations, setSelectedLocations] = useState<Set<string>>(new Set());
+  const [selectedExperienceLevels, setSelectedExperienceLevels] = useState<Set<string>>(new Set());
   const [passedHardGateFilter, setPassedHardGateFilter] = useState<string>('');
+  const [skillSearchQuery, setSkillSearchQuery] = useState('');
+  const [showAllSkills, setShowAllSkills] = useState(false);
+  const [showAllLocations, setShowAllLocations] = useState(false);
   
   // Expanded sections
   const [expandedExperience, setExpandedExperience] = useState<Set<string>>(new Set());
@@ -236,7 +250,7 @@ function EmployerCandidatesContent() {
     if (user && isEmployer) {
       fetchApplicants();
     }
-  }, [user, isEmployer, selectedJob, sortBy, currentPage, passedHardGateFilter]);
+  }, [user, isEmployer, selectedJob, sortBy, currentPage, passedHardGateFilter, selectedSkills, selectedLocations, selectedExperienceLevels, searchQuery]);
 
   const fetchApplicants = async () => {
     if (fetchingRef.current) return;
@@ -272,6 +286,9 @@ function EmployerCandidatesContent() {
       }
       if (selectedLocations.size > 0) {
         params.set('locations', Array.from(selectedLocations).join(','));
+      }
+      if (selectedExperienceLevels.size > 0) {
+        params.set('experienceLevels', Array.from(selectedExperienceLevels).join(','));
       }
       
       const response = await fetch(`/api/employer/applicants?${params.toString()}`, {
@@ -410,10 +427,34 @@ function EmployerCandidatesContent() {
     setSearchQuery('');
     setSelectedSkills(new Set());
     setSelectedLocations(new Set());
+    setSelectedExperienceLevels(new Set());
     setPassedHardGateFilter('');
     setSelectedJob('');
+    setSkillSearchQuery('');
+    setShowAllSkills(false);
+    setShowAllLocations(false);
     setCurrentPage(1);
   };
+
+  const getExperienceLevelDisplay = (level: string) => {
+    const labels: Record<string, string> = {
+      'INTERN': 'Intern',
+      'JUNIOR': 'Entry Level',
+      'MID_LEVEL': 'Mid Level',
+      'SENIOR': 'Senior',
+      'LEAD': 'Lead',
+      'PRINCIPAL': 'Principal',
+    };
+    return labels[level] || level;
+  };
+
+  // Filter skills based on search query
+  const filteredSkillOptions = (data?.filterOptions?.skills || []).filter(skill =>
+    skill.name.toLowerCase().includes(skillSearchQuery.toLowerCase())
+  );
+
+  const hasActiveFilters = selectedSkills.size > 0 || selectedLocations.size > 0 || 
+    selectedExperienceLevels.size > 0 || passedHardGateFilter !== '' || searchQuery !== '';
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -571,100 +612,194 @@ function EmployerCandidatesContent() {
                 <span className={styles.resultsCount}>
                   {data?.pagination.total.toLocaleString() || 0} results
                 </span>
-                <button className={styles.clearSearchBtn} onClick={clearAllFilters}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                {hasActiveFilters && (
+                  <button className={styles.clearSearchBtn} onClick={clearAllFilters}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                    </svg>
+                    Clear filters
+                  </button>
+                )}
+              </div>
+
+              {/* Search / Keywords Filter */}
+              <div className={styles.filterSection}>
+                <h3 className={styles.filterTitle}>Search</h3>
+                <div className={styles.searchInputWrapper}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="M21 21l-4.35-4.35"></path>
                   </svg>
-                  Clear search
-                </button>
+                  <input
+                    type="text"
+                    placeholder="Name, email, or keyword..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className={styles.searchInput}
+                  />
+                  {searchQuery && (
+                    <button 
+                      className={styles.clearInputBtn}
+                      onClick={() => setSearchQuery('')}
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Skills Filter */}
               <div className={styles.filterSection}>
-                <h3 className={styles.filterTitle}>Skills</h3>
-                <div className={styles.addFilter}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                  </svg>
-                  <span>Add skills and expertise</span>
-                </div>
-                {(data?.filterOptions?.skills || []).slice(0, 5).map(skill => (
-                  <label key={skill} className={styles.checkboxLabel}>
+                <h3 className={styles.filterTitle}>
+                  Skills
+                  {selectedSkills.size > 0 && (
+                    <span className={styles.selectedCount}>({selectedSkills.size})</span>
+                  )}
+                </h3>
+                {(data?.filterOptions?.skills?.length || 0) > 5 && (
+                  <div className={styles.filterSearchWrapper}>
                     <input
-                      type="checkbox"
-                      checked={selectedSkills.has(skill)}
-                      onChange={() => toggleFilter(selectedSkills, setSelectedSkills, skill)}
-                      className={styles.checkbox}
+                      type="text"
+                      placeholder="Search skills..."
+                      value={skillSearchQuery}
+                      onChange={(e) => setSkillSearchQuery(e.target.value)}
+                      className={styles.filterSearchInput}
                     />
-                    <span>{skill}</span>
-                  </label>
-                ))}
+                  </div>
+                )}
+                <div className={styles.filterOptions}>
+                  {filteredSkillOptions.length === 0 ? (
+                    <div className={styles.noFilterOptions}>
+                      {skillSearchQuery ? 'No skills match your search' : 'No skills available'}
+                    </div>
+                  ) : (
+                    <>
+                      {filteredSkillOptions.slice(0, showAllSkills ? undefined : 8).map(skill => (
+                        <label key={skill.name} className={styles.checkboxLabel}>
+                          <input
+                            type="checkbox"
+                            checked={selectedSkills.has(skill.name)}
+                            onChange={() => toggleFilter(selectedSkills, setSelectedSkills, skill.name)}
+                            className={styles.checkbox}
+                          />
+                          <span className={styles.filterOptionName}>{skill.name}</span>
+                          <span className={styles.filterCount}>({skill.count})</span>
+                        </label>
+                      ))}
+                      {filteredSkillOptions.length > 8 && (
+                        <button 
+                          className={styles.showMoreFiltersBtn}
+                          onClick={() => setShowAllSkills(!showAllSkills)}
+                        >
+                          {showAllSkills ? 'Show less' : `Show all ${filteredSkillOptions.length}`}
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
 
               {/* Location Filter */}
               <div className={styles.filterSection}>
-                <h3 className={styles.filterTitle}>Current locations</h3>
-                <div className={styles.addFilter}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                  </svg>
-                  <span>Add candidate geographic locations</span>
+                <h3 className={styles.filterTitle}>
+                  Location
+                  {selectedLocations.size > 0 && (
+                    <span className={styles.selectedCount}>({selectedLocations.size})</span>
+                  )}
+                </h3>
+                <div className={styles.filterOptions}>
+                  {(data?.filterOptions?.locations?.length || 0) === 0 ? (
+                    <div className={styles.noFilterOptions}>No locations available</div>
+                  ) : (
+                    <>
+                      {(data?.filterOptions?.locations || []).slice(0, showAllLocations ? undefined : 6).map(location => (
+                        <label key={location.name} className={styles.checkboxLabel}>
+                          <input
+                            type="checkbox"
+                            checked={selectedLocations.has(location.name)}
+                            onChange={() => toggleFilter(selectedLocations, setSelectedLocations, location.name)}
+                            className={styles.checkbox}
+                          />
+                          <span className={styles.filterOptionName}>{location.name}</span>
+                          <span className={styles.filterCount}>({location.count})</span>
+                        </label>
+                      ))}
+                      {(data?.filterOptions?.locations?.length || 0) > 6 && (
+                        <button 
+                          className={styles.showMoreFiltersBtn}
+                          onClick={() => setShowAllLocations(!showAllLocations)}
+                        >
+                          {showAllLocations ? 'Show less' : `Show all ${data?.filterOptions?.locations?.length}`}
+                        </button>
+                      )}
+                    </>
+                  )}
                 </div>
-                {(data?.filterOptions?.locations || []).slice(0, 5).map(location => (
-                  <label key={location} className={styles.checkboxLabel}>
-                    <input
-                      type="checkbox"
-                      checked={selectedLocations.has(location)}
-                      onChange={() => toggleFilter(selectedLocations, setSelectedLocations, location)}
-                      className={styles.checkbox}
-                    />
-                    <span>{location}</span>
-                  </label>
-                ))}
+              </div>
+
+              {/* Experience Level Filter */}
+              <div className={styles.filterSection}>
+                <h3 className={styles.filterTitle}>
+                  Experience Level
+                  {selectedExperienceLevels.size > 0 && (
+                    <span className={styles.selectedCount}>({selectedExperienceLevels.size})</span>
+                  )}
+                </h3>
+                <div className={styles.filterOptions}>
+                  {(data?.filterOptions?.experienceLevels?.length || 0) === 0 ? (
+                    <div className={styles.noFilterOptions}>No experience levels available</div>
+                  ) : (
+                    (data?.filterOptions?.experienceLevels || []).map(level => (
+                      <label key={level.name} className={styles.checkboxLabel}>
+                        <input
+                          type="checkbox"
+                          checked={selectedExperienceLevels.has(level.name)}
+                          onChange={() => toggleFilter(selectedExperienceLevels, setSelectedExperienceLevels, level.name)}
+                          className={styles.checkbox}
+                        />
+                        <span className={styles.filterOptionName}>{getExperienceLevelDisplay(level.name)}</span>
+                        <span className={styles.filterCount}>({level.count})</span>
+                      </label>
+                    ))
+                  )}
+                </div>
               </div>
 
               {/* Screening Status Filter */}
               <div className={styles.filterSection}>
-                <h3 className={styles.filterTitle}>Screening status</h3>
-                <label className={styles.checkboxLabel}>
-                  <input
-                    type="checkbox"
-                    checked={passedHardGateFilter === 'true'}
-                    onChange={() => setPassedHardGateFilter(passedHardGateFilter === 'true' ? '' : 'true')}
-                    className={styles.checkbox}
-                  />
-                  <span>Passed screening</span>
-                  <span className={styles.filterCount}>({data?.stats.passed || 0})</span>
-                </label>
-                <label className={styles.checkboxLabel}>
-                  <input
-                    type="checkbox"
-                    checked={passedHardGateFilter === 'false'}
-                    onChange={() => setPassedHardGateFilter(passedHardGateFilter === 'false' ? '' : 'false')}
-                    className={styles.checkbox}
-                  />
-                  <span>Did not pass</span>
-                  <span className={styles.filterCount}>({data?.stats.failed || 0})</span>
-                </label>
-              </div>
-
-              {/* Keywords */}
-              <div className={styles.filterSection}>
-                <h3 className={styles.filterTitle}>Keywords</h3>
-                <div className={styles.addFilter}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                  </svg>
-                  <span>Profile keywords or boolean</span>
+                <h3 className={styles.filterTitle}>Screening Status</h3>
+                <div className={styles.filterOptions}>
+                  <label className={styles.checkboxLabel}>
+                    <input
+                      type="checkbox"
+                      checked={passedHardGateFilter === 'true'}
+                      onChange={() => {
+                        setPassedHardGateFilter(passedHardGateFilter === 'true' ? '' : 'true');
+                        setCurrentPage(1);
+                      }}
+                      className={styles.checkbox}
+                    />
+                    <span className={styles.filterOptionName}>Passed screening</span>
+                    <span className={`${styles.filterCount} ${styles.filterCountSuccess}`}>({data?.stats.passed || 0})</span>
+                  </label>
+                  <label className={styles.checkboxLabel}>
+                    <input
+                      type="checkbox"
+                      checked={passedHardGateFilter === 'false'}
+                      onChange={() => {
+                        setPassedHardGateFilter(passedHardGateFilter === 'false' ? '' : 'false');
+                        setCurrentPage(1);
+                      }}
+                      className={styles.checkbox}
+                    />
+                    <span className={styles.filterOptionName}>Did not pass</span>
+                    <span className={`${styles.filterCount} ${styles.filterCountFailed}`}>({data?.stats.failed || 0})</span>
+                  </label>
                 </div>
               </div>
-
-              <button className={styles.advancedSearchBtn}>
-                Advanced search
-              </button>
             </aside>
           )}
 

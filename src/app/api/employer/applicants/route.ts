@@ -52,6 +52,7 @@ export async function GET(request: NextRequest) {
     const searchQuery = searchParams.get('q');
     const skills = searchParams.get('skills')?.split(',').filter(Boolean) || [];
     const locations = searchParams.get('locations')?.split(',').filter(Boolean) || [];
+    const experienceLevels = searchParams.get('experienceLevels')?.split(',').filter(Boolean) || [];
     const skip = (page - 1) * limit;
 
     // Get all job postings for this employer
@@ -177,9 +178,19 @@ export async function GET(request: NextRequest) {
     // Locations filter
     if (locations.length > 0) {
       filteredApplicants = filteredApplicants.filter(a => {
-        const cvData = a.cv?.extractedData as Record<string, unknown> | null;
-        const location = (cvData?.location as string || a.candidate.workAuthCountries?.[0] || '').toLowerCase();
-        return locations.some(loc => location.includes(loc.toLowerCase()));
+        const profile = a.candidate.profile as Record<string, unknown> | null;
+        const profileCvData = profile?.cv_data as Record<string, unknown> | null;
+        const personalInfo = (profile?.personal || profileCvData?.personal) as { location?: string } | null;
+        const location = (personalInfo?.location || a.candidate.workAuthCountries?.[0] || '').toLowerCase();
+        return locations.some(loc => location.toLowerCase().includes(loc.toLowerCase()));
+      });
+    }
+
+    // Experience level filter
+    if (experienceLevels.length > 0) {
+      filteredApplicants = filteredApplicants.filter(a => {
+        const candidateLevel = a.candidate.experienceLevel;
+        return candidateLevel && experienceLevels.includes(candidateLevel);
       });
     }
 
@@ -351,9 +362,10 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    // Get unique skills and locations for filter options
-    const allSkills = new Set<string>();
-    const allLocations = new Set<string>();
+    // Get skills and locations with counts for filter options
+    const skillCounts = new Map<string, number>();
+    const locationCounts = new Map<string, number>();
+    const experienceLevelCounts = new Map<string, number>();
     
     applicants.forEach(a => {
       // Extract skills from profile
@@ -362,20 +374,50 @@ export async function GET(request: NextRequest) {
       const profileSkills = profile?.skills as { technical_skills?: string[]; soft_skills?: string[] } | null;
       const cvDataSkills = profileCvData?.skills as { technical_skills?: string[]; soft_skills?: string[] } | null;
       
-      // Add technical and soft skills from profile
-      profileSkills?.technical_skills?.forEach((s: string) => allSkills.add(s));
-      profileSkills?.soft_skills?.forEach((s: string) => allSkills.add(s));
-      cvDataSkills?.technical_skills?.forEach((s: string) => allSkills.add(s));
-      cvDataSkills?.soft_skills?.forEach((s: string) => allSkills.add(s));
+      // Count technical and soft skills from profile
+      const addSkill = (s: string) => {
+        if (s && s.trim()) {
+          const normalized = s.trim();
+          skillCounts.set(normalized, (skillCounts.get(normalized) || 0) + 1);
+        }
+      };
+      
+      profileSkills?.technical_skills?.forEach(addSkill);
+      profileSkills?.soft_skills?.forEach(addSkill);
+      cvDataSkills?.technical_skills?.forEach(addSkill);
+      cvDataSkills?.soft_skills?.forEach(addSkill);
       
       // Fallback to categorySkills
-      a.candidate.categorySkills?.forEach((s: string) => allSkills.add(s));
+      a.candidate.categorySkills?.forEach(addSkill);
       
-      // Extract location from profile
+      // Extract and count location from profile
       const personalInfo = (profile?.personal || profileCvData?.personal) as { location?: string } | null;
       const location = personalInfo?.location || a.candidate.workAuthCountries?.[0];
-      if (location) allLocations.add(location as string);
+      if (location && typeof location === 'string' && location.trim()) {
+        const normalizedLoc = location.trim();
+        locationCounts.set(normalizedLoc, (locationCounts.get(normalizedLoc) || 0) + 1);
+      }
+      
+      // Count experience levels
+      const expLevel = a.candidate.experienceLevel;
+      if (expLevel) {
+        experienceLevelCounts.set(expLevel, (experienceLevelCounts.get(expLevel) || 0) + 1);
+      }
     });
+    
+    // Sort by count (descending) and convert to array with counts
+    const sortedSkills = Array.from(skillCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 50)
+      .map(([name, count]) => ({ name, count }));
+    
+    const sortedLocations = Array.from(locationCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, count]) => ({ name, count }));
+    
+    const sortedExperienceLevels = Array.from(experienceLevelCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, count]) => ({ name, count }));
 
     return NextResponse.json({
       success: true,
@@ -404,8 +446,9 @@ export async function GET(request: NextRequest) {
           interestedInCompany: interestedCount,
         },
         filterOptions: {
-          skills: Array.from(allSkills).slice(0, 50),
-          locations: Array.from(allLocations),
+          skills: sortedSkills,
+          locations: sortedLocations,
+          experienceLevels: sortedExperienceLevels,
         },
       },
     });

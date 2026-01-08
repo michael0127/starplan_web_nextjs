@@ -45,6 +45,17 @@ export async function POST(request: NextRequest) {
 
     const userId = user.id;
 
+    // Fetch company settings to get default logo, cover, and video
+    const companySettings = await prisma.company.findUnique({
+      where: { userId },
+      select: {
+        companyName: true,
+        companyLogo: true,
+        companyCoverImage: true,
+        videoLink: true,
+      },
+    });
+
     // Validate required fields based on status
     const isDraft = body.status === 'DRAFT';
     
@@ -100,15 +111,16 @@ export async function POST(request: NextRequest) {
       salaryDisplayText: body.salaryDisplayText || null,
       
       // Step 2: Job Details (allow empty for drafts)
-      companyName: body.companyName || '',
+      // Use company settings as defaults for company name, logo, cover, and video
+      companyName: body.companyName || companySettings?.companyName || '',
       jobDescription: body.jobDescription || '',
       jobSummary: body.jobSummary || '',
       keySellingPoint1: body.keySellingPoint1 || null,
       keySellingPoint2: body.keySellingPoint2 || null,
       keySellingPoint3: body.keySellingPoint3 || null,
-      companyLogo: body.companyLogo || null,
-      companyCoverImage: body.companyCoverImage || null,
-      videoLink: body.videoLink || null,
+      companyLogo: body.companyLogo || companySettings?.companyLogo || null,
+      companyCoverImage: body.companyCoverImage || companySettings?.companyCoverImage || null,
+      videoLink: body.videoLink || companySettings?.videoLink || null,
       
       // Step 3: Screening & Filters
       selectedCountries: body.selectedCountries || [],
@@ -249,6 +261,11 @@ export async function GET(request: NextRequest) {
         customScreeningQuestions: {
           take: 20, // 限制每个 job 最多返回 20 个自定义问题
         },
+        _count: {
+          select: {
+            candidateMatches: true, // Count of applicants
+          },
+        },
       },
       orderBy: {
         updatedAt: 'desc',
@@ -256,13 +273,19 @@ export async function GET(request: NextRequest) {
       take: 100, // 限制返回最多 100 个 job postings
     });
 
+    // Transform job postings to include applicant count
+    const jobPostingsWithStats = jobPostings.map(job => ({
+      ...job,
+      applicantCount: job._count?.candidateMatches || 0,
+    }));
+
     const duration = Date.now() - startTime;
     console.log(`[API] Fetched ${jobPostings.length} job postings in ${duration}ms`);
 
     return NextResponse.json(
       {
         success: true,
-        data: jobPostings,
+        data: jobPostingsWithStats,
       },
       {
         headers: {

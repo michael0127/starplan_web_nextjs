@@ -589,7 +589,6 @@ export default function EmployerJobs() {
                   </label>
                   <div className={styles.listHeaders}>
                     <span className={styles.headerApplicants}>Applicants</span>
-                    <span className={styles.headerViews}>Views</span>
                   </div>
                 </div>
 
@@ -647,14 +646,13 @@ export default function EmployerJobs() {
                     </div>
                     <div className={styles.jobRowRight}>
                       <div className={styles.statsContainer}>
-                        <div className={styles.statColumn}>
-                          <span className={styles.statNumber}>0</span>
+                        <Link 
+                          href={`/employer/candidates?jobId=${job.id}&tab=recommended`}
+                          className={styles.statColumnClickable}
+                        >
+                          <span className={styles.statNumber}>{job.applicantCount || 0}</span>
                           <span className={styles.statLabel}>Applicants</span>
-                        </div>
-                        <div className={styles.statColumn}>
-                          <span className={styles.statNumber}>0</span>
-                          <span className={styles.statLabel}>Views</span>
-                        </div>
+                        </Link>
                       </div>
                       <div className={styles.actionsColumn}>
                         <Link 
