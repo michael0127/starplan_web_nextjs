@@ -208,6 +208,47 @@
   background: rgba(74, 91, 244, 0.05);
 }
 
+/* Requirement Options */
+.requirementOptions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.requirementOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  background: #fafafa;
+}
+
+.requirementOption:hover {
+  border-color: #4a5bf4;
+  background: rgba(74, 91, 244, 0.05);
+}
+
+.requirementOption input[type="radio"] {
+  display: none;
+}
+
+.requirementSelected {
+  border-color: #4a5bf4;
+  background: rgba(74, 91, 244, 0.1);
+  color: #4a5bf4;
+}
+
+.requirementIcon {
+  font-size: 16px;
+}
+
 
 
 

@@ -54,6 +54,7 @@ export interface CustomScreeningQuestionInput {
   mustAnswer: boolean;
   idealAnswer?: string | string[];
   disqualifyIfNotIdeal: boolean;
+  requirement: 'must-have' | 'preferred' | 'accept-any';
 }
 
 export interface JobPosting {
@@ -122,6 +123,7 @@ export interface CustomScreeningQuestion {
   mustAnswer: boolean;
   idealAnswer: string | string[] | null;
   disqualifyIfNotIdeal: boolean;
+  requirement: string;
   createdAt: Date;
 }
 

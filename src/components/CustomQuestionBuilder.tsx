@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { type CustomScreeningQuestion, type CustomQuestionType } from '@/lib/screeningOptions';
+import { type CustomScreeningQuestion, type CustomQuestionType, type AnswerRequirement } from '@/lib/screeningOptions';
 import styles from './CustomQuestionBuilder.module.css';
 
 interface CustomQuestionBuilderProps {
@@ -17,6 +17,7 @@ export function CustomQuestionBuilder({ onSave, onCancel, initialQuestion }: Cus
   const [mustAnswer, setMustAnswer] = useState(initialQuestion?.mustAnswer || false);
   const [idealAnswer, setIdealAnswer] = useState(initialQuestion?.idealAnswer || '');
   const [disqualifyIfNotIdeal, setDisqualifyIfNotIdeal] = useState(initialQuestion?.disqualifyIfNotIdeal || false);
+  const [requirement, setRequirement] = useState<AnswerRequirement>(initialQuestion?.requirement || 'accept-any');
 
   const handleAddOption = () => {
     setOptions([...options, '']);
@@ -41,6 +42,7 @@ export function CustomQuestionBuilder({ onSave, onCancel, initialQuestion }: Cus
       mustAnswer,
       idealAnswer: idealAnswer || undefined,
       disqualifyIfNotIdeal,
+      requirement,
     };
     onSave(question);
   };
@@ -77,7 +79,12 @@ export function CustomQuestionBuilder({ onSave, onCancel, initialQuestion }: Cus
           <select
             className={styles.select}
             value={answerType}
-            onChange={(e) => setAnswerType(e.target.value as CustomQuestionType)}
+            onChange={(e) => {
+              const newType = e.target.value as CustomQuestionType;
+              setAnswerType(newType);
+              // Reset ideal answer when changing answer type to prevent invalid values
+              setIdealAnswer('');
+            }}
           >
             <option value="short-text">Short Text Answer</option>
             <option value="yes-no">Yes/No</option>
@@ -120,6 +127,46 @@ export function CustomQuestionBuilder({ onSave, onCancel, initialQuestion }: Cus
           </div>
         )}
 
+        {/* Requirement Level */}
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Requirement Level</label>
+          <div className={styles.requirementOptions}>
+            <label className={`${styles.requirementOption} ${requirement === 'must-have' ? styles.requirementSelected : ''}`}>
+              <input
+                type="radio"
+                name="requirement"
+                value="must-have"
+                checked={requirement === 'must-have'}
+                onChange={() => setRequirement('must-have')}
+              />
+              <span className={styles.requirementIcon}>⭐</span>
+              <span>Must Have</span>
+            </label>
+            <label className={`${styles.requirementOption} ${requirement === 'preferred' ? styles.requirementSelected : ''}`}>
+              <input
+                type="radio"
+                name="requirement"
+                value="preferred"
+                checked={requirement === 'preferred'}
+                onChange={() => setRequirement('preferred')}
+              />
+              <span className={styles.requirementIcon}>✓</span>
+              <span>Preferred</span>
+            </label>
+            <label className={`${styles.requirementOption} ${requirement === 'accept-any' ? styles.requirementSelected : ''}`}>
+              <input
+                type="radio"
+                name="requirement"
+                value="accept-any"
+                checked={requirement === 'accept-any'}
+                onChange={() => setRequirement('accept-any')}
+              />
+              <span className={styles.requirementIcon}>○</span>
+              <span>Accept Any</span>
+            </label>
+          </div>
+        </div>
+
         {/* Must Answer Toggle */}
         <div className={styles.formGroup}>
           <label className={styles.checkboxLabel}>
@@ -135,13 +182,25 @@ export function CustomQuestionBuilder({ onSave, onCancel, initialQuestion }: Cus
         {/* Ideal Answer */}
         <div className={styles.formGroup}>
           <label className={styles.label}>Ideal Answer (Optional)</label>
-          <input
-            type="text"
-            className={styles.input}
-            placeholder="Specify the preferred answer"
-            value={idealAnswer}
-            onChange={(e) => setIdealAnswer(e.target.value)}
-          />
+          {answerType === 'yes-no' ? (
+            <select
+              className={styles.select}
+              value={idealAnswer as string}
+              onChange={(e) => setIdealAnswer(e.target.value)}
+            >
+              <option value="">-- Select Ideal Answer --</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          ) : (
+            <input
+              type="text"
+              className={styles.input}
+              placeholder="Specify the preferred answer"
+              value={idealAnswer as string}
+              onChange={(e) => setIdealAnswer(e.target.value)}
+            />
+          )}
           <span className={styles.hint}>
             Used for automatic screening or highlighting preferred candidates
           </span>

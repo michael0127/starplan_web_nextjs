@@ -314,27 +314,35 @@ function CreateJobAdForm() {
   }, [formData.experienceLevel]);
 
   // Step 3: 自动选择 Step 1 中的国家 + Remote
+  // 当 countryRegion 改变时，重置 selectedCountries 只包含当前有效的国家
   useEffect(() => {
     if (currentStep === 3) {
-      const availableCountries = [formData.countryRegion];
-      // 只添加 Remote 如果不是已经在列表中
-      if (!availableCountries.includes('Remote')) {
-        availableCountries.push('Remote');
-      }
+      const validCountries = [formData.countryRegion, 'Remote'];
       
-      // 自动选中这些国家（如果还没选）
       setFormData(prev => {
-        const newSelectedCountries = availableCountries.filter(country => 
-          !prev.selectedCountries.includes(country)
+        // 过滤掉不再有效的国家
+        const filteredSelectedCountries = prev.selectedCountries.filter(country => 
+          validCountries.includes(country)
         );
         
-        if (newSelectedCountries.length > 0) {
-          return {
-            ...prev,
-            selectedCountries: [...prev.selectedCountries, ...newSelectedCountries]
-          };
+        // 如果当前国家还没选中，自动选中
+        if (!filteredSelectedCountries.includes(formData.countryRegion)) {
+          filteredSelectedCountries.push(formData.countryRegion);
         }
-        return prev;
+        
+        // 清理 workAuthByCountry 中不再有效的国家
+        const cleanedWorkAuthByCountry: Record<string, string[]> = {};
+        for (const country of filteredSelectedCountries) {
+          if (prev.workAuthByCountry[country]) {
+            cleanedWorkAuthByCountry[country] = prev.workAuthByCountry[country];
+          }
+        }
+        
+        return {
+          ...prev,
+          selectedCountries: filteredSelectedCountries,
+          workAuthByCountry: cleanedWorkAuthByCountry
+        };
       });
     }
   }, [currentStep, formData.countryRegion]);
@@ -2156,19 +2164,23 @@ function CreateJobAdForm() {
 
                         <div className={styles.jobDetails}>
                           <div className={styles.detailRow}>
-                            <span className={styles.detailLabel}>📍 Location:</span>
+                            <svg className={styles.detailIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                            <span className={styles.detailLabel}>Location</span>
                             <span className={styles.detailValue}>{formData.countryRegion}</span>
                           </div>
                           <div className={styles.detailRow}>
-                            <span className={styles.detailLabel}>💼 Work Type:</span>
+                            <svg className={styles.detailIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" /></svg>
+                            <span className={styles.detailLabel}>Work Type</span>
                             <span className={styles.detailValue}>{formData.workType}</span>
                           </div>
                           <div className={styles.detailRow}>
-                            <span className={styles.detailLabel}>⭐ Experience:</span>
+                            <svg className={styles.detailIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                            <span className={styles.detailLabel}>Experience</span>
                             <span className={styles.detailValue}>{formData.experienceLevel}</span>
                           </div>
                           <div className={styles.detailRow}>
-                            <span className={styles.detailLabel}>💰 Salary:</span>
+                            <svg className={styles.detailIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" /></svg>
+                            <span className={styles.detailLabel}>Salary</span>
                             <span className={styles.detailValue}>
                               {formData.showSalaryOnAd 
                                 ? `${formData.currency.symbol}${formData.payFrom} - ${formData.currency.symbol}${formData.payTo}`
@@ -2177,52 +2189,23 @@ function CreateJobAdForm() {
                           </div>
                           {formData.categories.length > 0 && (
                             <div className={styles.detailRow}>
-                              <span className={styles.detailLabel}>🏷️ Categories:</span>
+                              <svg className={styles.detailIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" /><line x1="7" y1="7" x2="7.01" y2="7" /></svg>
+                              <span className={styles.detailLabel}>Categories</span>
                               <span className={styles.detailValue}>
                                 {formData.categories.join(', ')}
                               </span>
                             </div>
                           )}
+                          {formData.applicationDeadline && (
+                            <div className={styles.detailRow}>
+                              <svg className={styles.detailIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+                              <span className={styles.detailLabel}>Deadline</span>
+                              <span className={styles.detailValue}>
+                                {new Date(formData.applicationDeadline).toLocaleDateString()}
+                              </span>
+                            </div>
+                          )}
                         </div>
-
-                        {formData.jobSummary && (
-                          <div className={styles.jobSummary}>
-                            <h4>Job Summary</h4>
-                            <p>{formData.jobSummary}</p>
-                          </div>
-                        )}
-
-                        {formData.jobDescription && (
-                          <div className={styles.jobDescription}>
-                            <h4>Job Description</h4>
-                            <div className={styles.descriptionPreview}>
-                              {formData.jobDescription.substring(0, 300)}
-                              {formData.jobDescription.length > 300 && '...'}
-                            </div>
-                          </div>
-                        )}
-
-                        {formData.selectedCountries.length > 0 && (
-                          <div className={styles.targetCountries}>
-                            <h4>Target Countries</h4>
-                            <div className={styles.countryTags}>
-                              {formData.selectedCountries.map((country) => (
-                                <span key={country} className={styles.countryTag}>
-                                  {country}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {formData.applicationDeadline && (
-                          <div className={styles.deadline}>
-                            <span className={styles.detailLabel}>📅 Deadline:</span>
-                            <span className={styles.detailValue}>
-                              {new Date(formData.applicationDeadline).toLocaleDateString()}
-                            </span>
-                          </div>
-                        )}
                       </div>
                     </div>
 
@@ -2260,16 +2243,16 @@ function CreateJobAdForm() {
                           <div className={styles.features}>
                             <h4>What's included:</h4>
                             <ul>
-                              <li><span className={styles.checkmark}>✓</span> 30 days of visibility</li>
-                              <li><span className={styles.checkmark}>✓</span> Unlimited applications</li>
-                              <li><span className={styles.checkmark}>✓</span> Advanced screening tools</li>
-                              <li><span className={styles.checkmark}>✓</span> Candidate matching</li>
-                              <li><span className={styles.checkmark}>✓</span> Email notifications</li>
+                              <li><svg className={styles.checkIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg> 30 days of visibility</li>
+                              <li><svg className={styles.checkIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg> Unlimited applications</li>
+                              <li><svg className={styles.checkIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg> Advanced screening tools</li>
+                              <li><svg className={styles.checkIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg> Candidate matching</li>
+                              <li><svg className={styles.checkIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg> Email notifications</li>
                               {!['Intern', 'Junior'].includes(formData.experienceLevel) && (
                                 <>
-                                  <li><span className={styles.checkmark}>✓</span> Featured placement</li>
-                                  <li><span className={styles.checkmark}>✓</span> Priority support</li>
-                                  <li><span className={styles.checkmark}>✓</span> Enhanced analytics</li>
+                                  <li><svg className={styles.checkIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg> Featured placement</li>
+                                  <li><svg className={styles.checkIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg> Priority support</li>
+                                  <li><svg className={styles.checkIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg> Enhanced analytics</li>
                                 </>
                               )}
                             </ul>
@@ -2363,22 +2346,16 @@ function CreateJobAdForm() {
                                 Processing...
                               </>
                             ) : (
-                              <>🔒 Proceed to Payment</>
+                              <>
+                                <svg className={styles.lockIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0110 0v4" /></svg>
+                                Proceed to Payment
+                              </>
                             )}
                           </button>
 
                           <div className={styles.securePayment}>
-                            <p>🔒 Secure payment powered by Stripe</p>
-                            <p className={styles.secureNote}>
-                              Your payment information is encrypted and secure
-                            </p>
-                          </div>
-
-                          <div className={styles.moneyBack}>
-                            <p>💯 100% Money-Back Guarantee</p>
-                            <p className={styles.moneyBackNote}>
-                              Not satisfied? Get a full refund within 7 days.
-                            </p>
+                            <svg className={styles.shieldIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+                            <span>Secure payment powered by Stripe</span>
                           </div>
                         </div>
                       ) : (

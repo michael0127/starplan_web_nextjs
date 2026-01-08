@@ -184,5 +184,6 @@ export interface CustomScreeningQuestion {
   mustAnswer: boolean;
   idealAnswer?: string | string[]; // For validation
   disqualifyIfNotIdeal: boolean;
+  requirement: AnswerRequirement;
 }
 

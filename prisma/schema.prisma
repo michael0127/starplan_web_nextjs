@@ -144,6 +144,7 @@ model CustomScreeningQuestion {
   mustAnswer           Boolean    @default(false) @map("must_answer")
   idealAnswer          Json?      @map("ideal_answer")
   disqualifyIfNotIdeal Boolean    @default(false) @map("disqualify_if_not_ideal")
+  requirement          String     @default("accept-any")
   createdAt            DateTime   @default(now()) @map("created_at")
   jobPosting           JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
 
