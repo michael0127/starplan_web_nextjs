@@ -28,6 +28,9 @@ export default function EmployerNavbar({ userEmail }: EmployerNavbarProps) {
     if (path === '/employer/candidates') {
       return pathname?.startsWith('/employer/candidates');
     }
+    if (path === '/employer/settings') {
+      return pathname?.startsWith('/employer/settings');
+    }
     return false;
   };
 
@@ -57,6 +60,12 @@ export default function EmployerNavbar({ userEmail }: EmployerNavbarProps) {
             className={`${styles.navLink} ${isActive('/employer/candidates') ? styles.active : ''}`}
           >
             Candidates
+          </Link>
+          <Link 
+            href="/employer/settings" 
+            className={`${styles.navLink} ${isActive('/employer/settings') ? styles.active : ''}`}
+          >
+            Settings
           </Link>
           <div className={styles.userMenu}>
             <span className={styles.userEmail}>{userEmail}</span>

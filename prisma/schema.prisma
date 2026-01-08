@@ -37,8 +37,33 @@ model User {
   candidateMatches       CandidateJobMatch[] @relation("CandidateMatches")
   cvs                    CV[]
   jobPostings            JobPosting[]
+  company                Company?
 
   @@map("users")
+}
+
+// Company Settings - stores company profile for employers
+model Company {
+  id                String   @id @default(uuid()) @db.Uuid
+  userId            String   @unique @map("user_id") @db.Uuid
+  companyName       String   @map("company_name")
+  companyLogo       String?  @map("company_logo")
+  companyCoverImage String?  @map("company_cover_image")
+  videoLink         String?  @map("video_link")
+  website           String?
+  industry          String?
+  companySize       String?  @map("company_size")
+  description       String?
+  location          String?
+  foundedYear       Int?     @map("founded_year")
+  linkedinUrl       String?  @map("linkedin_url")
+  twitterUrl        String?  @map("twitter_url")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("companies")
 }
 
 model CV {
