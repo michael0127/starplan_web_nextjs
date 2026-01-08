@@ -421,7 +421,6 @@
   flex: 1;
   min-height: 600px;
   background: #f8fafc;
-  position: relative;
 }
 
 .pdfViewer {
@@ -429,104 +428,17 @@
   height: 100%;
   min-height: 800px;
   border: none;
-  transition: opacity 0.3s ease;
-}
-
-/* CV Loading Animation */
-.cvLoadingOverlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
-  z-index: 10;
-}
-
-.cvLoadingAnimation {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
-}
-
-.documentIcon {
-  position: relative;
-  animation: float 2s ease-in-out infinite;
-}
-
-.documentIcon svg {
-  color: #4a5bf4;
-  filter: drop-shadow(0 4px 12px rgba(74, 91, 244, 0.2));
-}
-
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
-.loadingDots {
-  display: flex;
-  gap: 8px;
-}
-
-.loadingDots span {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #4a5bf4;
-  animation: bounce 1.4s ease-in-out infinite;
-}
-
-.loadingDots span:nth-child(1) {
-  animation-delay: 0s;
-}
-
-.loadingDots span:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-.loadingDots span:nth-child(3) {
-  animation-delay: 0.4s;
-}
-
-@keyframes bounce {
-  0%, 80%, 100% {
-    transform: scale(0.6);
-    opacity: 0.4;
-  }
-  40% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-.cvLoadingAnimation p {
-  font-size: 14px;
-  color: #64748b;
-  margin: 0;
-  font-weight: 500;
 }
 
 .cvPreview {
   padding: 24px;
   display: flex;
   justify-content: center;
-  position: relative;
-  min-height: 400px;
 }
 
 .cvImage {
   max-width: 100%;
   height: auto;
-  transition: opacity 0.3s ease;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
@@ -600,4 +512,3 @@
     padding: 20px 16px;
   }
 }
-

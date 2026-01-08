@@ -65,7 +65,6 @@ export default function CandidateDetailPage() {
   const [candidate, setCandidate] = useState<CandidateDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [cvLoading, setCvLoading] = useState(true);
 
   const candidateId = params.id as string;
 
@@ -392,32 +391,10 @@ export default function CandidateDetailPage() {
                   if (isImage) {
                     return (
                       <div className={styles.cvPreview}>
-                        {cvLoading && (
-                          <div className={styles.cvLoadingOverlay}>
-                            <div className={styles.cvLoadingAnimation}>
-                              <div className={styles.documentIcon}>
-                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                  <polyline points="14 2 14 8 20 8"></polyline>
-                                  <line x1="16" y1="13" x2="8" y2="13"></line>
-                                  <line x1="16" y1="17" x2="8" y2="17"></line>
-                                </svg>
-                              </div>
-                              <div className={styles.loadingDots}>
-                                <span></span>
-                                <span></span>
-                                <span></span>
-                              </div>
-                              <p>Loading document...</p>
-                            </div>
-                          </div>
-                        )}
                         <img 
                           src={candidate.cv.fileUrl} 
                           alt="CV Preview"
                           className={styles.cvImage}
-                          onLoad={() => setCvLoading(false)}
-                          style={{ opacity: cvLoading ? 0 : 1 }}
                         />
                       </div>
                     );
@@ -425,35 +402,11 @@ export default function CandidateDetailPage() {
                   
                   // For PDF, DOC, DOCX - use Google Docs Viewer
                   return (
-                    <>
-                      {cvLoading && (
-                        <div className={styles.cvLoadingOverlay}>
-                          <div className={styles.cvLoadingAnimation}>
-                            <div className={styles.documentIcon}>
-                              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                <polyline points="14 2 14 8 20 8"></polyline>
-                                <line x1="16" y1="13" x2="8" y2="13"></line>
-                                <line x1="16" y1="17" x2="8" y2="17"></line>
-                              </svg>
-                            </div>
-                            <div className={styles.loadingDots}>
-                              <span></span>
-                              <span></span>
-                              <span></span>
-                            </div>
-                            <p>Loading document...</p>
-                          </div>
-                        </div>
-                      )}
-                      <iframe 
-                        src={`https://docs.google.com/viewer?url=${encodeURIComponent(candidate.cv.fileUrl)}&embedded=true`}
-                        className={styles.pdfViewer}
-                        title="Candidate CV"
-                        onLoad={() => setCvLoading(false)}
-                        style={{ opacity: cvLoading ? 0 : 1 }}
-                      />
-                    </>
+                    <iframe 
+                      src={`https://docs.google.com/viewer?url=${encodeURIComponent(candidate.cv.fileUrl)}&embedded=true`}
+                      className={styles.pdfViewer}
+                      title="Candidate CV"
+                    />
                   );
                 })()
               ) : (
