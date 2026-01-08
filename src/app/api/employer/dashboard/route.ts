@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
 
     // Count active job posts (published status)
     const activeJobPosts = jobPostings.filter(
-      job => job.status === 'PUBLISHED' || job.status === 'ACTIVE'
+      job => job.status === 'PUBLISHED'
     ).length;
 
     // Count total job posts
