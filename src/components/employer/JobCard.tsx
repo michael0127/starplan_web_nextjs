@@ -25,7 +25,7 @@ function formatDate(date: Date | string): string {
 function getStatusBadge(status: string) {
   const statusConfig = {
     DRAFT: { label: 'Draft', className: styles.statusDraft },
-    PUBLISHED: { label: 'Published', className: styles.statusPublished },
+    PUBLISHED: { label: 'Open', className: styles.statusPublished },
     CLOSED: { label: 'Closed', className: styles.statusClosed },
     ARCHIVED: { label: 'Archived', className: styles.statusArchived },
   };

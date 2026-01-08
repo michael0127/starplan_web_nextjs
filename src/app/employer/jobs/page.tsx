@@ -14,6 +14,21 @@ import styles from './page.module.css';
 // Filter types
 type SortOption = 'last-viewed' | 'newest' | 'oldest';
 
+// Normalize workType to consistent display format
+// Converts "FULL_TIME" to "Full-time", "PART_TIME" to "Part-time", etc.
+const normalizeWorkType = (workType: string): string => {
+  const mapping: Record<string, string> = {
+    'FULL_TIME': 'Full-time',
+    'PART_TIME': 'Part-time',
+    'CONTRACT': 'Contract',
+    'CASUAL': 'Casual',
+    'INTERNSHIP': 'Internship',
+    'FREELANCER': 'Freelancer',
+    'VOLUNTEER': 'Volunteer',
+  };
+  return mapping[workType] || workType;
+};
+
 export default function EmployerJobs() {
   const mounted = usePageAnimation();
   const router = useRouter();
@@ -79,9 +94,9 @@ export default function EmployerJobs() {
       filtered = filtered.filter(job => selectedLocations.has(job.countryRegion));
     }
     
-    // Work type filter
+    // Work type filter (compare normalized values)
     if (selectedWorkTypes.size > 0) {
-      filtered = filtered.filter(job => selectedWorkTypes.has(job.workType));
+      filtered = filtered.filter(job => selectedWorkTypes.has(normalizeWorkType(job.workType)));
     }
     
     // Status filter
@@ -147,7 +162,8 @@ export default function EmployerJobs() {
   
   // Get unique values for filters
   const uniqueLocations = Array.from(new Set(jobPostings.map(job => job.countryRegion)));
-  const uniqueWorkTypes = Array.from(new Set(jobPostings.map(job => job.workType)));
+  // Normalize workType values for consistent display (e.g., "FULL_TIME" -> "Full-time")
+  const uniqueWorkTypes = Array.from(new Set(jobPostings.map(job => normalizeWorkType(job.workType))));
   const uniqueStatuses = ['DRAFT', 'PUBLISHED', 'CLOSED', 'ARCHIVED'];
   
   // Toggle filter selection
@@ -379,7 +395,7 @@ export default function EmployerJobs() {
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       DRAFT: { label: 'Draft', className: styles.statusDraft },
-      PUBLISHED: { label: 'Published', className: styles.statusPublished },
+      PUBLISHED: { label: 'Open', className: styles.statusPublished },
       CLOSED: { label: 'Closed', className: styles.statusClosed },
       ARCHIVED: { label: 'Archived', className: styles.statusArchived },
     };
@@ -470,7 +486,7 @@ export default function EmployerJobs() {
                         />
                         <span>{workType}</span>
                         <span className={styles.count}>
-                          ({jobPostings.filter(j => j.workType === workType).length})
+                          ({jobPostings.filter(j => normalizeWorkType(j.workType) === workType).length})
                         </span>
                       </label>
                     ))}
@@ -612,7 +628,7 @@ export default function EmployerJobs() {
                         <div className={styles.jobMeta}>
                           <span className={styles.metaItem}>{job.companyName}</span>
                           <span className={styles.metaDot}>•</span>
-                          <span className={styles.metaItem}>{job.countryRegion} ({job.workType})</span>
+                          <span className={styles.metaItem}>{job.countryRegion} ({normalizeWorkType(job.workType)})</span>
                         </div>
                         <div className={styles.jobDetails}>
                           <span className={styles.detailItem}>
@@ -850,7 +866,7 @@ export default function EmployerJobs() {
                     Republish <strong>"{jobToRepublish?.title}"</strong>?
                   </p>
                   <p className={styles.modalSubtext}>
-                    This will make the job posting visible to candidates again. It will appear in the Published tab and candidates can apply.
+                    This will make the job posting visible to candidates again. It will appear in the Open tab and candidates can apply.
                   </p>
                 </>
               )}

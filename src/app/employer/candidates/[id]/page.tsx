@@ -188,8 +188,77 @@ export default function CandidateDetailPage() {
 
         {/* Main content - Two column layout */}
         <div className={styles.mainContent}>
-          {/* Left Panel - Profile Info */}
+          {/* Left Panel - CV Viewer */}
           <div className={styles.leftPanel}>
+            <div className={styles.cvHeader}>
+              <h3 className={styles.cvTitle}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                  <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                Resume / CV
+              </h3>
+              {candidate.cv && (
+                <a 
+                  href={candidate.cv.fileUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className={styles.downloadBtn}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                  Download
+                </a>
+              )}
+            </div>
+            
+            <div className={styles.cvViewer}>
+              {candidate.cv?.fileUrl ? (
+                (() => {
+                  const fileUrl = candidate.cv.fileUrl.toLowerCase();
+                  const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(fileUrl);
+                  
+                  if (isImage) {
+                    return (
+                      <div className={styles.cvPreview}>
+                        <img 
+                          src={candidate.cv.fileUrl} 
+                          alt="CV Preview"
+                          className={styles.cvImage}
+                        />
+                      </div>
+                    );
+                  }
+                  
+                  // For PDF, DOC, DOCX - use Google Docs Viewer
+                  return (
+                    <iframe 
+                      src={`https://docs.google.com/viewer?url=${encodeURIComponent(candidate.cv.fileUrl)}&embedded=true`}
+                      className={styles.pdfViewer}
+                      title="Candidate CV"
+                    />
+                  );
+                })()
+              ) : (
+                <div className={styles.noCv}>
+                  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                  </svg>
+                  <p>No CV uploaded yet</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right Panel - Profile Info */}
+          <div className={styles.rightPanelProfile}>
             {/* Profile Header */}
             <div className={styles.profileHeader}>
               <div className={styles.avatarLarge}>
@@ -350,75 +419,6 @@ export default function CandidateDetailPage() {
                 )}
               </div>
             )}
-          </div>
-
-          {/* Right Panel - CV Viewer */}
-          <div className={styles.rightPanel}>
-            <div className={styles.cvHeader}>
-              <h3 className={styles.cvTitle}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                  <line x1="16" y1="13" x2="8" y2="13"></line>
-                  <line x1="16" y1="17" x2="8" y2="17"></line>
-                  <polyline points="10 9 9 9 8 9"></polyline>
-                </svg>
-                Resume / CV
-              </h3>
-              {candidate.cv && (
-                <a 
-                  href={candidate.cv.fileUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className={styles.downloadBtn}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                  </svg>
-                  Download
-                </a>
-              )}
-            </div>
-            
-            <div className={styles.cvViewer}>
-              {candidate.cv?.fileUrl ? (
-                (() => {
-                  const fileUrl = candidate.cv.fileUrl.toLowerCase();
-                  const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(fileUrl);
-                  
-                  if (isImage) {
-                    return (
-                      <div className={styles.cvPreview}>
-                        <img 
-                          src={candidate.cv.fileUrl} 
-                          alt="CV Preview"
-                          className={styles.cvImage}
-                        />
-                      </div>
-                    );
-                  }
-                  
-                  // For PDF, DOC, DOCX - use Google Docs Viewer
-                  return (
-                    <iframe 
-                      src={`https://docs.google.com/viewer?url=${encodeURIComponent(candidate.cv.fileUrl)}&embedded=true`}
-                      className={styles.pdfViewer}
-                      title="Candidate CV"
-                    />
-                  );
-                })()
-              ) : (
-                <div className={styles.noCv}>
-                  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                  </svg>
-                  <p>No CV uploaded yet</p>
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </div>
