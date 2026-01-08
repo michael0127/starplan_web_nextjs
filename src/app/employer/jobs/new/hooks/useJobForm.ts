@@ -36,7 +36,7 @@ export interface JobFormData {
   
   // Step 3: Screening
   selectedCountries: string[];
-  workAuthByCountry: Record<string, string>;
+  workAuthByCountry: Record<string, string[]>; // Multi-select work auth options per country
   systemScreeningAnswers: any[];
   customScreeningQuestions: any[];
   applicationDeadline: string;

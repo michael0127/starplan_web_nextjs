@@ -77,7 +77,7 @@ interface JobFormData {
   
   // Step 3: Screening
   selectedCountries: string[]; // Multiple countries/regions can be selected
-  workAuthByCountry: Record<string, string>; // Country -> selected work auth option
+  workAuthByCountry: Record<string, string[]>; // Country -> selected work auth options (multi-select)
   systemScreeningAnswers: SystemScreeningAnswer[];
   customScreeningQuestions: CustomScreeningQuestion[];
   applicationDeadline: string;
@@ -730,9 +730,12 @@ function CreateJobAdForm() {
         : [...prev.selectedCountries, country];
       
       // If unchecking, remove work auth for that country
+      // If adding, initialize with empty array
       const newWorkAuthByCountry = { ...prev.workAuthByCountry };
       if (!newSelectedCountries.includes(country)) {
         delete newWorkAuthByCountry[country];
+      } else if (!newWorkAuthByCountry[country]) {
+        newWorkAuthByCountry[country] = [];
       }
       
       return {
@@ -743,14 +746,23 @@ function CreateJobAdForm() {
     });
   };
 
-  const handleWorkAuthSelect = (country: string, authOption: string) => {
-    setFormData(prev => ({
-      ...prev,
-      workAuthByCountry: {
-        ...prev.workAuthByCountry,
-        [country]: authOption,
-      },
-    }));
+  const handleWorkAuthToggle = (country: string, authOption: string) => {
+    setFormData(prev => {
+      const currentOptions = prev.workAuthByCountry[country] || [];
+      const isSelected = currentOptions.includes(authOption);
+      
+      const newOptions = isSelected
+        ? currentOptions.filter(opt => opt !== authOption)
+        : [...currentOptions, authOption];
+      
+      return {
+        ...prev,
+        workAuthByCountry: {
+          ...prev.workAuthByCountry,
+          [country]: newOptions,
+        },
+      };
+    });
   };
 
   // Page 3: System Screening handlers
@@ -1955,26 +1967,30 @@ function CreateJobAdForm() {
                           {country} - Work Authorization
                         </h4>
                         <p className={styles.workAuthDescription}>
-                          Select ONE work authorization status that candidates must have
+                          Select work authorization status(es) that candidates must have (multi-select)
                         </p>
                         <div className={styles.workAuthOptions}>
                           {WORK_AUTH_OPTIONS[country as keyof typeof WORK_AUTH_OPTIONS]?.map((option, index) => (
                             <label
                               key={index}
                               className={`${styles.workAuthOption} ${
-                                formData.workAuthByCountry[country] === option ? styles.workAuthOptionActive : ''
+                                (formData.workAuthByCountry[country] || []).includes(option) ? styles.workAuthOptionActive : ''
                               }`}
                             >
                               <input
-                                type="radio"
-                                name={`work-auth-${country}`}
-                                checked={formData.workAuthByCountry[country] === option}
-                                onChange={() => handleWorkAuthSelect(country, option)}
+                                type="checkbox"
+                                checked={(formData.workAuthByCountry[country] || []).includes(option)}
+                                onChange={() => handleWorkAuthToggle(country, option)}
                               />
                               <span>{option}</span>
                             </label>
                           ))}
                         </div>
+                        {(formData.workAuthByCountry[country] || []).length > 0 && (
+                          <div className={styles.selectedAuthCount}>
+                            {(formData.workAuthByCountry[country] || []).length} option(s) selected
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -2011,51 +2027,32 @@ function CreateJobAdForm() {
                             ))}
                           </div>
 
-                          {/* Answer Options */}
-                          {question.type === 'multiple' && (
-                            <div className={styles.answerOptions}>
-                              {question.options.map((option) => (
-                                <label key={option} className={styles.checkboxOption}>
-                                  <input
-                                    type="checkbox"
-                                    checked={answer?.selectedAnswers.includes(option) || false}
-                                    onChange={(e) => {
-                                      const current = answer?.selectedAnswers || [];
-                                      const newAnswers = e.target.checked
-                                        ? [...current, option]
-                                        : current.filter(a => a !== option);
-                                      handleSystemScreeningChange(
-                                        question.id,
-                                        answer?.requirement || 'accept-any',
-                                        newAnswers
-                                      );
-                                    }}
-                                  />
-                                  <span>{option}</span>
-                                </label>
-                              ))}
-                            </div>
-                          )}
-
-                          {question.type === 'single' && (
-                            <div className={styles.answerOptions}>
-                              {question.options.map((option) => (
-                                <label key={option} className={styles.radioOption}>
-                                  <input
-                                    type="radio"
-                                    name={`question-${question.id}`}
-                                    checked={answer?.selectedAnswers[0] === option}
-                                    onChange={() => {
-                                      handleSystemScreeningChange(
-                                        question.id,
-                                        answer?.requirement || 'accept-any',
-                                        [option]
-                                      );
-                                    }}
-                                  />
-                                  <span>{option}</span>
-                                </label>
-                              ))}
+                          {/* Answer Options - All questions support multi-select */}
+                          <div className={styles.answerOptions}>
+                            {question.options.map((option) => (
+                              <label key={option} className={styles.checkboxOption}>
+                                <input
+                                  type="checkbox"
+                                  checked={answer?.selectedAnswers.includes(option) || false}
+                                  onChange={(e) => {
+                                    const current = answer?.selectedAnswers || [];
+                                    const newAnswers = e.target.checked
+                                      ? [...current, option]
+                                      : current.filter(a => a !== option);
+                                    handleSystemScreeningChange(
+                                      question.id,
+                                      answer?.requirement || 'accept-any',
+                                      newAnswers
+                                    );
+                                  }}
+                                />
+                                <span>{option}</span>
+                              </label>
+                            ))}
+                          </div>
+                          {(answer?.selectedAnswers?.length || 0) > 0 && (
+                            <div className={styles.selectedAuthCount}>
+                              {answer?.selectedAnswers.length} option(s) selected
                             </div>
                           )}
                         </div>

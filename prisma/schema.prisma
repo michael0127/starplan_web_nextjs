@@ -35,14 +35,13 @@ model User {
   workTypes              String[]            @default([]) @map("work_types")
   lastMatchedAt          DateTime?           @map("last_matched_at")
   candidateMatches       CandidateJobMatch[] @relation("CandidateMatches")
+  company                Company?
   cvs                    CV[]
   jobPostings            JobPosting[]
-  company                Company?
 
   @@map("users")
 }
 
-// Company Settings - stores company profile for employers
 model Company {
   id                String   @id @default(uuid()) @db.Uuid
   userId            String   @unique @map("user_id") @db.Uuid
@@ -60,7 +59,6 @@ model Company {
   twitterUrl        String?  @map("twitter_url")
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
-  
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("companies")
@@ -116,11 +114,11 @@ model JobPosting {
   jdExtractedData            Json?                     @map("jd_extracted_data")
   jdFileUrl                  String?                   @map("jd_file_url")
   candidateMatches           CandidateJobMatch[]
+  candidateRanking           CandidateRanking?
   customScreeningQuestions   CustomScreeningQuestion[]
   purchase                   JobPostingPurchase?
   user                       User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
   systemScreeningAnswers     SystemScreeningAnswer[]
-  candidateRanking           CandidateRanking?
 
   @@map("job_postings")
 }
@@ -210,33 +208,22 @@ model CandidateJobMatch {
   @@map("candidate_job_matches")
 }
 
-// AI Ranking Results - stores cached ranking results for job postings
 model CandidateRanking {
-  id                  String     @id @default(uuid()) @db.Uuid
-  jobPostingId        String     @unique @map("job_posting_id") @db.Uuid
-  
-  // Ranking results - JSON array of {candidateId, rank}
-  rankedCandidates    Json       @map("ranked_candidates")
-  
-  // Hash of candidate IDs to detect changes (sorted candidate IDs joined)
-  candidateHash       String     @map("candidate_hash")
-  
-  // Statistics
-  totalCandidates     Int        @map("total_candidates")
-  totalComparisons    Int        @map("total_comparisons")
-  totalInputTokens    Int        @default(0) @map("total_input_tokens")
-  totalOutputTokens   Int        @default(0) @map("total_output_tokens")
-  totalTokens         Int        @default(0) @map("total_tokens")
-  inputCost           Float      @default(0) @map("input_cost")
-  outputCost          Float      @default(0) @map("output_cost")
-  totalCost           Float      @default(0) @map("total_cost")
-  
-  // Timestamps
-  createdAt           DateTime   @default(now()) @map("created_at")
-  updatedAt           DateTime   @updatedAt @map("updated_at")
-  
-  // Relation
-  jobPosting          JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+  id                String     @id @default(uuid()) @db.Uuid
+  jobPostingId      String     @unique @map("job_posting_id") @db.Uuid
+  rankedCandidates  Json       @map("ranked_candidates")
+  candidateHash     String     @map("candidate_hash")
+  totalCandidates   Int        @map("total_candidates")
+  totalComparisons  Int        @map("total_comparisons")
+  totalInputTokens  Int        @default(0) @map("total_input_tokens")
+  totalOutputTokens Int        @default(0) @map("total_output_tokens")
+  totalTokens       Int        @default(0) @map("total_tokens")
+  inputCost         Float      @default(0) @map("input_cost")
+  outputCost        Float      @default(0) @map("output_cost")
+  totalCost         Float      @default(0) @map("total_cost")
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
+  jobPosting        JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
 
   @@index([jobPostingId])
   @@index([candidateHash])

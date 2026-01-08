@@ -34,7 +34,7 @@ export interface JobPostingFormData {
   
   // Step 3: Screening
   selectedCountries: string[];
-  workAuthByCountry: Record<string, string>;
+  workAuthByCountry: Record<string, string[]>; // Multi-select work auth options per country
   systemScreeningAnswers: SystemScreeningAnswerInput[];
   customScreeningQuestions: CustomScreeningQuestionInput[];
   applicationDeadline: string;
@@ -93,7 +93,7 @@ export interface JobPosting {
   
   // Step 3: Screening & Filters
   selectedCountries: string[];
-  workAuthByCountry: Record<string, string> | null;
+  workAuthByCountry: Record<string, string[]> | null; // Multi-select work auth options per country
   applicationDeadline: Date | null;
   
   // Relations

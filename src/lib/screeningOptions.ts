@@ -96,6 +96,7 @@ export const WORK_AUTH_OPTIONS = {
 };
 
 // System screening questions with options
+// All questions now support multi-select for flexible screening
 export const SYSTEM_SCREENING_QUESTIONS = [
   {
     id: 'programming_languages',
@@ -124,7 +125,7 @@ export const SYSTEM_SCREENING_QUESTIONS = [
   {
     id: 'english_proficiency',
     question: 'English Proficiency',
-    type: 'single' as const,
+    type: 'multiple' as const, // Changed to multiple - accept candidates with any selected proficiency level
     options: [
       'Native or bilingual proficiency',
       'Full professional proficiency',
@@ -137,7 +138,7 @@ export const SYSTEM_SCREENING_QUESTIONS = [
   {
     id: 'engineering_qualification',
     question: 'Engineering Qualification',
-    type: 'single' as const,
+    type: 'multiple' as const, // Changed to multiple - accept candidates with any selected qualification
     options: [
       'PhD in Computer Science or related field',
       'Master\'s degree in Computer Science or related field',
@@ -151,7 +152,7 @@ export const SYSTEM_SCREENING_QUESTIONS = [
   {
     id: 'ml_experience',
     question: 'Machine Learning Experience',
-    type: 'single' as const,
+    type: 'multiple' as const, // Changed to multiple - accept candidates with any selected experience level
     options: [
       '5+ years of hands-on ML experience',
       '3-5 years of hands-on ML experience',
