@@ -6,13 +6,26 @@ import Link from 'next/link';
 import { PageTransition } from '@/components/PageTransition';
 import { usePageAnimation } from '@/hooks/usePageAnimation';
 import { useUserType } from '@/hooks/useUserType';
+import { supabase } from '@/lib/supabase';
 import EmployerNavbar from '@/components/EmployerNavbar';
 import styles from './page.module.css';
+
+interface DashboardStats {
+  activeJobPosts: number;
+  totalJobPosts: number;
+  applications: number;
+  newApplications: number;
+  candidatesMatched: number;
+  interviewsScheduled: number;
+  mutualInterest: number;
+}
 
 export default function EmployerDashboard() {
   const mounted = usePageAnimation();
   const router = useRouter();
   const [isJobPostsDropdownOpen, setIsJobPostsDropdownOpen] = useState(false);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
   // 使用权限检查 hook，要求必须是 EMPLOYER
@@ -20,6 +33,38 @@ export default function EmployerDashboard() {
     required: 'EMPLOYER',
     redirectTo: '/',
   });
+
+  // Fetch dashboard stats
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!user || !isEmployer) return;
+      
+      try {
+        setIsLoadingStats(true);
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) return;
+        
+        const response = await fetch('/api/employer/dashboard', {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          setStats(result.data);
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+      } finally {
+        setIsLoadingStats(false);
+      }
+    };
+    
+    fetchStats();
+  }, [user, isEmployer]);
 
   // 点击外部关闭下拉菜单
   useEffect(() => {
@@ -71,13 +116,14 @@ export default function EmployerDashboard() {
             <div className={styles.statCard}>
               <div className={styles.statIcon}>
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="8.5" cy="7" r="4"></circle>
-                  <polyline points="17 11 19 13 23 9"></polyline>
+                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
                 </svg>
               </div>
               <div className={styles.statContent}>
-                <div className={styles.statNumber}>0</div>
+                <div className={styles.statNumber}>
+                  {isLoadingStats ? '...' : stats?.activeJobPosts ?? 0}
+                </div>
                 <div className={styles.statLabel}>Active Job Posts</div>
               </div>
             </div>
@@ -92,8 +138,13 @@ export default function EmployerDashboard() {
                 </svg>
               </div>
               <div className={styles.statContent}>
-                <div className={styles.statNumber}>0</div>
+                <div className={styles.statNumber}>
+                  {isLoadingStats ? '...' : stats?.applications ?? 0}
+                </div>
                 <div className={styles.statLabel}>Applications</div>
+                {stats?.newApplications && stats.newApplications > 0 && (
+                  <div className={styles.statBadge}>+{stats.newApplications} new</div>
+                )}
               </div>
             </div>
 
@@ -105,22 +156,23 @@ export default function EmployerDashboard() {
                 </svg>
               </div>
               <div className={styles.statContent}>
-                <div className={styles.statNumber}>0</div>
-                <div className={styles.statLabel}>Interviews Scheduled</div>
+                <div className={styles.statNumber}>
+                  {isLoadingStats ? '...' : stats?.interviewsScheduled ?? 0}
+                </div>
+                <div className={styles.statLabel}>Interested Candidates</div>
               </div>
             </div>
 
             <div className={styles.statCard}>
               <div className={styles.statIcon}>
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="8.5" cy="7" r="4"></circle>
-                  <line x1="20" y1="8" x2="20" y2="14"></line>
-                  <line x1="23" y1="11" x2="17" y2="11"></line>
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                 </svg>
               </div>
               <div className={styles.statContent}>
-                <div className={styles.statNumber}>0</div>
+                <div className={styles.statNumber}>
+                  {isLoadingStats ? '...' : stats?.candidatesMatched ?? 0}
+                </div>
                 <div className={styles.statLabel}>Candidates Matched</div>
               </div>
             </div>
