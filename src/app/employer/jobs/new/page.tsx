@@ -353,9 +353,69 @@ function CreateJobAdForm() {
   };
 
   const handleInputChange = (field: keyof JobFormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear error for this field
-    if (errors[field]) {
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      
+      // Real-time salary range validation
+      if (field === 'payFrom' || field === 'payTo') {
+        const from = parseFloat(field === 'payFrom' ? value : prev.payFrom);
+        const to = parseFloat(field === 'payTo' ? value : prev.payTo);
+        
+        if (!isNaN(from) && !isNaN(to)) {
+          if (from > to) {
+            setErrors(prevErrors => ({
+              ...prevErrors,
+              payRange: 'Minimum salary must be ≤ Maximum salary'
+            }));
+          } else {
+            // Clear payRange error when valid
+            setErrors(prevErrors => {
+              const { payRange, ...rest } = prevErrors;
+              return rest;
+            });
+          }
+        } else {
+          // Clear error if either field is empty/invalid
+          setErrors(prevErrors => {
+            const { payRange, ...rest } = prevErrors;
+            return rest;
+          });
+        }
+      }
+      
+      // Real-time experience years validation
+      if (field === 'experienceYearsFrom' || field === 'experienceYearsTo') {
+        const from = field === 'experienceYearsFrom' ? value : prev.experienceYearsFrom;
+        const to = field === 'experienceYearsTo' ? value : prev.experienceYearsTo;
+        
+        if (to !== 'Unlimited' && typeof from === 'number' && typeof to === 'number') {
+          if (from > to) {
+            setErrors(prevErrors => ({
+              ...prevErrors,
+              experienceYears: 'Minimum years must be ≤ Maximum years'
+            }));
+          } else {
+            // Clear experienceYears error when valid
+            setErrors(prevErrors => {
+              const { experienceYears, ...rest } = prevErrors;
+              return rest;
+            });
+          }
+        } else {
+          // Clear error if "Unlimited" is selected
+          setErrors(prevErrors => {
+            const { experienceYears, ...rest } = prevErrors;
+            return rest;
+          });
+        }
+      }
+      
+      return newData;
+    });
+    
+    // Clear error for this field (except range fields which are handled above)
+    const rangeFields = ['payFrom', 'payTo', 'experienceYearsFrom', 'experienceYearsTo'];
+    if (errors[field] && !rangeFields.includes(field)) {
       setErrors(prev => {
         const newErrors = { ...prev };
         delete newErrors[field];
@@ -1493,6 +1553,7 @@ function CreateJobAdForm() {
                       <input
                         type="number"
                         min="0"
+                        max={formData.experienceYearsTo !== 'Unlimited' ? formData.experienceYearsTo : undefined}
                         className={`${styles.input} ${errors.experienceYears ? styles.inputError : ''}`}
                         value={formData.experienceYearsFrom}
                         onChange={(e) => handleInputChange('experienceYearsFrom', parseInt(e.target.value) || 0)}
@@ -1505,7 +1566,7 @@ function CreateJobAdForm() {
                       <div className={styles.toInputWrapper}>
                         <input
                           type="number"
-                          min="0"
+                          min={formData.experienceYearsFrom}
                           className={`${styles.input} ${errors.experienceYears ? styles.inputError : ''}`}
                           value={formData.experienceYearsTo === 'Unlimited' ? '' : formData.experienceYearsTo}
                           onChange={(e) => handleInputChange('experienceYearsTo', parseInt(e.target.value) || 0)}
@@ -1598,17 +1659,18 @@ function CreateJobAdForm() {
                       <input
                         type="number"
                         min="0"
+                        max={formData.payTo ? parseFloat(formData.payTo) : undefined}
                         className={`${styles.input} ${errors.payRange ? styles.inputError : ''}`}
-                        placeholder="From"
+                        placeholder="Min"
                         value={formData.payFrom}
                         onChange={(e) => handleInputChange('payFrom', e.target.value)}
                       />
                       <span className={styles.salaryDivider}>to</span>
                       <input
                         type="number"
-                        min="0"
+                        min={formData.payFrom ? parseFloat(formData.payFrom) : 0}
                         className={`${styles.input} ${errors.payRange ? styles.inputError : ''}`}
-                        placeholder="To"
+                        placeholder="Max"
                         value={formData.payTo}
                         onChange={(e) => handleInputChange('payTo', e.target.value)}
                       />
