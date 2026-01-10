@@ -3,6 +3,24 @@ import { createClient } from '@supabase/supabase-js';
 import { prisma } from '@/lib/prisma';
 import { SYSTEM_SCREENING_QUESTIONS } from '@/lib/screeningOptions';
 
+interface InvitationRecord {
+  id: string;
+  token: string;
+  candidateId: string;
+  candidateEmail: string;
+  candidateName: string | null;
+  status: string;
+}
+
+interface InvitationWithResponses extends InvitationRecord {
+  message: string | null;
+  sentAt: Date;
+  viewedAt: Date | null;
+  respondedAt: Date | null;
+  expiresAt: Date;
+  screeningResponses: unknown[];
+}
+
 // POST /api/job-postings/[id]/invitations - Send invitations to candidates
 export async function POST(
   request: NextRequest,
@@ -122,19 +140,22 @@ export async function POST(
     );
 
     // TODO: Send invitation emails to candidates
-    // For now, just return the invitation links
+    // Get base URL for invitation links
+    const host = request.headers.get('host') || 'localhost:3000';
+    const protocol = request.headers.get('x-forwarded-proto') || 'http';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
 
     return NextResponse.json({
       success: true,
       data: {
-        invitations: invitations.map((inv) => ({
+        invitations: invitations.map((inv: InvitationRecord) => ({
           id: inv.id,
           token: inv.token,
           candidateId: inv.candidateId,
           candidateEmail: inv.candidateEmail,
           candidateName: inv.candidateName,
           status: inv.status,
-          inviteLink: `${process.env.NEXT_PUBLIC_APP_URL || ''}/invite/${inv.token}`,
+          inviteLink: `${baseUrl}/invite/${inv.token}`,
         })),
         totalSent: invitations.length,
         questionsCount: {
@@ -196,7 +217,8 @@ export async function GET(
     });
 
     // Map to include response summary
-    const invitationsWithSummary = invitations.map((inv) => ({
+    const typedInvitations = invitations as unknown as InvitationWithResponses[];
+    const invitationsWithSummary = typedInvitations.map((inv: InvitationWithResponses) => ({
       id: inv.id,
       candidateId: inv.candidateId,
       candidateEmail: inv.candidateEmail,
@@ -216,11 +238,11 @@ export async function GET(
       data: {
         invitations: invitationsWithSummary,
         stats: {
-          total: invitations.length,
-          pending: invitations.filter((i) => i.status === 'PENDING').length,
-          viewed: invitations.filter((i) => i.status === 'VIEWED').length,
-          completed: invitations.filter((i) => i.status === 'COMPLETED').length,
-          expired: invitations.filter((i) => new Date() > i.expiresAt && i.status !== 'COMPLETED').length,
+          total: typedInvitations.length,
+          pending: typedInvitations.filter((i: InvitationWithResponses) => i.status === 'PENDING').length,
+          viewed: typedInvitations.filter((i: InvitationWithResponses) => i.status === 'VIEWED').length,
+          completed: typedInvitations.filter((i: InvitationWithResponses) => i.status === 'COMPLETED').length,
+          expired: typedInvitations.filter((i: InvitationWithResponses) => new Date() > i.expiresAt && i.status !== 'COMPLETED').length,
         },
       },
     });

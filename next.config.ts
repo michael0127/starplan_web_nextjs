@@ -1,7 +1,20 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Vercel会自动处理Next.js的部署配置
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'nhutoqszfhpszxyjddmm.supabase.co',
+        pathname: '/storage/v1/object/public/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.supabase.co',
+        pathname: '/storage/v1/object/public/**',
+      },
+    ],
+  },
 };
 
 export default nextConfig;

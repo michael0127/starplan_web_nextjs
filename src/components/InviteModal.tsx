@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { SYSTEM_SCREENING_QUESTIONS } from '@/lib/screeningOptions';
 import styles from './InviteModal.module.css';
 
 interface Candidate {
@@ -202,36 +203,94 @@ export function InviteModal({
                 </div>
               </div>
 
-              {/* Questions Summary */}
+              {/* Questions Preview */}
               <div className={styles.section}>
-                <h3 className={styles.sectionTitle}>Screening Questions</h3>
-                <div className={styles.questionsSummary}>
-                  <div className={styles.questionsCount}>
-                    <span className={styles.questionsNumber}>{totalQuestions}</span>
-                    <span className={styles.questionsLabel}>
-                      question{totalQuestions !== 1 ? 's' : ''} will be sent
-                    </span>
-                  </div>
-                  <div className={styles.questionsBreakdown}>
-                    {(jobPosting?.systemScreeningAnswers?.length || 0) > 0 && (
-                      <span className={styles.questionType}>
+                <h3 className={styles.sectionTitle}>
+                  Screening Questions ({totalQuestions})
+                  <span className={styles.reviewNote}>Review before sending</span>
+                </h3>
+                
+                <div className={styles.questionsPreview}>
+                  {/* System Screening Questions */}
+                  {jobPosting?.systemScreeningAnswers && jobPosting.systemScreeningAnswers.length > 0 && (
+                    <div className={styles.questionGroup}>
+                      <div className={styles.questionGroupHeader}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                         </svg>
-                        {jobPosting?.systemScreeningAnswers?.length} System
-                      </span>
-                    )}
-                    {(jobPosting?.customScreeningQuestions?.length || 0) > 0 && (
-                      <span className={styles.questionType}>
+                        System Questions ({jobPosting.systemScreeningAnswers.length})
+                      </div>
+                      <div className={styles.questionsList}>
+                        {jobPosting.systemScreeningAnswers.map((answer, idx) => {
+                          const questionDef = SYSTEM_SCREENING_QUESTIONS.find(q => q.id === answer.questionId);
+                          return (
+                            <div key={answer.questionId} className={styles.questionItem}>
+                              <div className={styles.questionNumber}>{idx + 1}</div>
+                              <div className={styles.questionContent}>
+                                <div className={styles.questionText}>
+                                  {questionDef?.question || answer.questionId}
+                                </div>
+                                <div className={styles.questionMeta}>
+                                  <span className={`${styles.requirementBadge} ${styles[answer.requirement]}`}>
+                                    {answer.requirement === 'must-have' ? 'Must Have' : 
+                                     answer.requirement === 'preferred' ? 'Preferred' : 'Accept Any'}
+                                  </span>
+                                  {answer.selectedAnswers.length > 0 && (
+                                    <span className={styles.expectedAnswers}>
+                                      Expected: {answer.selectedAnswers.slice(0, 2).join(', ')}
+                                      {answer.selectedAnswers.length > 2 && ` +${answer.selectedAnswers.length - 2} more`}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Custom Screening Questions */}
+                  {jobPosting?.customScreeningQuestions && jobPosting.customScreeningQuestions.length > 0 && (
+                    <div className={styles.questionGroup}>
+                      <div className={styles.questionGroupHeader}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <circle cx="12" cy="12" r="10" />
                           <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
                           <line x1="12" y1="17" x2="12.01" y2="17" />
                         </svg>
-                        {jobPosting?.customScreeningQuestions?.length} Custom
-                      </span>
-                    )}
-                  </div>
+                        Custom Questions ({jobPosting.customScreeningQuestions.length})
+                      </div>
+                      <div className={styles.questionsList}>
+                        {jobPosting.customScreeningQuestions.map((question, idx) => {
+                          const systemQuestionsCount = jobPosting.systemScreeningAnswers?.length || 0;
+                          return (
+                            <div key={question.id} className={styles.questionItem}>
+                              <div className={styles.questionNumber}>{systemQuestionsCount + idx + 1}</div>
+                              <div className={styles.questionContent}>
+                                <div className={styles.questionText}>
+                                  {question.questionText}
+                                  {question.mustAnswer && <span className={styles.requiredMark}>*</span>}
+                                </div>
+                                <div className={styles.questionMeta}>
+                                  <span className={styles.answerTypeBadge}>
+                                    {question.answerType === 'single' ? 'Single Choice' :
+                                     question.answerType === 'multiple' ? 'Multiple Choice' :
+                                     question.answerType === 'yes-no' ? 'Yes/No' : 'Short Answer'}
+                                  </span>
+                                  {question.options && question.options.length > 0 && (
+                                    <span className={styles.optionsCount}>
+                                      {question.options.length} options
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

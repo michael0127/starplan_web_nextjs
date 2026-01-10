@@ -677,6 +677,12 @@ export default function EmployerJobs() {
                         >
                           Edit
                         </Link>
+                        <Link 
+                          href={`/employer/jobs/${job.id}/invitations`}
+                          className={styles.btnInvitations}
+                        >
+                          Invitations
+                        </Link>
                         
                         {job.status === 'PUBLISHED' || job.status === 'CLOSED' ? (
                           <button

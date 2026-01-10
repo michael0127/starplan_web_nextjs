@@ -1,23 +1,73 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useUser } from '@/hooks/useUser';
+import { supabase } from '@/lib/supabase';
 import styles from './Sidebar.module.css';
 
 const NAV_ITEMS = [
   { href: '/explore', label: 'Explore', icon: 'explore', requireAuth: false },
   { href: '/resume', label: 'Resume', icon: 'resume', requireAuth: true },
+  { href: '/invitations', label: 'Invitations', icon: 'invitations', requireAuth: true },
   { href: '/profile', label: 'Profile', icon: 'profile', requireAuth: true },
 ];
+
+const PENDING_INVITATIONS_KEY = 'starplan_pending_invitations';
 
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user: authUser, loading: authLoading, signOut } = useAuth();
   const { user: dbUser, loading: dbLoading } = useUser(authUser?.id);
+  
+  // Initialize from localStorage to prevent flash
+  const [pendingInvitations, setPendingInvitations] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem(PENDING_INVITATIONS_KEY);
+      return cached ? parseInt(cached, 10) : 0;
+    }
+    return 0;
+  });
+
+  // Fetch pending invitations count for candidates
+  useEffect(() => {
+    const fetchPendingCount = async () => {
+      if (!authUser || dbUser?.userType !== 'CANDIDATE') {
+        setPendingInvitations(0);
+        localStorage.removeItem(PENDING_INVITATIONS_KEY);
+        return;
+      }
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        const response = await fetch('/api/user/invitations', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` },
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          const count = data.data.stats.pending || 0;
+          setPendingInvitations(count);
+          // Cache in localStorage to prevent flash on next load
+          if (count > 0) {
+            localStorage.setItem(PENDING_INVITATIONS_KEY, count.toString());
+          } else {
+            localStorage.removeItem(PENDING_INVITATIONS_KEY);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch pending invitations:', error);
+      }
+    };
+
+    fetchPendingCount();
+  }, [authUser, dbUser?.userType]);
 
   // 获取用户显示信息
   const displayName = dbUser?.name || authUser?.email?.split('@')[0] || 'User';
@@ -51,6 +101,7 @@ export function Sidebar() {
       <nav className={styles.nav}>
         {NAV_ITEMS.map((item) => {
           const isActive = pathname === item.href;
+          const showBadge = item.href === '/invitations' && pendingInvitations > 0;
 
           return (
             <Link
@@ -63,6 +114,9 @@ export function Sidebar() {
             >
               <span className={`${styles.icon} ${styles[`icon_${item.icon}`]}`} aria-hidden="true" />
               <span className={styles.label}>{item.label}</span>
+              {showBadge && (
+                <span className={styles.badge}>{pendingInvitations}</span>
+              )}
             </Link>
           );
         })}
