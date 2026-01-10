@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { PageTransition } from '@/components/PageTransition';
 import { useUserType } from '@/hooks/useUserType';
@@ -45,8 +45,26 @@ interface Stats {
   expired: number;
 }
 
+// Main page wrapper with Suspense
 export default function EmployerInvitationsPage() {
-  const router = useRouter();
+  return (
+    <Suspense fallback={
+      <div className={styles.pageWrapper}>
+        <EmployerNavbar />
+        <PageTransition>
+          <div className={styles.loadingContainer}>
+            <div className={styles.spinner} />
+            <p>Loading invitations...</p>
+          </div>
+        </PageTransition>
+      </div>
+    }>
+      <EmployerInvitationsContent />
+    </Suspense>
+  );
+}
+
+function EmployerInvitationsContent() {
   const searchParams = useSearchParams();
   const { loading: userTypeLoading, isEmployer } = useUserType({
     required: 'EMPLOYER',

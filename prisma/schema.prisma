@@ -332,3 +332,39 @@ enum InvitationStatus {
   EXPIRED    // Invitation has expired
   DECLINED   // Candidate declined to respond
 }
+
+// Email record for tracking sent emails
+model EmailRecord {
+  id              String      @id @default(uuid()) @db.Uuid
+  senderId        String      @map("sender_id") @db.Uuid
+  recipientId     String?     @map("recipient_id") @db.Uuid  // Nullable for external recipients
+  recipientEmail  String      @map("recipient_email")
+  recipientName   String?     @map("recipient_name")
+  ccEmails        String[]    @default([]) @map("cc_emails")
+  subject         String
+  htmlContent     String      @map("html_content")
+  status          EmailStatus @default(SENT)
+  resendId        String?     @map("resend_id")  // Resend email ID for tracking
+  errorMessage    String?     @map("error_message")
+  sentAt          DateTime    @default(now()) @map("sent_at")
+  openedAt        DateTime?   @map("opened_at")
+  clickedAt       DateTime?   @map("clicked_at")
+  createdAt       DateTime    @default(now()) @map("created_at")
+
+  @@index([senderId])
+  @@index([recipientId])
+  @@index([recipientEmail])
+  @@index([status])
+  @@index([sentAt])
+  @@map("email_records")
+}
+
+enum EmailStatus {
+  PENDING   // Email queued for sending
+  SENT      // Email successfully sent
+  DELIVERED // Email delivered (if tracking available)
+  OPENED    // Email opened (if tracking available)
+  CLICKED   // Link in email clicked (if tracking available)
+  BOUNCED   // Email bounced
+  FAILED    // Email failed to send
+}

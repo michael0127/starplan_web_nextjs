@@ -9,6 +9,7 @@ import { useUserType } from '@/hooks/useUserType';
 import { supabase } from '@/lib/supabase';
 import EmployerNavbar from '@/components/EmployerNavbar';
 import { InviteModal } from '@/components/InviteModal';
+import { MessageModal } from '@/components/MessageModal';
 import styles from './page.module.css';
 
 // Types
@@ -208,6 +209,10 @@ function EmployerCandidatesContent() {
   const [inviteCandidates, setInviteCandidates] = useState<InviteCandidate[]>([]);
   const [selectedJobDetails, setSelectedJobDetails] = useState<JobPostingDetails | null>(null);
   const [loadingJobDetails, setLoadingJobDetails] = useState(false);
+  
+  // Message Modal state
+  const [messageModalOpen, setMessageModalOpen] = useState(false);
+  const [messageCandidates, setMessageCandidates] = useState<InviteCandidate[]>([]);
   
   // AI Ranking state
   const [isRanking, setIsRanking] = useState(false);
@@ -553,6 +558,23 @@ function EmployerCandidatesContent() {
     if (result.success) {
       // Optionally refresh applicants to show updated invitation status
       console.log(`Successfully sent ${result.count} invitation(s)`);
+    }
+  };
+
+  // Handle message button click
+  const handleMessageClick = (applicant: Applicant) => {
+    setMessageCandidates([{
+      candidateId: applicant.candidateId,
+      candidateName: applicant.candidate.name,
+      candidateEmail: applicant.candidate.email,
+    }]);
+    setMessageModalOpen(true);
+  };
+
+  // Handle message sent callback
+  const handleMessageSent = (result: { success: boolean; count: number }) => {
+    if (result.success) {
+      console.log(`Successfully sent ${result.count} message(s)`);
     }
   };
 
@@ -1530,7 +1552,13 @@ function EmployerCandidatesContent() {
                           </button>
                           {openDropdownId === applicant.id && (
                             <div className={styles.moreMenu}>
-                              <button className={styles.moreMenuItem}>
+                              <button 
+                                className={styles.moreMenuItem}
+                                onClick={() => {
+                                  setOpenDropdownId(null);
+                                  handleMessageClick(applicant);
+                                }}
+                              >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                                 </svg>
@@ -1588,6 +1616,17 @@ function EmployerCandidatesContent() {
         candidates={inviteCandidates}
         jobPosting={selectedJobDetails}
         onInviteSent={handleInviteSent}
+      />
+
+      {/* Message Modal */}
+      <MessageModal
+        isOpen={messageModalOpen}
+        onClose={() => {
+          setMessageModalOpen(false);
+          setMessageCandidates([]);
+        }}
+        candidates={messageCandidates}
+        onMessageSent={handleMessageSent}
       />
     </PageTransition>
   );
