@@ -23,10 +23,13 @@ export default function EmployerNavbar({ userEmail }: EmployerNavbarProps) {
       return pathname === path;
     }
     if (path === '/employer/jobs') {
-      return pathname?.startsWith('/employer/jobs');
+      return pathname?.startsWith('/employer/jobs') && !pathname?.includes('/invitations');
     }
     if (path === '/employer/candidates') {
       return pathname?.startsWith('/employer/candidates');
+    }
+    if (path === '/employer/invitations') {
+      return pathname?.startsWith('/employer/invitations') || pathname?.includes('/invitations');
     }
     if (path === '/employer/settings') {
       return pathname?.startsWith('/employer/settings');
@@ -60,6 +63,12 @@ export default function EmployerNavbar({ userEmail }: EmployerNavbarProps) {
             className={`${styles.navLink} ${isActive('/employer/candidates') ? styles.active : ''}`}
           >
             Candidates
+          </Link>
+          <Link 
+            href="/employer/invitations" 
+            className={`${styles.navLink} ${isActive('/employer/invitations') ? styles.active : ''}`}
+          >
+            Invitations
           </Link>
           <Link 
             href="/employer/settings" 

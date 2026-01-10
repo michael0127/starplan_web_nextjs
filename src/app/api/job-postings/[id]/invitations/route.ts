@@ -83,15 +83,30 @@ export async function POST(
       );
     }
 
-    // Get candidate details
+    // Get candidate details (including profile for fallback name)
     const candidates = await prisma.user.findMany({
       where: { id: { in: candidateIds } },
-      select: { id: true, email: true, name: true },
+      select: { id: true, email: true, name: true, profile: true },
     });
 
     if (candidates.length === 0) {
       return NextResponse.json({ error: 'No valid candidates found' }, { status: 400 });
     }
+
+    // Helper function to get candidate name (fallback to profile if name is null)
+    const getCandidateName = (candidate: { name: string | null; profile: unknown }): string | null => {
+      if (candidate.name) return candidate.name;
+      
+      // Try to get name from profile JSON
+      if (candidate.profile && typeof candidate.profile === 'object') {
+        const profile = candidate.profile as Record<string, unknown>;
+        const personal = profile.personal as Record<string, unknown> | undefined;
+        if (personal?.full_name && typeof personal.full_name === 'string') {
+          return personal.full_name;
+        }
+      }
+      return null;
+    };
 
     // Calculate expiration date (7 days from now)
     const expiresAt = new Date();
@@ -112,6 +127,7 @@ export async function POST(
 
         if (existing) {
           // Update existing invitation - reset status and extend expiry
+          // Also update candidate name in case it was missing before
           return prisma.candidateInvitation.update({
             where: { id: existing.id },
             data: {
@@ -121,6 +137,7 @@ export async function POST(
               sentAt: new Date(),
               viewedAt: null,
               respondedAt: null,
+              candidateName: getCandidateName(candidate) || existing.candidateName,
             },
           });
         } else {
@@ -130,7 +147,7 @@ export async function POST(
               jobPostingId,
               candidateId: candidate.id,
               candidateEmail: candidate.email,
-              candidateName: candidate.name,
+              candidateName: getCandidateName(candidate),
               message,
               expiresAt,
             },

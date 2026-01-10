@@ -397,16 +397,16 @@
 }
 
 .invitationsList {
-  max-height: 200px;
+  max-height: 280px;
   overflow-y: auto;
   border: 1px solid #eee;
   border-radius: 10px;
+  text-align: left;
 }
 
 .invitationItem {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: stretch;
   padding: 12px 16px;
   border-bottom: 1px solid #eee;
 }
@@ -415,16 +415,50 @@
   border-bottom: none;
 }
 
+.invitationInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
 .invitationName {
   font-size: 14px;
+  font-weight: 500;
   color: #333;
+}
+
+.inviteLinkWrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.inviteLinkInput {
+  flex: 1;
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+  color: #555;
+  min-width: 0;
+  cursor: text;
+}
+
+.inviteLinkInput:focus {
+  outline: none;
+  border-color: #4a5bf4;
+  background: #fff;
 }
 
 .copyLinkBtn {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
+  padding: 8px 12px;
   background: #f5f5f5;
   border: none;
   border-radius: 6px;
@@ -432,6 +466,8 @@
   color: #555;
   cursor: pointer;
   transition: all 0.2s;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .copyLinkBtn:hover {

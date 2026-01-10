@@ -215,9 +215,11 @@
 }
 
 .selectIcon {
-  font-size: 48px;
   margin-bottom: 16px;
-  opacity: 0.5;
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .detailHeader {
@@ -267,8 +269,11 @@
 }
 
 .noResponsesIcon {
-  font-size: 48px;
   margin-bottom: 16px;
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .noResponses h3 {

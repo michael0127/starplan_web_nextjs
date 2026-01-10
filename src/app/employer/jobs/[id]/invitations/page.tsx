@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { PageTransition } from '@/components/PageTransition';
 import { useUserType } from '@/hooks/useUserType';
@@ -73,6 +73,9 @@ interface JobPosting {
 export default function JobInvitationsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: jobId } = use(params);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const selectedId = searchParams.get('selected');
+  
   const { loading: userTypeLoading, isEmployer } = useUserType({
     required: 'EMPLOYER',
     redirectTo: '/login',
@@ -84,6 +87,7 @@ export default function JobInvitationsPage({ params }: { params: Promise<{ id: s
   const [error, setError] = useState<string | null>(null);
   const [selectedInvitation, setSelectedInvitation] = useState<InvitationDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [initialSelectionDone, setInitialSelectionDone] = useState(false);
 
   useEffect(() => {
     if (isEmployer) {
@@ -91,6 +95,17 @@ export default function JobInvitationsPage({ params }: { params: Promise<{ id: s
       fetchJobPosting();
     }
   }, [isEmployer, jobId]);
+
+  // Auto-select invitation from URL parameter
+  useEffect(() => {
+    if (selectedId && invitations.length > 0 && !initialSelectionDone) {
+      const exists = invitations.find(inv => inv.id === selectedId);
+      if (exists) {
+        fetchInvitationDetail(selectedId);
+        setInitialSelectionDone(true);
+      }
+    }
+  }, [selectedId, invitations, initialSelectionDone]);
 
   const fetchJobPosting = async () => {
     try {
@@ -249,7 +264,7 @@ export default function JobInvitationsPage({ params }: { params: Promise<{ id: s
                           </div>
                           <div>
                             <div className={styles.candidateName}>
-                              {inv.candidateName || 'Unknown'}
+                              {inv.candidateName || inv.candidateEmail.split('@')[0]}
                             </div>
                             <div className={styles.candidateEmail}>{inv.candidateEmail}</div>
                           </div>
@@ -280,7 +295,7 @@ export default function JobInvitationsPage({ params }: { params: Promise<{ id: s
                   <div className={styles.detailHeader}>
                     <div>
                       <h2 className={styles.detailName}>
-                        {selectedInvitation.invitation.candidateName || 'Unknown Candidate'}
+                        {selectedInvitation.invitation.candidateName || selectedInvitation.invitation.candidateEmail.split('@')[0]}
                       </h2>
                       <p className={styles.detailEmail}>
                         {selectedInvitation.invitation.candidateEmail}
@@ -298,7 +313,14 @@ export default function JobInvitationsPage({ params }: { params: Promise<{ id: s
 
                   {selectedInvitation.invitation.status !== 'COMPLETED' ? (
                     <div className={styles.noResponses}>
-                      <div className={styles.noResponsesIcon}>⏳</div>
+                      <div className={styles.noResponsesIcon}>
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M5 22h14" />
+                          <path d="M5 2h14" />
+                          <path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22" />
+                          <path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2" />
+                        </svg>
+                      </div>
                       <h3>Awaiting Response</h3>
                       <p>This candidate hasn't submitted their answers yet.</p>
                       <div className={styles.statusInfo}>
@@ -399,7 +421,12 @@ export default function JobInvitationsPage({ params }: { params: Promise<{ id: s
                 </>
               ) : (
                 <div className={styles.selectPrompt}>
-                  <div className={styles.selectIcon}>👈</div>
+                  <div className={styles.selectIcon}>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M19 12H5" />
+                      <path d="M12 19l-7-7 7-7" />
+                    </svg>
+                  </div>
                   <p>Select a candidate to view their responses</p>
                 </div>
               )}
