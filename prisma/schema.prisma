@@ -119,6 +119,7 @@ model JobPosting {
   purchase                   JobPostingPurchase?
   user                       User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
   systemScreeningAnswers     SystemScreeningAnswer[]
+  candidateInvitations       CandidateInvitation[]
 
   @@map("job_postings")
 }
@@ -231,6 +232,50 @@ model CandidateRanking {
   @@map("candidate_rankings")
 }
 
+// Candidate invitation for screening questions
+model CandidateInvitation {
+  id                  String                       @id @default(uuid()) @db.Uuid
+  token               String                       @unique @default(uuid())
+  jobPostingId        String                       @map("job_posting_id") @db.Uuid
+  candidateId         String                       @map("candidate_id") @db.Uuid
+  candidateEmail      String                       @map("candidate_email")
+  candidateName       String?                      @map("candidate_name")
+  status              InvitationStatus             @default(PENDING)
+  message             String?                      // Optional message from employer
+  sentAt              DateTime                     @default(now()) @map("sent_at")
+  viewedAt            DateTime?                    @map("viewed_at")
+  respondedAt         DateTime?                    @map("responded_at")
+  expiresAt           DateTime                     @map("expires_at")
+  createdAt           DateTime                     @default(now()) @map("created_at")
+  updatedAt           DateTime                     @updatedAt @map("updated_at")
+  jobPosting          JobPosting                   @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+  screeningResponses  CandidateScreeningResponse[]
+  
+  @@unique([jobPostingId, candidateId])
+  @@index([jobPostingId])
+  @@index([candidateId])
+  @@index([token])
+  @@index([status])
+  @@map("candidate_invitations")
+}
+
+// Candidate's responses to screening questions
+model CandidateScreeningResponse {
+  id                   String              @id @default(uuid()) @db.Uuid
+  invitationId         String              @map("invitation_id") @db.Uuid
+  questionType         String              @map("question_type") // 'system' or 'custom'
+  questionId           String              @map("question_id") // Reference to SystemScreeningAnswer.questionId or CustomScreeningQuestion.id
+  questionText         String              @map("question_text")
+  answerType           String              @map("answer_type") // 'single', 'multiple', 'yes-no', 'short-text'
+  answer               Json                // Can be string, string[], or boolean
+  createdAt            DateTime            @default(now()) @map("created_at")
+  invitation           CandidateInvitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+
+  @@unique([invitationId, questionType, questionId])
+  @@index([invitationId])
+  @@map("candidate_screening_responses")
+}
+
 enum UserType {
   CANDIDATE
   EMPLOYER
@@ -278,4 +323,12 @@ enum PaymentStatus {
   FAILED
   CANCELED
   REFUNDED
+}
+
+enum InvitationStatus {
+  PENDING    // Invitation sent, awaiting candidate response
+  VIEWED     // Candidate has viewed the invitation
+  COMPLETED  // Candidate has submitted responses
+  EXPIRED    // Invitation has expired
+  DECLINED   // Candidate declined to respond
 }

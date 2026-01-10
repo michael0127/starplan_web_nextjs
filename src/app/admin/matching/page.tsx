@@ -10,12 +10,16 @@ interface MatchResult {
   passed_hard_gate?: boolean;
   hard_gate_reasons?: string[];
   match_details?: any;
-  created_count?: number;
-  failed_count?: number;
-  results?: any[];
+  is_new?: boolean;  // Indicates if match was newly created or updated
+  created_at?: string;
+  updated_at?: string;
+  // Batch results
   total_jobs?: number;
   total_candidates?: number;
   passed_count?: number;
+  failed_count?: number;
+  new_matches?: number;     // Count of newly created matches
+  updated_matches?: number; // Count of updated existing matches
   matches?: any[];
   message?: string;
 }
@@ -344,9 +348,11 @@ export default function AdminMatching() {
           )}
 
           {/* Single match result */}
-          {!result.message && (
+          {!result.message && result.match_id && (
             <h3 className={styles.resultTitle}>
-              {result.passed_hard_gate ? '✅ Match Created' : '❌ Match Failed'}
+              {result.passed_hard_gate 
+                ? (result.is_new ? '✅ New Match Created' : '🔄 Match Updated') 
+                : '❌ Match Failed (Hard Gate)'}
             </h3>
           )}
 
@@ -370,6 +376,12 @@ export default function AdminMatching() {
                   {result.passed_hard_gate ? 'Yes' : 'No'}
                 </span>
               </div>
+              <div className={styles.resultRow}>
+                <span className={styles.resultLabel}>Match Type:</span>
+                <span className={styles.resultValue}>
+                  {result.is_new ? '🆕 New Match' : '🔄 Existing Match Updated'}
+                </span>
+              </div>
 
               {result.hard_gate_reasons && result.hard_gate_reasons.length > 0 && (
                 <div className={styles.reasonsBox}>
@@ -391,33 +403,46 @@ export default function AdminMatching() {
             </div>
           )}
 
-          {/* Batch match result */}
-          {result.created_count !== undefined && (
+          {/* Batch match result (when available) */}
+          {(result.passed_count !== undefined || result.new_matches !== undefined) && !result.match_id && (
             <div className={styles.resultDetails}>
               <div className={styles.resultRow}>
-                <span className={styles.resultLabel}>Created Matches:</span>
+                <span className={styles.resultLabel}>Passed Hard Gate:</span>
                 <span className={`${styles.resultValue} ${styles.success}`}>
-                  {result.created_count}
+                  {result.passed_count ?? 0}
                 </span>
               </div>
               <div className={styles.resultRow}>
-                <span className={styles.resultLabel}>Failed Matches:</span>
+                <span className={styles.resultLabel}>Failed Hard Gate:</span>
                 <span className={`${styles.resultValue} ${styles.failure}`}>
-                  {result.failed_count}
+                  {result.failed_count ?? 0}
+                </span>
+              </div>
+              <div className={styles.resultRow}>
+                <span className={styles.resultLabel}>New Matches Created:</span>
+                <span className={`${styles.resultValue}`}>
+                  🆕 {result.new_matches ?? 0}
+                </span>
+              </div>
+              <div className={styles.resultRow}>
+                <span className={styles.resultLabel}>Existing Matches Updated:</span>
+                <span className={`${styles.resultValue}`}>
+                  🔄 {result.updated_matches ?? 0}
                 </span>
               </div>
 
-              {result.results && result.results.length > 0 && (
+              {result.matches && result.matches.length > 0 && (
                 <details className={styles.detailsBox}>
-                  <summary>All Results ({result.results.length})</summary>
+                  <summary>All Results ({result.matches.length})</summary>
                   <div className={styles.batchResults}>
-                    {result.results.map((r: any, idx: number) => (
+                    {result.matches.map((r: any, idx: number) => (
                       <div key={idx} className={styles.batchResultItem}>
                         <div className={styles.batchResultHeader}>
                           <span className={r.passed_hard_gate ? styles.success : styles.failure}>
                             {r.passed_hard_gate ? '✅' : '❌'}
                           </span>
-                          <span>
+                          <span className={r.is_new === false ? styles.updated : ''}>
+                            {r.is_new === false ? '🔄 ' : '🆕 '}
                             {activeTab === 'candidate-all' 
                               ? `Job: ${r.job_posting_id?.slice(0, 8)}...`
                               : `Candidate: ${r.candidate_id?.slice(0, 8)}...`

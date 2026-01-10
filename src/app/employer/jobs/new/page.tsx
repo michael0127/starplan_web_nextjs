@@ -111,6 +111,7 @@ function CreateJobAdForm() {
   const [purchaseLoading, setPurchaseLoading] = useState(false);
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
   const [isPurchaseComplete, setIsPurchaseComplete] = useState(false);
+  const [isAlreadyPaid, setIsAlreadyPaid] = useState(false);  // Track if job was already paid for
   
   // 使用权限检查 hook
   const { user, loading, isEmployer } = useUserType({
@@ -207,6 +208,12 @@ function CreateJobAdForm() {
           // Set previews for images
           if (job.companyLogo) setLogoPreview(job.companyLogo);
           if (job.companyCoverImage) setCoverPreview(job.companyCoverImage);
+          
+          // Check if job has already been paid for
+          if (job.purchase && job.purchase.paymentStatus === 'SUCCEEDED') {
+            setIsAlreadyPaid(true);
+            setIsPurchaseComplete(true);  // Also mark purchase as complete
+          }
         }
       } catch (error) {
         console.error('Error loading job data:', error);
@@ -1659,7 +1666,7 @@ function CreateJobAdForm() {
                       <input
                         type="number"
                         min="0"
-                        max={formData.payTo ? parseFloat(formData.payTo) : undefined}
+                        max={formData.payTo && !isNaN(parseFloat(formData.payTo)) ? parseFloat(formData.payTo) : undefined}
                         className={`${styles.input} ${errors.payRange ? styles.inputError : ''}`}
                         placeholder="Min"
                         value={formData.payFrom}
@@ -1668,7 +1675,7 @@ function CreateJobAdForm() {
                       <span className={styles.salaryDivider}>to</span>
                       <input
                         type="number"
-                        min={formData.payFrom ? parseFloat(formData.payFrom) : 0}
+                        min={formData.payFrom && !isNaN(parseFloat(formData.payFrom)) ? parseFloat(formData.payFrom) : 0}
                         className={`${styles.input} ${errors.payRange ? styles.inputError : ''}`}
                         placeholder="Max"
                         value={formData.payTo}
@@ -2273,7 +2280,96 @@ function CreateJobAdForm() {
 
                     {/* Right: Payment */}
                     <div className={styles.paymentSection}>
-                      {!isPurchaseComplete ? (
+                      {isAlreadyPaid ? (
+                        // Already paid - allow direct update
+                        <div className={styles.pricingCard}>
+                          <div className={styles.pricingHeader}>
+                            <h3>Already Paid</h3>
+                            <span className={styles.badge} style={{ background: '#10b981' }}>
+                              Payment Complete
+                            </span>
+                          </div>
+
+                          <div className={styles.alreadyPaidInfo}>
+                            <div className={styles.successIcon} style={{ 
+                              width: 64, 
+                              height: 64, 
+                              background: '#10b981', 
+                              borderRadius: '50%', 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'center',
+                              margin: '0 auto 16px'
+                            }}>
+                              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                            </div>
+                            <p style={{ textAlign: 'center', color: '#555', marginBottom: 24 }}>
+                              This job posting has already been paid for. You can update and publish without additional payment.
+                            </p>
+                          </div>
+
+                          <div className={styles.features}>
+                            <h4>Your package includes:</h4>
+                            <ul>
+                              <li><svg className={styles.checkIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg> 30 days of visibility</li>
+                              <li><svg className={styles.checkIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg> Unlimited applications</li>
+                              <li><svg className={styles.checkIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg> Advanced screening tools</li>
+                              <li><svg className={styles.checkIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg> Candidate matching</li>
+                            </ul>
+                          </div>
+
+                          {purchaseError && (
+                            <div className={styles.errorMessage}>
+                              <p>{purchaseError}</p>
+                            </div>
+                          )}
+
+                          <button
+                            className={styles.purchaseButton}
+                            style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
+                            onClick={async () => {
+                              setPurchaseLoading(true);
+                              setPurchaseError(null);
+                              
+                              try {
+                                // Save and publish directly without payment
+                                const savedId = await saveJobPosting('PUBLISHED');
+                                if (savedId) {
+                                  router.push('/employer/jobs?success=true&job=' + savedId);
+                                } else {
+                                  throw new Error('Failed to save job posting');
+                                }
+                              } catch (err) {
+                                console.error('Update error:', err);
+                                setPurchaseError(err instanceof Error ? err.message : 'Failed to update job posting');
+                                setPurchaseLoading(false);
+                              }
+                            }}
+                            disabled={purchaseLoading}
+                          >
+                            {purchaseLoading ? (
+                              <>
+                                <span className={styles.spinner}></span>
+                                Updating...
+                              </>
+                            ) : (
+                              <>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                                Update & Publish
+                              </>
+                            )}
+                          </button>
+
+                          <div className={styles.securePayment}>
+                            <svg className={styles.shieldIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+                            <span>No additional payment required</span>
+                          </div>
+                        </div>
+                      ) : !isPurchaseComplete ? (
                         <div className={styles.pricingCard}>
                           <div className={styles.pricingHeader}>
                             <h3>Complete Payment</h3>

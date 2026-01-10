@@ -237,6 +237,11 @@
   font-weight: 600;
 }
 
+.updated {
+  color: #0891b2;
+  opacity: 0.9;
+}
+
 .reasonsBox {
   background: #fef2f2;
   border: 1px solid #fecaca;

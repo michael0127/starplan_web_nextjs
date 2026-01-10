@@ -1105,7 +1105,26 @@
   color: #000;
 }
 
-.btnMessage,
+.btnInvite {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid #057642;
+  color: #057642;
+  border-radius: 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btnInvite:hover {
+  background: #057642;
+  color: white;
+}
+
 .btnMore {
   width: 36px;
   height: 36px;
@@ -1120,11 +1139,63 @@
   transition: all 0.2s;
 }
 
-.btnMessage:hover,
 .btnMore:hover {
   background: rgba(74, 91, 244, 0.08);
   border-color: #4a5bf4;
   color: #4a5bf4;
+}
+
+.moreMenuContainer {
+  position: relative;
+}
+
+.moreMenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  min-width: 180px;
+  z-index: 100;
+  overflow: hidden;
+  animation: fadeInDown 0.15s ease-out;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.moreMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.moreMenuItem:hover {
+  background: #f3f4f6;
+}
+
+.moreMenuItem svg {
+  flex-shrink: 0;
+  color: #6b7280;
 }
 
 .appliedDate {

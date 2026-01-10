@@ -8,6 +8,7 @@ import { usePageAnimation } from '@/hooks/usePageAnimation';
 import { useUserType } from '@/hooks/useUserType';
 import { supabase } from '@/lib/supabase';
 import EmployerNavbar from '@/components/EmployerNavbar';
+import { InviteModal } from '@/components/InviteModal';
 import styles from './page.module.css';
 
 // Types
@@ -101,6 +102,31 @@ interface Job {
   status: string;
 }
 
+interface JobPostingDetails {
+  id: string;
+  jobTitle: string;
+  companyName: string;
+  systemScreeningAnswers: Array<{
+    questionId: string;
+    requirement: string;
+    selectedAnswers: string[];
+  }>;
+  customScreeningQuestions: Array<{
+    id: string;
+    questionText: string;
+    answerType: string;
+    options: string[];
+    mustAnswer: boolean;
+    requirement: string;
+  }>;
+}
+
+interface InviteCandidate {
+  candidateId: string;
+  candidateName: string;
+  candidateEmail: string;
+}
+
 interface FilterOption {
   name: string;
   count: number;
@@ -172,6 +198,16 @@ function EmployerCandidatesContent() {
   
   // Track archived applicants
   const [archivedCount, setArchivedCount] = useState(0);
+  
+  // Dropdown menu state for three-dot button
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Invite Modal state
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [inviteCandidates, setInviteCandidates] = useState<InviteCandidate[]>([]);
+  const [selectedJobDetails, setSelectedJobDetails] = useState<JobPostingDetails | null>(null);
+  const [loadingJobDetails, setLoadingJobDetails] = useState(false);
   
   // AI Ranking state
   const [isRanking, setIsRanking] = useState(false);
@@ -251,6 +287,20 @@ function EmployerCandidatesContent() {
       fetchApplicants();
     }
   }, [user, isEmployer, selectedJob, sortBy, currentPage, passedHardGateFilter, selectedSkills, selectedLocations, selectedExperienceLevels, searchQuery]);
+
+  // Click outside handler for dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setOpenDropdownId(null);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const fetchApplicants = async () => {
     if (fetchingRef.current) return;
@@ -434,6 +484,76 @@ function EmployerCandidatesContent() {
     setShowAllSkills(false);
     setShowAllLocations(false);
     setCurrentPage(1);
+  };
+
+  // Fetch job posting details with screening questions
+  const fetchJobDetails = async (jobId: string): Promise<JobPostingDetails | null> => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return null;
+
+      const response = await fetch(`/api/job-postings/${jobId}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        return result.data;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error fetching job details:', error);
+      return null;
+    }
+  };
+
+  // Handle invite button click
+  const handleInviteClick = async (applicant: Applicant) => {
+    if (!selectedJob) {
+      alert('Please select a job first to invite candidates.');
+      return;
+    }
+
+    setLoadingJobDetails(true);
+    
+    // Fetch job details with screening questions
+    const jobDetails = await fetchJobDetails(selectedJob);
+    
+    if (!jobDetails) {
+      alert('Failed to load job details. Please try again.');
+      setLoadingJobDetails(false);
+      return;
+    }
+
+    // Check if job has screening questions
+    const totalQuestions = 
+      (jobDetails.systemScreeningAnswers?.length || 0) + 
+      (jobDetails.customScreeningQuestions?.length || 0);
+
+    if (totalQuestions === 0) {
+      alert('This job has no screening questions configured. Please add screening questions in the job settings first.');
+      setLoadingJobDetails(false);
+      return;
+    }
+
+    setSelectedJobDetails(jobDetails);
+    setInviteCandidates([{
+      candidateId: applicant.candidateId,
+      candidateName: applicant.candidate.name,
+      candidateEmail: applicant.candidate.email,
+    }]);
+    setInviteModalOpen(true);
+    setLoadingJobDetails(false);
+  };
+
+  // Handle invite sent callback
+  const handleInviteSent = (result: { success: boolean; count: number }) => {
+    if (result.success) {
+      // Optionally refresh applicants to show updated invitation status
+      console.log(`Successfully sent ${result.count} invitation(s)`);
+    }
   };
 
   const getExperienceLevelDisplay = (level: string) => {
@@ -1384,18 +1504,66 @@ function EmployerCandidatesContent() {
                         >
                           Reject
                         </button>
-                        <button className={styles.btnMessage}>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        <button 
+                          className={styles.btnInvite}
+                          onClick={() => handleInviteClick(applicant)}
+                          disabled={loadingJobDetails}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="8.5" cy="7" r="4"></circle>
+                            <line x1="20" y1="8" x2="20" y2="14"></line>
+                            <line x1="23" y1="11" x2="17" y2="11"></line>
                           </svg>
+                          {loadingJobDetails ? 'Loading...' : 'Invite'}
                         </button>
-                        <button className={styles.btnMore}>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="1"></circle>
-                            <circle cx="19" cy="12" r="1"></circle>
-                            <circle cx="5" cy="12" r="1"></circle>
-                          </svg>
-                        </button>
+                        <div className={styles.moreMenuContainer} ref={openDropdownId === applicant.id ? dropdownRef : null}>
+                          <button 
+                            className={styles.btnMore}
+                            onClick={() => setOpenDropdownId(openDropdownId === applicant.id ? null : applicant.id)}
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <circle cx="12" cy="12" r="1"></circle>
+                              <circle cx="19" cy="12" r="1"></circle>
+                              <circle cx="5" cy="12" r="1"></circle>
+                            </svg>
+                          </button>
+                          {openDropdownId === applicant.id && (
+                            <div className={styles.moreMenu}>
+                              <button className={styles.moreMenuItem}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                </svg>
+                                Message
+                              </button>
+                              <button className={styles.moreMenuItem}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                  <polyline points="7 10 12 15 17 10"></polyline>
+                                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                Download CV
+                              </button>
+                              <button className={styles.moreMenuItem}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <circle cx="18" cy="5" r="3"></circle>
+                                  <circle cx="6" cy="12" r="3"></circle>
+                                  <circle cx="18" cy="19" r="3"></circle>
+                                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                                </svg>
+                                Share Profile
+                              </button>
+                              <button className={styles.moreMenuItem}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg>
+                                Add Note
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <div className={styles.appliedDate}>
                         Applied on {formatDate(applicant.appliedAt)}
@@ -1408,6 +1576,19 @@ function EmployerCandidatesContent() {
           </div>
         </main>
       </div>
+
+      {/* Invite Modal */}
+      <InviteModal
+        isOpen={inviteModalOpen}
+        onClose={() => {
+          setInviteModalOpen(false);
+          setInviteCandidates([]);
+          setSelectedJobDetails(null);
+        }}
+        candidates={inviteCandidates}
+        jobPosting={selectedJobDetails}
+        onInviteSent={handleInviteSent}
+      />
     </PageTransition>
   );
 }

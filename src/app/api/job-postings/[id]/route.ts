@@ -48,6 +48,14 @@ export async function GET(
       include: {
         systemScreeningAnswers: true,
         customScreeningQuestions: true,
+        purchase: {
+          select: {
+            id: true,
+            paymentStatus: true,
+            paidAt: true,
+            expiresAt: true,
+          },
+        },
       },
     });
 
