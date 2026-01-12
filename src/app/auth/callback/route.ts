@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
@@ -22,15 +20,31 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Handle code exchange (PKCE flow) - 主要用于邮箱验证
+  // Handle code exchange (PKCE flow)
   if (code) {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true,
-      },
-    });
+    const cookieStore = await cookies();
+    
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options as Record<string, unknown>)
+              );
+            } catch {
+              // The `setAll` method was called from a Server Component.
+              // This can be ignored if you have middleware refreshing sessions.
+            }
+          },
+        },
+      }
+    );
 
     const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
@@ -40,23 +54,23 @@ export async function GET(request: NextRequest) {
       
       // 从 user metadata 中获取用户类型（邮箱注册时设置）
       const metaUserType = user.user_metadata?.user_type;
-      const finalUserType = (metaUserType === 'EMPLOYER' ? 'EMPLOYER' : 'CANDIDATE') as 'CANDIDATE' | 'EMPLOYER';
       
       console.log('Callback user info:', { 
         email: user.email, 
         provider: user.app_metadata?.provider,
         metaUserType,
-        finalUserType,
         isGoogleOAuth 
       });
       
-      // 如果是 Google OAuth，重定向到 confirm 页面让客户端处理（因为需要读取 localStorage）
+      // 如果是 Google OAuth，重定向到 confirm 页面让客户端处理
+      // 因为需要读取 localStorage 来获取 userType
       if (isGoogleOAuth) {
         console.log('Google OAuth - redirecting to /auth/confirm for client-side handling');
         return NextResponse.redirect(new URL('/auth/confirm', requestUrl.origin));
       }
       
       // 邮箱验证流程 - 服务端处理
+      const finalUserType = (metaUserType === 'EMPLOYER' ? 'EMPLOYER' : 'CANDIDATE') as 'CANDIDATE' | 'EMPLOYER';
       let redirectUrl = next || '/onboarding';
       
       try {
