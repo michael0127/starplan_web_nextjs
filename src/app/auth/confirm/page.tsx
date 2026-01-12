@@ -87,7 +87,8 @@ export default function ConfirmAuth() {
   };
 
   // 处理用户创建/更新（用于 OAuth 用户）
-  const handleUserSetup = async (userId: string, email: string, oauthInfo: OAuthInfo | null, userMetadata: Record<string, unknown>) => {
+  // 返回 API 确认的 redirectTo
+  const handleUserSetup = async (userId: string, email: string, oauthInfo: OAuthInfo | null, userMetadata: Record<string, unknown>): Promise<string | null> => {
     try {
       const userType = oauthInfo?.userType || 'CANDIDATE';
       
@@ -106,11 +107,15 @@ export default function ConfirmAuth() {
       
       if (!response.ok) {
         console.error('Failed to setup user:', await response.text());
-      } else {
-        console.log('User setup successful');
+        return null;
       }
+      
+      const result = await response.json();
+      console.log('User setup successful:', result);
+      return result.redirectTo || null;
     } catch (err) {
       console.error('Error setting up user:', err);
+      return null;
     }
   };
 
@@ -148,11 +153,6 @@ export default function ConfirmAuth() {
             const user = data.session.user;
             const isGoogleOAuth = user.app_metadata?.provider === 'google';
             
-            // 如果是 Google OAuth 用户，处理用户创建/更新
-            if (isGoogleOAuth && oauthInfo) {
-              await handleUserSetup(user.id, user.email!, oauthInfo, user.user_metadata || {});
-            }
-            
             // 检查是否是邀请类型
             const isInvite = type === 'invite' || 
                            user.user_metadata?.invitation_type === 'cv_upload';
@@ -165,9 +165,17 @@ export default function ConfirmAuth() {
               return;
             }
             
-            // 根据用户类型跳转
-            const userType = user.user_metadata?.user_type;
-            const redirectUrl = await getRedirectUrl(user.id, userType, oauthInfo);
+            // 如果是 Google OAuth 用户，处理用户创建/更新并使用 API 返回的 redirectTo
+            let redirectUrl: string;
+            if (isGoogleOAuth && oauthInfo) {
+              const apiRedirectTo = await handleUserSetup(user.id, user.email!, oauthInfo, user.user_metadata || {});
+              redirectUrl = apiRedirectTo || (oauthInfo.userType === 'EMPLOYER' ? '/employer/dashboard' : '/onboarding');
+            } else {
+              const userType = user.user_metadata?.user_type;
+              redirectUrl = await getRedirectUrl(user.id, userType, oauthInfo);
+            }
+            
+            console.log('Final redirect URL:', redirectUrl);
             clearOAuthInfo();
             setTimeout(() => {
               router.push(redirectUrl);
@@ -184,13 +192,17 @@ export default function ConfirmAuth() {
           const user = session.user;
           const isGoogleOAuth = user.app_metadata?.provider === 'google';
           
-          // 如果是 Google OAuth 用户，处理用户创建/更新
+          // 如果是 Google OAuth 用户，处理用户创建/更新并使用 API 返回的 redirectTo
+          let redirectUrl: string;
           if (isGoogleOAuth && oauthInfo) {
-            await handleUserSetup(user.id, user.email!, oauthInfo, user.user_metadata || {});
+            const apiRedirectTo = await handleUserSetup(user.id, user.email!, oauthInfo, user.user_metadata || {});
+            redirectUrl = apiRedirectTo || (oauthInfo.userType === 'EMPLOYER' ? '/employer/dashboard' : '/onboarding');
+          } else {
+            const userType = user.user_metadata?.user_type;
+            redirectUrl = await getRedirectUrl(user.id, userType, oauthInfo);
           }
           
-          const userType = user.user_metadata?.user_type;
-          const redirectUrl = await getRedirectUrl(user.id, userType, oauthInfo);
+          console.log('Final redirect URL:', redirectUrl);
           clearOAuthInfo();
           setTimeout(() => {
             router.push(redirectUrl);
