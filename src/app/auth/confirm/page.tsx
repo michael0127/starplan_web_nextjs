@@ -8,20 +8,65 @@ import { PageTransition } from '@/components/PageTransition';
 import { usePageAnimation } from '@/hooks/usePageAnimation';
 import styles from './page.module.css';
 
+// OAuth 信息存储 key（与 GoogleButton 保持一致）
+const OAUTH_STORAGE_KEY = 'starplan_oauth_info';
+
+interface OAuthInfo {
+  userType: 'CANDIDATE' | 'EMPLOYER';
+  redirectTo: string;
+  timestamp: number;
+}
+
 export default function ConfirmAuth() {
   const router = useRouter();
   const mounted = usePageAnimation();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState('');
 
+  // 从 localStorage 获取 OAuth 信息
+  const getOAuthInfo = (): OAuthInfo | null => {
+    try {
+      const stored = localStorage.getItem(OAUTH_STORAGE_KEY);
+      if (stored) {
+        const info = JSON.parse(stored) as OAuthInfo;
+        // 检查是否过期（10分钟）
+        if (Date.now() - info.timestamp < 10 * 60 * 1000) {
+          return info;
+        }
+        // 过期则清除
+        localStorage.removeItem(OAUTH_STORAGE_KEY);
+      }
+    } catch (err) {
+      console.error('Error reading OAuth info:', err);
+    }
+    return null;
+  };
+
+  // 清除 OAuth 信息
+  const clearOAuthInfo = () => {
+    try {
+      localStorage.removeItem(OAUTH_STORAGE_KEY);
+    } catch (err) {
+      console.error('Error clearing OAuth info:', err);
+    }
+  };
+
   // 根据用户类型获取正确的重定向 URL
-  const getRedirectUrl = async (userId: string, userType?: string): Promise<string> => {
+  const getRedirectUrl = async (userId: string, userType?: string, oauthInfo?: OAuthInfo | null): Promise<string> => {
+    // 优先使用 OAuth 信息中的用户类型
+    const effectiveUserType = oauthInfo?.userType || userType;
+    
     // 如果已知是 EMPLOYER，直接跳转到 employer dashboard
-    if (userType === 'EMPLOYER') {
+    if (effectiveUserType === 'EMPLOYER') {
       return '/employer/dashboard';
     }
     
-    // 否则查询数据库获取用户信息
+    // 如果有 OAuth 信息中的 redirectTo
+    if (oauthInfo?.redirectTo && oauthInfo.redirectTo !== '/onboarding') {
+      return oauthInfo.redirectTo;
+    }
+    
+    // 查询数据库获取用户信息
     try {
       const response = await fetch(`/api/user/${userId}`);
       if (response.ok) {
@@ -41,9 +86,41 @@ export default function ConfirmAuth() {
     return '/onboarding';
   };
 
+  // 处理用户创建/更新（用于 OAuth 用户）
+  const handleUserSetup = async (userId: string, email: string, oauthInfo: OAuthInfo | null, userMetadata: Record<string, unknown>) => {
+    try {
+      const userType = oauthInfo?.userType || 'CANDIDATE';
+      
+      // 调用 API 创建或更新用户
+      const response = await fetch('/api/auth/oauth-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          email,
+          userType,
+          name: userMetadata?.full_name || userMetadata?.name || null,
+          avatarUrl: userMetadata?.avatar_url || userMetadata?.picture || null,
+        })
+      });
+      
+      if (!response.ok) {
+        console.error('Failed to setup user:', await response.text());
+      } else {
+        console.log('User setup successful');
+      }
+    } catch (err) {
+      console.error('Error setting up user:', err);
+    }
+  };
+
   useEffect(() => {
     const handleAuthConfirmation = async () => {
       try {
+        // 获取 OAuth 信息（如果有）
+        const oauthInfo = getOAuthInfo();
+        console.log('OAuth info from localStorage:', oauthInfo);
+        
         // Check if there's a hash fragment with auth data
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const accessToken = hashParams.get('access_token');
@@ -61,6 +138,7 @@ export default function ConfirmAuth() {
             console.error('Error setting session:', error);
             setStatus('error');
             setErrorMessage(error.message);
+            clearOAuthInfo();
             return;
           }
 
@@ -68,16 +146,19 @@ export default function ConfirmAuth() {
             setStatus('success');
             
             const user = data.session.user;
-            const userType = user.user_metadata?.user_type;
+            const isGoogleOAuth = user.app_metadata?.provider === 'google';
+            
+            // 如果是 Google OAuth 用户，处理用户创建/更新
+            if (isGoogleOAuth && oauthInfo) {
+              await handleUserSetup(user.id, user.email!, oauthInfo, user.user_metadata || {});
+            }
             
             // 检查是否是邀请类型
-            // 1. 从 URL hash 中检查 type 参数
-            // 2. 从用户元数据中检查 invitation_type
             const isInvite = type === 'invite' || 
                            user.user_metadata?.invitation_type === 'cv_upload';
             
             if (isInvite) {
-              // 邀请用户需要先设置密码
+              clearOAuthInfo();
               setTimeout(() => {
                 router.push('/auth/set-password');
               }, 1000);
@@ -85,7 +166,9 @@ export default function ConfirmAuth() {
             }
             
             // 根据用户类型跳转
-            const redirectUrl = await getRedirectUrl(user.id, userType);
+            const userType = user.user_metadata?.user_type;
+            const redirectUrl = await getRedirectUrl(user.id, userType, oauthInfo);
+            clearOAuthInfo();
             setTimeout(() => {
               router.push(redirectUrl);
             }, 1000);
@@ -98,8 +181,17 @@ export default function ConfirmAuth() {
         
         if (session) {
           setStatus('success');
-          const userType = session.user.user_metadata?.user_type;
-          const redirectUrl = await getRedirectUrl(session.user.id, userType);
+          const user = session.user;
+          const isGoogleOAuth = user.app_metadata?.provider === 'google';
+          
+          // 如果是 Google OAuth 用户，处理用户创建/更新
+          if (isGoogleOAuth && oauthInfo) {
+            await handleUserSetup(user.id, user.email!, oauthInfo, user.user_metadata || {});
+          }
+          
+          const userType = user.user_metadata?.user_type;
+          const redirectUrl = await getRedirectUrl(user.id, userType, oauthInfo);
+          clearOAuthInfo();
           setTimeout(() => {
             router.push(redirectUrl);
           }, 1000);
@@ -109,10 +201,12 @@ export default function ConfirmAuth() {
         // No valid auth data
         setStatus('error');
         setErrorMessage('No valid authentication data found. Please try again.');
+        clearOAuthInfo();
       } catch (err) {
         console.error('Confirmation error:', err);
         setStatus('error');
         setErrorMessage('An unexpected error occurred.');
+        clearOAuthInfo();
       }
     };
 

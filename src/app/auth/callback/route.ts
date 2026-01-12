@@ -11,10 +11,9 @@ export async function GET(request: NextRequest) {
   const error = requestUrl.searchParams.get('error');
   const errorDescription = requestUrl.searchParams.get('error_description');
   const type = requestUrl.searchParams.get('type'); // 邀请类型
-  const userType = requestUrl.searchParams.get('userType') || 'CANDIDATE'; // 用户类型 (Google OAuth)
-  const next = requestUrl.searchParams.get('next') || '/onboarding';
+  const next = requestUrl.searchParams.get('next');
 
-  console.log('Auth callback params:', { code: !!code, error, type, userType, next });
+  console.log('Auth callback params:', { code: !!code, error, type, next });
 
   // Handle error from Supabase
   if (error) {
@@ -23,7 +22,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Handle code exchange (PKCE flow)
+  // Handle code exchange (PKCE flow) - 主要用于邮箱验证
   if (code) {
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
@@ -41,10 +40,9 @@ export async function GET(request: NextRequest) {
       
       // 从 user metadata 中获取用户类型（邮箱注册时设置）
       const metaUserType = user.user_metadata?.user_type;
-      // 优先使用 URL 参数的 userType，其次是 metadata 中的 user_type
-      const finalUserType = (userType === 'EMPLOYER' || metaUserType === 'EMPLOYER' ? 'EMPLOYER' : 'CANDIDATE') as 'CANDIDATE' | 'EMPLOYER';
+      const finalUserType = (metaUserType === 'EMPLOYER' ? 'EMPLOYER' : 'CANDIDATE') as 'CANDIDATE' | 'EMPLOYER';
       
-      console.log('OAuth user info:', { 
+      console.log('Callback user info:', { 
         email: user.email, 
         provider: user.app_metadata?.provider,
         metaUserType,
@@ -52,8 +50,14 @@ export async function GET(request: NextRequest) {
         isGoogleOAuth 
       });
       
-      // 检查用户是否已存在于数据库中
-      let redirectUrl = next;
+      // 如果是 Google OAuth，重定向到 confirm 页面让客户端处理（因为需要读取 localStorage）
+      if (isGoogleOAuth) {
+        console.log('Google OAuth - redirecting to /auth/confirm for client-side handling');
+        return NextResponse.redirect(new URL('/auth/confirm', requestUrl.origin));
+      }
+      
+      // 邮箱验证流程 - 服务端处理
+      let redirectUrl = next || '/onboarding';
       
       try {
         // 等待一小段时间，让 Supabase 触发器有时间执行
@@ -73,18 +77,14 @@ export async function GET(request: NextRequest) {
               name: user.user_metadata?.full_name || user.user_metadata?.name || null,
               avatarUrl: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
               userType: finalUserType,
-              hasCompletedOnboarding: finalUserType === 'EMPLOYER', // EMPLOYER 不需要 onboarding
+              hasCompletedOnboarding: finalUserType === 'EMPLOYER',
             }
           });
           
-          console.log(`Created new user: ${user.email}, type: ${finalUserType}, onboarding: ${finalUserType !== 'EMPLOYER'}`);
+          console.log(`Created new user: ${user.email}, type: ${finalUserType}`);
           
           // 设置正确的重定向 URL
-          if (finalUserType === 'EMPLOYER') {
-            redirectUrl = '/employer/dashboard';
-          } else {
-            redirectUrl = '/onboarding';
-          }
+          redirectUrl = finalUserType === 'EMPLOYER' ? '/employer/dashboard' : '/onboarding';
         } else {
           // 用户已存在
           console.log('Existing user:', { 
@@ -101,46 +101,14 @@ export async function GET(request: NextRequest) {
           } else {
             redirectUrl = '/onboarding';
           }
-          
-          // 如果是 Google OAuth，需要更新用户信息
-          if (isGoogleOAuth) {
-            const updates: Record<string, unknown> = {};
-            
-            // 如果用户选择了 EMPLOYER 类型，更新它
-            if (finalUserType === 'EMPLOYER' && existingUser.userType !== 'EMPLOYER') {
-              updates.userType = 'EMPLOYER';
-              updates.hasCompletedOnboarding = true; // EMPLOYER 不需要 onboarding
-              redirectUrl = '/employer/dashboard';
-            }
-            
-            // 更新头像（如果有）
-            if (!existingUser.avatarUrl && (user.user_metadata?.avatar_url || user.user_metadata?.picture)) {
-              updates.avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture;
-            }
-            
-            // 更新名字（如果有）
-            if (!existingUser.name && (user.user_metadata?.full_name || user.user_metadata?.name)) {
-              updates.name = user.user_metadata?.full_name || user.user_metadata?.name;
-            }
-            
-            if (Object.keys(updates).length > 0) {
-              await prisma.user.update({
-                where: { id: user.id },
-                data: updates
-              });
-              console.log(`Updated user: ${user.email}, updates:`, updates);
-            }
-          }
         }
       } catch (dbError) {
-        console.error('Database error during OAuth callback:', dbError);
+        console.error('Database error during callback:', dbError);
         // 继续处理，即使数据库操作失败
-        // 使用 next 参数作为默认重定向
       }
       
       // 检查是否是邀请类型
       if (type === 'invite') {
-        // 邀请用户需要先设置密码
         return NextResponse.redirect(new URL('/auth/set-password', requestUrl.origin));
       }
       
@@ -154,8 +122,6 @@ export async function GET(request: NextRequest) {
   }
 
   // Handle hash fragment (implicit flow) - redirect to client-side handler
-  // If no code parameter, check for access_token in hash (handled by client)
-  // Just redirect to a client-side page that will handle the hash
   return NextResponse.redirect(new URL('/auth/confirm', requestUrl.origin));
 }
 

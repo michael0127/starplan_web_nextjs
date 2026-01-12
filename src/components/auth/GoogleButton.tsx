@@ -10,6 +10,9 @@ interface GoogleButtonProps {
   redirectTo?: string;
 }
 
+// 存储 OAuth 登录信息到 localStorage
+const OAUTH_STORAGE_KEY = 'starplan_oauth_info';
+
 export default function GoogleButton({ 
   children, 
   userType = 'CANDIDATE',
@@ -23,10 +26,20 @@ export default function GoogleButton({
       setIsLoading(true);
       setError(null);
 
+      // 保存用户类型和重定向 URL 到 localStorage
+      // 这样在 OAuth 回调时可以读取
+      const oauthInfo = {
+        userType,
+        redirectTo,
+        timestamp: Date.now()
+      };
+      localStorage.setItem(OAUTH_STORAGE_KEY, JSON.stringify(oauthInfo));
+      console.log('Saved OAuth info:', oauthInfo);
+
       const { data, error: signInError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}&userType=${userType}`,
+          redirectTo: `${window.location.origin}/auth/callback`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -38,11 +51,14 @@ export default function GoogleButton({
         console.error('Google sign in error:', signInError);
         setError(signInError.message);
         setIsLoading(false);
+        // 清除存储的信息
+        localStorage.removeItem(OAUTH_STORAGE_KEY);
       }
     } catch (err) {
       console.error('Unexpected error during Google sign in:', err);
       setError('An unexpected error occurred. Please try again.');
       setIsLoading(false);
+      localStorage.removeItem(OAUTH_STORAGE_KEY);
     }
   };
 
