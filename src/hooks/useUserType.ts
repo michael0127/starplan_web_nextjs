@@ -1,9 +1,8 @@
 /**
  * useUserType Hook - 客户端用户类型检查
- * 优先从数据库获取用户类型（支持 Google OAuth），fallback 到 Supabase metadata
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
@@ -20,20 +19,6 @@ export function useUserType(options?: UseUserTypeOptions) {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const router = useRouter();
-
-  // 从 API 获取用户类型
-  const fetchUserTypeFromDB = useCallback(async (userId: string): Promise<UserType | null> => {
-    try {
-      const response = await fetch(`/api/user/${userId}`);
-      if (response.ok) {
-        const userData = await response.json();
-        return userData.userType as UserType;
-      }
-    } catch (error) {
-      console.error('Error fetching user type from DB:', error);
-    }
-    return null;
-  }, []);
 
   useEffect(() => {
     const checkUserType = async () => {
@@ -56,16 +41,11 @@ export function useUserType(options?: UseUserTypeOptions) {
 
         setUser(session.user);
 
-        // 优先从数据库获取用户类型（支持 Google OAuth）
-        let type = await fetchUserTypeFromDB(session.user.id);
+        // 从 user metadata 获取用户类型
+        const metadata = session.user.user_metadata;
+        const type = metadata?.user_type as UserType;
         
-        // Fallback 到 Supabase metadata
-        if (!type) {
-          const metadata = session.user.user_metadata;
-          type = (metadata?.user_type as UserType) || 'CANDIDATE';
-        }
-        
-        setUserType(type);
+        setUserType(type || 'CANDIDATE');
 
         // 检查是否符合要求的用户类型
         if (options?.required && type !== options.required) {
@@ -103,21 +83,13 @@ export function useUserType(options?: UseUserTypeOptions) {
         }
       } else if (session?.user) {
         setUser(session.user);
-        
-        // 从数据库获取用户类型
-        const type = await fetchUserTypeFromDB(session.user.id);
-        if (type) {
-          setUserType(type);
-        } else {
-          // Fallback 到 metadata
-          const metaType = session.user.user_metadata?.user_type as UserType;
-          setUserType(metaType || 'CANDIDATE');
-        }
+        const type = session.user.user_metadata?.user_type as UserType;
+        setUserType(type || 'CANDIDATE');
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [options?.required, options?.redirectTo, router, fetchUserTypeFromDB]);
+  }, [options?.required, options?.redirectTo, router]);
 
   return {
     userType,

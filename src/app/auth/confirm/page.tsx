@@ -1,27 +1,49 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import AuthLayout from '@/components/auth/AuthLayout';
 import { PageTransition } from '@/components/PageTransition';
 import { usePageAnimation } from '@/hooks/usePageAnimation';
 import styles from './page.module.css';
 
-function ConfirmAuthContent() {
+export default function ConfirmAuth() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const mounted = usePageAnimation();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState('');
 
+  // 根据用户类型获取正确的重定向 URL
+  const getRedirectUrl = async (userId: string, userType?: string): Promise<string> => {
+    // 如果已知是 EMPLOYER，直接跳转到 employer dashboard
+    if (userType === 'EMPLOYER') {
+      return '/employer/dashboard';
+    }
+    
+    // 否则查询数据库获取用户信息
+    try {
+      const response = await fetch(`/api/user/${userId}`);
+      if (response.ok) {
+        const userData = await response.json();
+        if (userData.userType === 'EMPLOYER') {
+          return '/employer/dashboard';
+        }
+        if (userData.hasCompletedOnboarding) {
+          return '/explore';
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching user data:', err);
+    }
+    
+    // 默认跳转到 onboarding
+    return '/onboarding';
+  };
+
   useEffect(() => {
     const handleAuthConfirmation = async () => {
       try {
-        // 从 URL 参数获取重定向目标和用户类型
-        const nextUrl = searchParams.get('next') || '/onboarding';
-        const userType = searchParams.get('userType') || 'CANDIDATE';
-        
         // Check if there's a hash fragment with auth data
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const accessToken = hashParams.get('access_token');
@@ -45,11 +67,14 @@ function ConfirmAuthContent() {
           if (data.session) {
             setStatus('success');
             
+            const user = data.session.user;
+            const userType = user.user_metadata?.user_type;
+            
             // 检查是否是邀请类型
             // 1. 从 URL hash 中检查 type 参数
             // 2. 从用户元数据中检查 invitation_type
             const isInvite = type === 'invite' || 
-                           data.session.user.user_metadata?.invitation_type === 'cv_upload';
+                           user.user_metadata?.invitation_type === 'cv_upload';
             
             if (isInvite) {
               // 邀请用户需要先设置密码
@@ -59,36 +84,10 @@ function ConfirmAuthContent() {
               return;
             }
             
-            // 根据用户类型和 API 检查用户状态
-            try {
-              const response = await fetch(`/api/user/${data.session.user.id}`);
-              if (response.ok) {
-                const userData = await response.json();
-                
-                // Employer 不需要 onboarding，直接跳转到 dashboard
-                if (userData.userType === 'EMPLOYER') {
-                  setTimeout(() => {
-                    router.push('/employer/dashboard');
-                  }, 1000);
-                  return;
-                }
-                
-                // Candidate 检查 onboarding 状态
-                if (userData.hasCompletedOnboarding) {
-                  setTimeout(() => {
-                    router.push('/explore');
-                  }, 1000);
-                  return;
-                }
-              }
-            } catch (apiError) {
-              console.error('Error fetching user data:', apiError);
-            }
-            
-            // Candidate 新用户跳转到 onboarding
-            // Employer 如果 API 失败也尝试跳转到目标页面
+            // 根据用户类型跳转
+            const redirectUrl = await getRedirectUrl(user.id, userType);
             setTimeout(() => {
-              router.push(userType === 'EMPLOYER' ? '/employer/dashboard' : nextUrl);
+              router.push(redirectUrl);
             }, 1000);
             return;
           }
@@ -99,36 +98,10 @@ function ConfirmAuthContent() {
         
         if (session) {
           setStatus('success');
-          
-          // 检查用户状态
-          try {
-            const response = await fetch(`/api/user/${session.user.id}`);
-            if (response.ok) {
-              const userData = await response.json();
-              
-              // Employer 不需要 onboarding，直接跳转到 dashboard
-              if (userData.userType === 'EMPLOYER') {
-                setTimeout(() => {
-                  router.push('/employer/dashboard');
-                }, 1000);
-                return;
-              }
-              
-              // Candidate 检查 onboarding 状态
-              if (userData.hasCompletedOnboarding) {
-                setTimeout(() => {
-                  router.push('/explore');
-                }, 1000);
-                return;
-              }
-            }
-          } catch (apiError) {
-            console.error('Error fetching user data:', apiError);
-          }
-          
-          // Candidate 跳转到 onboarding，Employer 跳转到 dashboard
+          const userType = session.user.user_metadata?.user_type;
+          const redirectUrl = await getRedirectUrl(session.user.id, userType);
           setTimeout(() => {
-            router.push(userType === 'EMPLOYER' ? '/employer/dashboard' : nextUrl);
+            router.push(redirectUrl);
           }, 1000);
           return;
         }
@@ -144,7 +117,7 @@ function ConfirmAuthContent() {
     };
 
     handleAuthConfirmation();
-  }, [router, searchParams]);
+  }, [router]);
 
   return (
     <PageTransition>
@@ -188,25 +161,6 @@ function ConfirmAuthContent() {
         </div>
       </AuthLayout>
     </PageTransition>
-  );
-}
-
-export default function ConfirmAuth() {
-  const mounted = usePageAnimation();
-  
-  return (
-    <Suspense fallback={
-      <PageTransition>
-        <AuthLayout mounted={mounted}>
-          <div className={styles.container}>
-            <div className={styles.spinner}></div>
-            <h1 className={styles.title}>Loading...</h1>
-          </div>
-        </AuthLayout>
-      </PageTransition>
-    }>
-      <ConfirmAuthContent />
-    </Suspense>
   );
 }
 
