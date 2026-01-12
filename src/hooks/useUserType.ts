@@ -1,8 +1,9 @@
 /**
  * useUserType Hook - 客户端用户类型检查
+ * 从数据库获取用户类型，而不是仅依赖 Supabase metadata
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
@@ -19,6 +20,20 @@ export function useUserType(options?: UseUserTypeOptions) {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const router = useRouter();
+
+  // 从数据库获取用户类型
+  const fetchUserTypeFromDB = useCallback(async (userId: string): Promise<UserType | null> => {
+    try {
+      const response = await fetch(`/api/user/${userId}`);
+      if (response.ok) {
+        const userData = await response.json();
+        return userData.userType as UserType;
+      }
+    } catch (error) {
+      console.error('Error fetching user type from DB:', error);
+    }
+    return null;
+  }, []);
 
   useEffect(() => {
     const checkUserType = async () => {
@@ -41,14 +56,22 @@ export function useUserType(options?: UseUserTypeOptions) {
 
         setUser(session.user);
 
-        // 从 user metadata 获取用户类型
-        const metadata = session.user.user_metadata;
-        const type = metadata?.user_type as UserType;
+        // 优先从数据库获取用户类型（适用于 OAuth 用户）
+        // 其次从 user metadata 获取（适用于邮箱注册用户）
+        let type: UserType | null = await fetchUserTypeFromDB(session.user.id);
         
-        setUserType(type || 'CANDIDATE');
+        if (!type) {
+          // 回退到 metadata
+          const metadata = session.user.user_metadata;
+          type = metadata?.user_type as UserType || 'CANDIDATE';
+        }
+        
+        console.log('User type from DB/metadata:', type);
+        setUserType(type);
 
         // 检查是否符合要求的用户类型
         if (options?.required && type !== options.required) {
+          console.log(`Access denied: User is ${type}, required ${options.required}`);
           if (options?.onUnauthorized) {
             options.onUnauthorized();
           } else {
@@ -83,13 +106,14 @@ export function useUserType(options?: UseUserTypeOptions) {
         }
       } else if (session?.user) {
         setUser(session.user);
-        const type = session.user.user_metadata?.user_type as UserType;
-        setUserType(type || 'CANDIDATE');
+        // 从数据库获取最新的用户类型
+        const type = await fetchUserTypeFromDB(session.user.id);
+        setUserType(type || session.user.user_metadata?.user_type || 'CANDIDATE');
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [options?.required, options?.redirectTo, router]);
+  }, [options?.required, options?.redirectTo, router, fetchUserTypeFromDB]);
 
   return {
     userType,
