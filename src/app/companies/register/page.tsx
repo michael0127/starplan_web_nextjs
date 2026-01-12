@@ -143,7 +143,9 @@ function EmployerRegisterForm() {
         </div>
 
         {/* Google注册按钮 */}
-        <GoogleButton>Continue with Google</GoogleButton>
+        <GoogleButton userType="EMPLOYER" redirectTo="/employer/dashboard">
+          Continue with Google
+        </GoogleButton>
 
         <p className={formStyles.linkText}>
           Already have an account? <Link href="/companies/login">Login</Link>

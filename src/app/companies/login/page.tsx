@@ -130,7 +130,9 @@ function EmployerLoginForm() {
         </div>
 
         {/* Google登录按钮 */}
-        <GoogleButton>Continue with Google</GoogleButton>
+        <GoogleButton userType="EMPLOYER" redirectTo="/employer/dashboard">
+          Continue with Google
+        </GoogleButton>
 
         <p className={formStyles.linkText}>
           Don't have an account? <Link href="/companies/register">Sign Up</Link>
