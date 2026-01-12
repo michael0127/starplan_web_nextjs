@@ -23,10 +23,16 @@ export default function GoogleButton({
       setIsLoading(true);
       setError(null);
 
+      // 保存重定向信息到 localStorage，因为 OAuth 重定向可能会丢失 query parameters
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('oauth_redirect_to', redirectTo);
+        localStorage.setItem('oauth_user_type', userType);
+      }
+
       const { data, error: signInError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}&userType=${userType}`,
+          redirectTo: `${window.location.origin}/auth/oauth-callback`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
