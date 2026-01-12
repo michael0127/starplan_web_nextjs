@@ -50,6 +50,9 @@ export async function GET(request: NextRequest) {
 
         if (!existingUser) {
           // 新用户 - 触发器可能没有执行或失败，手动创建用户记录
+          // Employer 不需要完成 onboarding，直接设置为 true
+          const isEmployer = finalUserType === 'EMPLOYER';
+          
           await prisma.user.create({
             data: {
               id: user.id,
@@ -57,28 +60,36 @@ export async function GET(request: NextRequest) {
               name: user.user_metadata?.full_name || user.user_metadata?.name || null,
               avatarUrl: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
               userType: finalUserType,
-              hasCompletedOnboarding: false,
+              hasCompletedOnboarding: isEmployer, // Employer 不需要 onboarding
             }
           });
           
           console.log(`Created new user via Google OAuth: ${user.email}, type: ${finalUserType}`);
+          
+          // 新 Employer 直接跳转到 dashboard
+          if (isEmployer) {
+            return NextResponse.redirect(new URL('/employer/dashboard', requestUrl.origin));
+          }
         } else {
           // 用户已存在
+          // Employer 直接跳转到 dashboard，Candidate 检查 onboarding 状态
+          if (existingUser.userType === 'EMPLOYER') {
+            return NextResponse.redirect(new URL('/employer/dashboard', requestUrl.origin));
+          }
+          
           if (existingUser.hasCompletedOnboarding) {
-            // 已完成 onboarding，根据用户类型跳转
-            const redirectUrl = existingUser.userType === 'EMPLOYER' 
-              ? '/employer/dashboard' 
-              : '/explore';
-            return NextResponse.redirect(new URL(redirectUrl, requestUrl.origin));
+            // Candidate 已完成 onboarding，跳转到 explore
+            return NextResponse.redirect(new URL('/explore', requestUrl.origin));
           }
           
           // 如果是 Google OAuth 新用户（触发器创建的默认 CANDIDATE），需要更新用户类型和头像
           if (isGoogleOAuth) {
             const updates: Record<string, unknown> = {};
             
-            // 如果用户选择了 EMPLOYER 类型，更新它
-            if (finalUserType === 'EMPLOYER' && existingUser.userType !== 'EMPLOYER') {
+            // 如果用户选择了 EMPLOYER 类型，更新它（此时 existingUser.userType 是 CANDIDATE）
+            if (finalUserType === 'EMPLOYER') {
               updates.userType = 'EMPLOYER';
+              updates.hasCompletedOnboarding = true; // Employer 不需要 onboarding
             }
             
             // 更新头像（如果有）
@@ -97,6 +108,11 @@ export async function GET(request: NextRequest) {
                 data: updates
               });
               console.log(`Updated user via Google OAuth: ${user.email}, updates:`, updates);
+              
+              // 如果更新为 Employer，直接跳转到 dashboard
+              if (updates.userType === 'EMPLOYER') {
+                return NextResponse.redirect(new URL('/employer/dashboard', requestUrl.origin));
+              }
             }
           }
         }
@@ -111,7 +127,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(new URL('/auth/set-password', requestUrl.origin));
       }
       
-      // 普通注册用户直接跳转到 next 页面
+      // Candidate 新用户跳转到 onboarding
       return NextResponse.redirect(new URL(next, requestUrl.origin));
     }
 
@@ -123,6 +139,9 @@ export async function GET(request: NextRequest) {
   // Handle hash fragment (implicit flow) - redirect to client-side handler
   // If no code parameter, check for access_token in hash (handled by client)
   // Just redirect to a client-side page that will handle the hash
-  return NextResponse.redirect(new URL('/auth/confirm', requestUrl.origin));
+  const confirmUrl = new URL('/auth/confirm', requestUrl.origin);
+  confirmUrl.searchParams.set('next', next);
+  confirmUrl.searchParams.set('userType', userType);
+  return NextResponse.redirect(confirmUrl);
 }
 
