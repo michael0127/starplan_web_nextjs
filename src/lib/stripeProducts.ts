@@ -1,29 +1,33 @@
 /**
  * Stripe Products Configuration
  * Maps experience levels to product types and Stripe product IDs
+ * 
+ * Product/Price IDs are loaded from environment variables:
+ * - STRIPE_JUNIOR_PRODUCT_ID / STRIPE_JUNIOR_PRICE_ID
+ * - STRIPE_SENIOR_PRODUCT_ID / STRIPE_SENIOR_PRICE_ID
  */
 
 import { ExperienceLevel, ProductType } from '@prisma/client';
 
-// Stripe Product IDs from Stripe Dashboard
+// Stripe Product IDs from environment variables
 export const STRIPE_PRODUCTS = {
   JUNIOR: {
-    productId: 'prod_TcmwWtCeq8zV3Z',
-    priceId: 'price_1SfXN5FNsxPjNnLXgWKViqTx',
+    productId: process.env.STRIPE_JUNIOR_PRODUCT_ID || '',
+    priceId: process.env.STRIPE_JUNIOR_PRICE_ID || '',
     amount: 3000, // $30.00 AUD in cents
     currency: 'aud',
     name: 'Junior Job Posting',
     description: 'Post a job for entry-level positions (Intern, Junior)',
   },
   SENIOR: {
-    productId: 'prod_TcsyqfzZ8A2vRu',
-    priceId: 'price_1SfdCTFNsxPjNnLXam3BHQ7m',
+    productId: process.env.STRIPE_SENIOR_PRODUCT_ID || '',
+    priceId: process.env.STRIPE_SENIOR_PRICE_ID || '',
     amount: 30000, // $300.00 AUD in cents
     currency: 'aud',
     name: 'Senior Job Posting',
     description: 'Post a job for experienced positions (Mid-level, Senior, Lead, Principal)',
   },
-} as const;
+};
 
 /**
  * Maps experience level string to ProductType enum
