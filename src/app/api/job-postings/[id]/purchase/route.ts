@@ -102,6 +102,7 @@ export async function POST(
         },
       ],
       mode: 'payment',
+      allow_promotion_codes: true, // Allow customers to enter promotion codes
       success_url: successUrl || `${request.nextUrl.origin}/employer/jobs?success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: cancelUrl || `${request.nextUrl.origin}/employer/jobs/new?canceled=true`,
       metadata: {
