@@ -58,11 +58,34 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
 .sectionTitle {
   font-size: 20px;
   font-weight: 700;
   color: #1a202c;
-  margin: 0 0 24px 0;
+  margin: 0;
+}
+
+.viewAllBtn {
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #4a5bf4;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.viewAllBtn:hover {
+  background: #eff6ff;
+  border-color: #4a5bf4;
 }
 
 .tableWrapper {
@@ -96,6 +119,65 @@
 
 .table tbody tr:hover {
   background: #f7fafc;
+}
+
+.clickableRow {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.clickableRow:hover {
+  background: #edf2f7 !important;
+}
+
+.candidateRow {
+  border-left: 3px solid #48bb78;
+}
+
+.jobTitleCell {
+  font-weight: 600;
+}
+
+.actionsCell {
+  display: flex;
+  gap: 6px;
+}
+
+.actionBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.actionBtn:hover {
+  background: #f7fafc;
+  border-color: #cbd5e0;
+}
+
+.actionBtn.matchBtn {
+  color: #4a5bf4;
+}
+
+.actionBtn.matchBtn:hover {
+  background: #eff6ff;
+  border-color: #4a5bf4;
+}
+
+.actionBtn.matchAllBtn {
+  color: #38a169;
+}
+
+.actionBtn.matchAllBtn:hover {
+  background: #f0fff4;
+  border-color: #38a169;
 }
 
 .badge {

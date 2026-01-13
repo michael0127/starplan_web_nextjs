@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import SearchableSelect, { SelectOption } from '@/components/admin/SearchableSelect';
 import styles from './page.module.css';
 
 interface MatchResult {
@@ -10,7 +11,7 @@ interface MatchResult {
   passed_hard_gate?: boolean;
   hard_gate_reasons?: string[];
   match_details?: any;
-  is_new?: boolean;  // Indicates if match was newly created or updated
+  is_new?: boolean;
   created_at?: string;
   updated_at?: string;
   // Batch results
@@ -18,8 +19,8 @@ interface MatchResult {
   total_candidates?: number;
   passed_count?: number;
   failed_count?: number;
-  new_matches?: number;     // Count of newly created matches
-  updated_matches?: number; // Count of updated existing matches
+  new_matches?: number;
+  updated_matches?: number;
   matches?: any[];
   message?: string;
 }
@@ -30,25 +31,132 @@ export default function AdminMatching() {
   const [result, setResult] = useState<MatchResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Candidate and Job options
+  const [candidates, setCandidates] = useState<SelectOption[]>([]);
+  const [jobs, setJobs] = useState<SelectOption[]>([]);
+  const [cvs, setCvs] = useState<SelectOption[]>([]);
+  const [loadingCandidates, setLoadingCandidates] = useState(false);
+  const [loadingJobs, setLoadingJobs] = useState(false);
+  const [loadingCvs, setLoadingCvs] = useState(false);
+
   // Single match form
-  const [candidateId, setCandidateId] = useState('');
-  const [jobPostingId, setJobPostingId] = useState('');
-  const [cvId, setCvId] = useState('');
+  const [selectedCandidate, setSelectedCandidate] = useState<SelectOption | null>(null);
+  const [selectedJob, setSelectedJob] = useState<SelectOption | null>(null);
+  const [selectedCv, setSelectedCv] = useState<SelectOption | null>(null);
   const [skipHardGate, setSkipHardGate] = useState(false);
 
   // Candidate to all jobs form
-  const [candidateIdAll, setCandidateIdAll] = useState('');
-  const [cvIdAll, setCvIdAll] = useState('');
+  const [selectedCandidateAll, setSelectedCandidateAll] = useState<SelectOption | null>(null);
+  const [selectedCvAll, setSelectedCvAll] = useState<SelectOption | null>(null);
   const [skipHardGateAll, setSkipHardGateAll] = useState(false);
 
   // Job to all candidates form
-  const [jobPostingIdAll, setJobPostingIdAll] = useState('');
+  const [selectedJobAll, setSelectedJobAll] = useState<SelectOption | null>(null);
   const [skipHardGateJobAll, setSkipHardGateJobAll] = useState(false);
 
   const API_BASE_URL = process.env.NEXT_PUBLIC_FASTAPI_URL || 'http://127.0.0.1:8000';
 
+  // Get admin token
+  const getToken = () => localStorage.getItem('adminToken') || '';
+
+  // Fetch candidates
+  const fetchCandidates = useCallback(async (search: string = '') => {
+    setLoadingCandidates(true);
+    try {
+      const response = await fetch(
+        `/api/admin/candidates?search=${encodeURIComponent(search)}&limit=50`,
+        {
+          headers: { Authorization: `Bearer ${getToken()}` },
+        }
+      );
+      const data = await response.json();
+      if (data.candidates) {
+        setCandidates(data.candidates);
+      }
+    } catch (err) {
+      console.error('Failed to fetch candidates:', err);
+    } finally {
+      setLoadingCandidates(false);
+    }
+  }, []);
+
+  // Fetch jobs
+  const fetchJobs = useCallback(async (search: string = '') => {
+    setLoadingJobs(true);
+    try {
+      const response = await fetch(
+        `/api/admin/jobs?search=${encodeURIComponent(search)}&status=PUBLISHED&limit=50`,
+        {
+          headers: { Authorization: `Bearer ${getToken()}` },
+        }
+      );
+      const data = await response.json();
+      if (data.jobs) {
+        setJobs(data.jobs);
+      }
+    } catch (err) {
+      console.error('Failed to fetch jobs:', err);
+    } finally {
+      setLoadingJobs(false);
+    }
+  }, []);
+
+  // Fetch CVs for selected candidate
+  const fetchCvs = useCallback(async (candidateId: string) => {
+    if (!candidateId) {
+      setCvs([]);
+      return;
+    }
+    setLoadingCvs(true);
+    try {
+      const response = await fetch(
+        `/api/admin/candidates/${candidateId}/cvs`,
+        {
+          headers: { Authorization: `Bearer ${getToken()}` },
+        }
+      );
+      const data = await response.json();
+      if (data.cvs) {
+        setCvs(data.cvs);
+      }
+    } catch (err) {
+      console.error('Failed to fetch CVs:', err);
+    } finally {
+      setLoadingCvs(false);
+    }
+  }, []);
+
+  // Initial load
+  useEffect(() => {
+    fetchCandidates();
+    fetchJobs();
+  }, [fetchCandidates, fetchJobs]);
+
+  // Fetch CVs when candidate changes (single match)
+  useEffect(() => {
+    if (selectedCandidate?.id) {
+      fetchCvs(selectedCandidate.id);
+      setSelectedCv(null);
+    } else {
+      setCvs([]);
+    }
+  }, [selectedCandidate, fetchCvs]);
+
+  // Fetch CVs when candidate changes (candidate to all)
+  useEffect(() => {
+    if (selectedCandidateAll?.id) {
+      fetchCvs(selectedCandidateAll.id);
+      setSelectedCvAll(null);
+    }
+  }, [selectedCandidateAll, fetchCvs]);
+
   const handleSingleMatch = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedCandidate || !selectedJob) {
+      setError('Please select both candidate and job');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setResult(null);
@@ -56,13 +164,11 @@ export default function AdminMatching() {
     try {
       const response = await fetch(`${API_BASE_URL}/api/v1/match/candidate-to-job`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          candidate_id: candidateId,
-          job_posting_id: jobPostingId,
-          cv_id: cvId || undefined,
+          candidate_id: selectedCandidate.id,
+          job_posting_id: selectedJob.id,
+          cv_id: selectedCv?.id || undefined,
           skip_hard_gate: skipHardGate,
         }),
       });
@@ -83,36 +189,36 @@ export default function AdminMatching() {
 
   const handleCandidateToAllJobs = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedCandidateAll) {
+      setError('Please select a candidate');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setResult(null);
 
     try {
-      // Fire and forget - don't wait for response
+      // Fire and forget
       fetch(`${API_BASE_URL}/api/v1/match/candidate-to-all-jobs`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          candidate_id: candidateIdAll,
-          cv_id: cvIdAll || undefined,
+          candidate_id: selectedCandidateAll.id,
+          cv_id: selectedCvAll?.id || undefined,
           skip_hard_gate: skipHardGateAll,
         }),
-      }).catch(err => {
-        console.error('Background matching error:', err);
-      });
+      }).catch(err => console.error('Background matching error:', err));
 
-      // Immediately show success message
       setResult({
-        candidate_id: candidateIdAll,
+        candidate_id: selectedCandidateAll.id,
         total_jobs: 0,
         passed_count: 0,
         failed_count: 0,
         matches: [],
-        message: `✅ Matching started! Processing candidate ${candidateIdAll} against all jobs in the background. You can continue with other tasks.`
+        message: `✅ Matching started! Processing candidate "${selectedCandidateAll.label}" against all jobs in the background. You can continue with other tasks.`
       } as any);
-      
+
       setLoading(false);
     } catch (err: any) {
       setError(err.message);
@@ -122,35 +228,35 @@ export default function AdminMatching() {
 
   const handleJobToAllCandidates = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedJobAll) {
+      setError('Please select a job');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setResult(null);
 
     try {
-      // Fire and forget - don't wait for response
+      // Fire and forget
       fetch(`${API_BASE_URL}/api/v1/match/job-to-all-candidates`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          job_posting_id: jobPostingIdAll,
+          job_posting_id: selectedJobAll.id,
           skip_hard_gate: skipHardGateJobAll,
         }),
-      }).catch(err => {
-        console.error('Background matching error:', err);
-      });
+      }).catch(err => console.error('Background matching error:', err));
 
-      // Immediately show success message
       setResult({
-        job_posting_id: jobPostingIdAll,
+        job_posting_id: selectedJobAll.id,
         total_candidates: 0,
         passed_count: 0,
         failed_count: 0,
         matches: [],
-        message: `✅ Matching started! Processing job ${jobPostingIdAll} against all candidates in the background. You can continue with other tasks.`
+        message: `✅ Matching started! Processing job "${selectedJobAll.label}" against all candidates in the background. You can continue with other tasks.`
       } as any);
-      
+
       setLoading(false);
     } catch (err: any) {
       setError(err.message);
@@ -193,40 +299,38 @@ export default function AdminMatching() {
       {activeTab === 'single' && (
         <div className={styles.formContainer}>
           <form onSubmit={handleSingleMatch} className={styles.form}>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Candidate ID *</label>
-              <input
-                type="text"
-                className={styles.input}
-                value={candidateId}
-                onChange={(e) => setCandidateId(e.target.value)}
-                placeholder="550e8400-e29b-41d4-a716-446655440000"
-                required
-              />
-            </div>
+            <SearchableSelect
+              label="Candidate"
+              placeholder="Search by name or email..."
+              options={candidates}
+              value={selectedCandidate}
+              onChange={setSelectedCandidate}
+              onSearch={fetchCandidates}
+              loading={loadingCandidates}
+              required
+            />
 
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Job Posting ID *</label>
-              <input
-                type="text"
-                className={styles.input}
-                value={jobPostingId}
-                onChange={(e) => setJobPostingId(e.target.value)}
-                placeholder="660e8400-e29b-41d4-a716-446655440000"
-                required
-              />
-            </div>
+            <SearchableSelect
+              label="Job Posting"
+              placeholder="Search by job title or company..."
+              options={jobs}
+              value={selectedJob}
+              onChange={setSelectedJob}
+              onSearch={fetchJobs}
+              loading={loadingJobs}
+              required
+            />
 
-            <div className={styles.formGroup}>
-              <label className={styles.label}>CV ID (Optional)</label>
-              <input
-                type="text"
-                className={styles.input}
-                value={cvId}
-                onChange={(e) => setCvId(e.target.value)}
-                placeholder="770e8400-e29b-41d4-a716-446655440000"
-              />
-            </div>
+            <SearchableSelect
+              label="CV"
+              placeholder={selectedCandidate ? "Select a CV (optional)" : "Select a candidate first"}
+              options={cvs}
+              value={selectedCv}
+              onChange={setSelectedCv}
+              loading={loadingCvs}
+              disabled={!selectedCandidate}
+              hint="Leave empty to use the candidate's latest CV"
+            />
 
             <div className={styles.checkboxGroup}>
               <label className={styles.checkboxLabel}>
@@ -251,28 +355,27 @@ export default function AdminMatching() {
       {activeTab === 'candidate-all' && (
         <div className={styles.formContainer}>
           <form onSubmit={handleCandidateToAllJobs} className={styles.form}>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Candidate ID *</label>
-              <input
-                type="text"
-                className={styles.input}
-                value={candidateIdAll}
-                onChange={(e) => setCandidateIdAll(e.target.value)}
-                placeholder="550e8400-e29b-41d4-a716-446655440000"
-                required
-              />
-            </div>
+            <SearchableSelect
+              label="Candidate"
+              placeholder="Search by name or email..."
+              options={candidates}
+              value={selectedCandidateAll}
+              onChange={setSelectedCandidateAll}
+              onSearch={fetchCandidates}
+              loading={loadingCandidates}
+              required
+            />
 
-            <div className={styles.formGroup}>
-              <label className={styles.label}>CV ID (Optional)</label>
-              <input
-                type="text"
-                className={styles.input}
-                value={cvIdAll}
-                onChange={(e) => setCvIdAll(e.target.value)}
-                placeholder="770e8400-e29b-41d4-a716-446655440000"
-              />
-            </div>
+            <SearchableSelect
+              label="CV"
+              placeholder={selectedCandidateAll ? "Select a CV (optional)" : "Select a candidate first"}
+              options={cvs}
+              value={selectedCvAll}
+              onChange={setSelectedCvAll}
+              loading={loadingCvs}
+              disabled={!selectedCandidateAll}
+              hint="Leave empty to use the candidate's latest CV"
+            />
 
             <div className={styles.checkboxGroup}>
               <label className={styles.checkboxLabel}>
@@ -297,17 +400,16 @@ export default function AdminMatching() {
       {activeTab === 'job-all' && (
         <div className={styles.formContainer}>
           <form onSubmit={handleJobToAllCandidates} className={styles.form}>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Job Posting ID *</label>
-              <input
-                type="text"
-                className={styles.input}
-                value={jobPostingIdAll}
-                onChange={(e) => setJobPostingIdAll(e.target.value)}
-                placeholder="660e8400-e29b-41d4-a716-446655440000"
-                required
-              />
-            </div>
+            <SearchableSelect
+              label="Job Posting"
+              placeholder="Search by job title or company..."
+              options={jobs}
+              value={selectedJobAll}
+              onChange={setSelectedJobAll}
+              onSearch={fetchJobs}
+              loading={loadingJobs}
+              required
+            />
 
             <div className={styles.checkboxGroup}>
               <label className={styles.checkboxLabel}>
@@ -485,4 +587,3 @@ export default function AdminMatching() {
     </div>
   );
 }
-

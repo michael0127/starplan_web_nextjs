@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import AdminPageContainer from '@/components/admin/AdminPageContainer';
+import SearchableSelect, { SelectOption } from '@/components/admin/SearchableSelect';
 import styles from './page.module.css';
 
 interface UploadResult {
@@ -10,7 +11,7 @@ interface UploadResult {
   data?: any;
   error?: string;
   user_id?: string;
-  job_posting_id?: string;  // For JD uploads (JobPosting ID)
+  job_posting_id?: string;
 }
 
 interface BatchResult {
@@ -24,11 +25,47 @@ interface BatchResult {
 export default function BatchUpload() {
   const [uploadType, setUploadType] = useState<'cv' | 'jd'>('cv');
   const [files, setFiles] = useState<FileList | null>(null);
-  const [autoInvite, setAutoInvite] = useState(false);  // For CV: send invitation email
-  const [saveToDb, setSaveToDb] = useState(false);  // For JD: save to database
+  const [autoInvite, setAutoInvite] = useState(false);
+  const [saveToDb, setSaveToDb] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState<BatchResult | null>(null);
   const [error, setError] = useState('');
+
+  // Employer selection for JD upload
+  const [employers, setEmployers] = useState<SelectOption[]>([]);
+  const [selectedEmployer, setSelectedEmployer] = useState<SelectOption | null>(null);
+  const [loadingEmployers, setLoadingEmployers] = useState(false);
+
+  // Get admin token
+  const getToken = () => localStorage.getItem('adminToken') || '';
+
+  // Fetch employers
+  const fetchEmployers = useCallback(async (search: string = '') => {
+    setLoadingEmployers(true);
+    try {
+      const response = await fetch(
+        `/api/admin/employers?search=${encodeURIComponent(search)}`,
+        {
+          headers: { Authorization: `Bearer ${getToken()}` },
+        }
+      );
+      const data = await response.json();
+      if (data.employers) {
+        setEmployers(data.employers);
+      }
+    } catch (err) {
+      console.error('Failed to fetch employers:', err);
+    } finally {
+      setLoadingEmployers(false);
+    }
+  }, []);
+
+  // Load employers when saveToDb is enabled
+  useEffect(() => {
+    if (saveToDb && employers.length === 0) {
+      fetchEmployers();
+    }
+  }, [saveToDb, employers.length, fetchEmployers]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFiles(e.target.files);
@@ -39,6 +76,12 @@ export default function BatchUpload() {
   const handleUpload = async () => {
     if (!files || files.length === 0) {
       setError('Please select files to upload');
+      return;
+    }
+
+    // Validate employer selection for JD uploads with saveToDb
+    if (uploadType === 'jd' && saveToDb && !selectedEmployer) {
+      setError('Please select an employer for saving JD to database');
       return;
     }
 
@@ -68,11 +111,8 @@ export default function BatchUpload() {
       let url = endpoint;
       if (uploadType === 'cv' && autoInvite) {
         url = `${endpoint}?auto_invite=true`;
-      } else if (uploadType === 'jd' && saveToDb) {
-        // For JD, we need user_id when saving to database
-        // Using admin user ID: hello@starplan.ai
-        const userId = 'f5c8cfd7-493a-4edb-95bb-1a737bb947bb';
-        url = `${endpoint}?save_to_db=true&user_id=${userId}`;
+      } else if (uploadType === 'jd' && saveToDb && selectedEmployer) {
+        url = `${endpoint}?save_to_db=true&user_id=${selectedEmployer.id}`;
       }
 
       // Fire and forget - don't wait for response
@@ -122,7 +162,10 @@ export default function BatchUpload() {
                   type="radio"
                   value="cv"
                   checked={uploadType === 'cv'}
-                  onChange={(e) => setUploadType(e.target.value as 'cv')}
+                  onChange={(e) => {
+                    setUploadType(e.target.value as 'cv');
+                    setSelectedEmployer(null);
+                  }}
                   disabled={uploading}
                 />
                 <span>CV / Resume (Structured Extraction)</span>
@@ -164,24 +207,43 @@ export default function BatchUpload() {
 
           {/* JD Options */}
           {uploadType === 'jd' && (
-            <div className={styles.section}>
-              <label className={styles.checkboxLabel}>
-                <input
-                  type="checkbox"
-                  checked={saveToDb}
-                  onChange={(e) => setSaveToDb(e.target.checked)}
-                  disabled={uploading}
-                />
-                <span>Save extracted data to database</span>
-              </label>
-              <div className={styles.hint} style={{ marginTop: '8px', marginLeft: '24px' }}>
-                {saveToDb ? (
-                  <>✓ Job descriptions will be extracted and saved to the database</>
-                ) : (
-                  <>✓ Job descriptions will be extracted only (no database save)</>
-                )}
+            <>
+              <div className={styles.section}>
+                <label className={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={saveToDb}
+                    onChange={(e) => setSaveToDb(e.target.checked)}
+                    disabled={uploading}
+                  />
+                  <span>Save extracted data to database</span>
+                </label>
+                <div className={styles.hint} style={{ marginTop: '8px', marginLeft: '24px' }}>
+                  {saveToDb ? (
+                    <>✓ Job descriptions will be extracted and saved to the database</>
+                  ) : (
+                    <>✓ Job descriptions will be extracted only (no database save)</>
+                  )}
+                </div>
               </div>
-            </div>
+
+              {/* Employer Selection */}
+              {saveToDb && (
+                <div className={styles.section}>
+                  <SearchableSelect
+                    label="Employer (Owner of Job Postings)"
+                    placeholder="Search by company or email..."
+                    options={employers}
+                    value={selectedEmployer}
+                    onChange={setSelectedEmployer}
+                    onSearch={fetchEmployers}
+                    loading={loadingEmployers}
+                    required
+                    hint="Select which employer account will own these job postings"
+                  />
+                </div>
+              )}
+            </>
           )}
 
           {/* File Upload */}
@@ -220,7 +282,7 @@ export default function BatchUpload() {
           {/* Upload Button */}
           <button
             onClick={handleUpload}
-            disabled={uploading || !files}
+            disabled={uploading || !files || (uploadType === 'jd' && saveToDb && !selectedEmployer)}
             className={styles.uploadBtn}
           >
             {uploading ? 'Uploading...' : 'Upload & Process'}
@@ -256,7 +318,7 @@ export default function BatchUpload() {
                   <>
                     <li>Job descriptions will be analyzed and extracted</li>
                     {saveToDb ? (
-                      <li>Extracted data will be saved to the database</li>
+                      <li>Extracted data will be saved to the database under: <strong>{selectedEmployer?.label}</strong></li>
                     ) : (
                       <li>Data will be extracted only (not saved to database)</li>
                     )}
@@ -281,9 +343,16 @@ export default function BatchUpload() {
                 </div>
               )}
               {uploadType === 'jd' && (
-                <div className={styles.infoItem}>
-                  <strong>Save to Database:</strong> {saveToDb ? 'Enabled ✓' : 'Disabled'}
-                </div>
+                <>
+                  <div className={styles.infoItem}>
+                    <strong>Save to Database:</strong> {saveToDb ? 'Enabled ✓' : 'Disabled'}
+                  </div>
+                  {saveToDb && selectedEmployer && (
+                    <div className={styles.infoItem}>
+                      <strong>Employer:</strong> {selectedEmployer.label}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -291,4 +360,3 @@ export default function BatchUpload() {
     </AdminPageContainer>
   );
 }
-
