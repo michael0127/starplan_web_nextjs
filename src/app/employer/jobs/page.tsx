@@ -57,6 +57,11 @@ export default function EmployerJobs() {
   const [isRepublishing, setIsRepublishing] = useState(false);
   const [checkingExpiry, setCheckingExpiry] = useState<string | null>(null);
   
+  // Preview Panel
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewJob, setPreviewJob] = useState<JobPosting | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  
   // 防止重复 fetch 的 ref
   const fetchingRef = useRef(false);
   const initialFetchDone = useRef(false);
@@ -404,6 +409,73 @@ export default function EmployerJobs() {
     return <span className={`${styles.statusBadge} ${config.className}`}>{config.label}</span>;
   };
 
+  // Open preview panel with job details
+  const openPreview = async (job: JobPosting) => {
+    setPreviewOpen(true);
+    setLoadingPreview(true);
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        console.error('No session found');
+        setLoadingPreview(false);
+        return;
+      }
+
+      // Fetch full job details
+      const response = await fetch(`/api/job-postings/${job.id}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Merge with list data to preserve applicantCount (not returned by single job API)
+        setPreviewJob({
+          ...data.data,
+          applicantCount: job.applicantCount ?? data.data.applicantCount ?? 0,
+        });
+      } else {
+        // Fallback to the basic job data from the list
+        setPreviewJob(job);
+      }
+    } catch (error) {
+      console.error('Error fetching job details:', error);
+      // Fallback to the basic job data
+      setPreviewJob(job);
+    } finally {
+      setLoadingPreview(false);
+    }
+  };
+
+  const closePreview = () => {
+    setPreviewOpen(false);
+    setPreviewJob(null);
+  };
+
+  // Format salary display
+  const formatSalary = (job: JobPosting) => {
+    if (job.salaryDisplayText) return job.salaryDisplayText;
+    if (!job.payFrom && !job.payTo) return 'Not specified';
+    
+    const formatNum = (num: string) => {
+      const n = parseFloat(num);
+      if (isNaN(n)) return num;
+      return n.toLocaleString();
+    };
+    
+    const currency = job.currency || 'AUD';
+    if (job.payFrom && job.payTo) {
+      return `${currency} ${formatNum(job.payFrom)} - ${formatNum(job.payTo)} ${job.payType === 'ANNUAL' ? 'per year' : job.payType === 'HOURLY' ? 'per hour' : ''}`;
+    }
+    if (job.payFrom) {
+      return `${currency} ${formatNum(job.payFrom)}+ ${job.payType === 'ANNUAL' ? 'per year' : job.payType === 'HOURLY' ? 'per hour' : ''}`;
+    }
+    return 'Not specified';
+  };
+
   if (loading || !isEmployer) {
     return (
       <PageTransition>
@@ -620,9 +692,12 @@ export default function EmployerJobs() {
                       />
                       <div className={styles.jobInfo}>
                         <div className={styles.jobTitleRow}>
-                          <Link href={`/employer/jobs/new?edit=${job.id}`} className={styles.jobTitle}>
+                          <button 
+                            className={styles.jobTitleBtn}
+                            onClick={() => openPreview(job)}
+                          >
                             {job.jobTitle}
-                          </Link>
+                          </button>
                           {getStatusBadge(job.status)}
                         </div>
                         <div className={styles.jobMeta}>
@@ -898,6 +973,240 @@ export default function EmployerJobs() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Job Preview Panel - Slides in from right */}
+      {previewOpen && (
+        <>
+          <div className={styles.previewOverlay} onClick={closePreview} />
+          <div className={styles.previewPanel}>
+            <div className={styles.previewHeader}>
+              <h2 className={styles.previewTitle}>Job Preview</h2>
+              <button className={styles.previewClose} onClick={closePreview}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {loadingPreview ? (
+              <div className={styles.previewLoading}>
+                <div className={styles.spinner} />
+                <span>Loading job details...</span>
+              </div>
+            ) : previewJob ? (
+              <div className={styles.previewContent}>
+                {/* Company Header */}
+                {previewJob.companyCoverImage && (
+                  <div className={styles.previewCover}>
+                    <img src={previewJob.companyCoverImage} alt="Company cover" />
+                  </div>
+                )}
+                
+                <div className={styles.previewCompanyInfo}>
+                  {previewJob.companyLogo && (
+                    <img 
+                      src={previewJob.companyLogo} 
+                      alt={previewJob.companyName}
+                      className={styles.previewLogo}
+                    />
+                  )}
+                  <div className={styles.previewCompanyDetails}>
+                    <h3 className={styles.previewJobTitle}>{previewJob.jobTitle}</h3>
+                    <p className={styles.previewCompanyName}>{previewJob.companyName}</p>
+                    <div className={styles.previewMeta}>
+                      <span>{previewJob.countryRegion}</span>
+                      <span className={styles.previewDot}>•</span>
+                      <span>{normalizeWorkType(previewJob.workType)}</span>
+                      <span className={styles.previewDot}>•</span>
+                      {getStatusBadge(previewJob.status)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Key Selling Points */}
+                {(previewJob.keySellingPoint1 || previewJob.keySellingPoint2 || previewJob.keySellingPoint3) && (
+                  <div className={styles.previewSection}>
+                    <h4 className={styles.previewSectionTitle}>Why Join Us</h4>
+                    <ul className={styles.previewSellingPoints}>
+                      {previewJob.keySellingPoint1 && <li>{previewJob.keySellingPoint1}</li>}
+                      {previewJob.keySellingPoint2 && <li>{previewJob.keySellingPoint2}</li>}
+                      {previewJob.keySellingPoint3 && <li>{previewJob.keySellingPoint3}</li>}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Quick Info Cards */}
+                <div className={styles.previewInfoGrid}>
+                  <div className={styles.previewInfoCard}>
+                    <div className={styles.previewInfoIcon}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                      </svg>
+                    </div>
+                    <div className={styles.previewInfoContent}>
+                      <span className={styles.previewInfoLabel}>Experience</span>
+                      <span className={styles.previewInfoValue}>
+                        {previewJob.experienceLevel || 'Not specified'}
+                        {previewJob.experienceYearsFrom !== undefined && (
+                          <> ({previewJob.experienceYearsFrom}{previewJob.experienceYearsTo && previewJob.experienceYearsTo !== 'Unlimited' ? `-${previewJob.experienceYearsTo}` : '+'} years)</>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className={styles.previewInfoCard}>
+                    <div className={styles.previewInfoIcon}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="12" y1="1" x2="12" y2="23" />
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                      </svg>
+                    </div>
+                    <div className={styles.previewInfoContent}>
+                      <span className={styles.previewInfoLabel}>Salary</span>
+                      <span className={styles.previewInfoValue}>
+                        {previewJob.showSalaryOnAd ? formatSalary(previewJob) : 'Hidden from candidates'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className={styles.previewInfoCard}>
+                    <div className={styles.previewInfoIcon}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                      </svg>
+                    </div>
+                    <div className={styles.previewInfoContent}>
+                      <span className={styles.previewInfoLabel}>Posted</span>
+                      <span className={styles.previewInfoValue}>{formatDate(previewJob.createdAt)}</span>
+                    </div>
+                  </div>
+
+                  {previewJob.applicationDeadline && (
+                    <div className={styles.previewInfoCard}>
+                      <div className={styles.previewInfoIcon}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                          <line x1="16" y1="2" x2="16" y2="6" />
+                          <line x1="8" y1="2" x2="8" y2="6" />
+                          <line x1="3" y1="10" x2="21" y2="10" />
+                        </svg>
+                      </div>
+                      <div className={styles.previewInfoContent}>
+                        <span className={styles.previewInfoLabel}>Deadline</span>
+                        <span className={styles.previewInfoValue}>{formatDate(previewJob.applicationDeadline)}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Categories */}
+                {previewJob.categories && previewJob.categories.length > 0 && (
+                  <div className={styles.previewSection}>
+                    <h4 className={styles.previewSectionTitle}>Categories</h4>
+                    <div className={styles.previewTags}>
+                      {previewJob.categories.map((cat, idx) => (
+                        <span key={idx} className={styles.previewTag}>{cat}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Skills */}
+                {previewJob.categorySkills && previewJob.categorySkills.length > 0 && (
+                  <div className={styles.previewSection}>
+                    <h4 className={styles.previewSectionTitle}>Required Skills</h4>
+                    <div className={styles.previewTags}>
+                      {previewJob.categorySkills.map((skill, idx) => (
+                        <span key={idx} className={styles.previewSkillTag}>{skill}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Job Summary */}
+                {previewJob.jobSummary && (
+                  <div className={styles.previewSection}>
+                    <h4 className={styles.previewSectionTitle}>Summary</h4>
+                    <p className={styles.previewSummary}>{previewJob.jobSummary}</p>
+                  </div>
+                )}
+
+                {/* Job Description */}
+                <div className={styles.previewSection}>
+                  <h4 className={styles.previewSectionTitle}>Job Description</h4>
+                  <div 
+                    className={styles.previewDescription}
+                    dangerouslySetInnerHTML={{ __html: previewJob.jobDescription }}
+                  />
+                </div>
+
+                {/* Screening Requirements */}
+                {previewJob.selectedCountries && previewJob.selectedCountries.length > 0 && (
+                  <div className={styles.previewSection}>
+                    <h4 className={styles.previewSectionTitle}>Candidate Requirements</h4>
+                    <div className={styles.previewRequirement}>
+                      <strong>Accepted countries:</strong>
+                      <div className={styles.previewTags}>
+                        {previewJob.selectedCountries.map((country, idx) => (
+                          <span key={idx} className={styles.previewCountryTag}>{country}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Custom Screening Questions */}
+                {previewJob.customScreeningQuestions && previewJob.customScreeningQuestions.length > 0 && (
+                  <div className={styles.previewSection}>
+                    <h4 className={styles.previewSectionTitle}>Screening Questions ({previewJob.customScreeningQuestions.length})</h4>
+                    <div className={styles.previewQuestions}>
+                      {previewJob.customScreeningQuestions.map((q, idx) => (
+                        <div key={q.id || idx} className={styles.previewQuestion}>
+                          <span className={styles.previewQuestionNum}>{idx + 1}.</span>
+                          <span className={styles.previewQuestionText}>{q.questionText}</span>
+                          {q.mustAnswer && <span className={styles.previewRequired}>Required</span>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className={styles.previewError}>
+                <p>Unable to load job details</p>
+              </div>
+            )}
+
+            {/* Footer Actions */}
+            <div className={styles.previewFooter}>
+              <Link 
+                href={`/employer/jobs/new?edit=${previewJob?.id}`}
+                className={styles.previewEditBtn}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+                Edit Job
+              </Link>
+              <Link 
+                href={`/employer/candidates?jobId=${previewJob?.id}&tab=recommended`}
+                className={styles.previewCandidatesBtn}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+                View Candidates ({previewJob?.applicantCount || 0})
+              </Link>
+            </div>
+          </div>
+        </>
       )}
     </PageTransition>
   );

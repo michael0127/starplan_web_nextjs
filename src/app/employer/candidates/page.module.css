@@ -224,10 +224,31 @@
   background: white;
   border-radius: 8px;
   padding: 16px;
-  height: fit-content;
+  max-height: calc(100vh - 160px);
+  min-height: 500px;
+  overflow-y: auto;
   position: sticky;
   top: 140px;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+  scrollbar-width: thin;
+  scrollbar-color: #ccc transparent;
+}
+
+.sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background-color: #ccc;
+  border-radius: 3px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background-color: #999;
 }
 
 .sidebarHeader {
@@ -485,6 +506,17 @@
   padding: 20px;
   margin-bottom: 16px;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+  transition: padding 0.2s ease;
+}
+
+.spotlightsCollapsed {
+  padding: 12px 20px;
+}
+
+.spotlightsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .spotlightsTitle {
@@ -494,7 +526,30 @@
   font-size: 16px;
   font-weight: 600;
   color: #000;
+  margin: 0;
+}
+
+.spotlights:not(.spotlightsCollapsed) .spotlightsHeader {
   margin-bottom: 16px;
+}
+
+.spotlightToggleBtn {
+  background: transparent;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 6px 8px;
+  cursor: pointer;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.spotlightToggleBtn:hover {
+  border-color: #4a5bf4;
+  color: #4a5bf4;
+  background: rgba(74, 91, 244, 0.05);
 }
 
 .infoBtn {
@@ -606,6 +661,60 @@
   letter-spacing: 0.5px;
 }
 
+/* Batch Actions */
+.batchActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 16px;
+  padding-left: 16px;
+  border-left: 1px solid #e0e0e0;
+}
+
+.batchInviteBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #4a5bf4 0%, #6366f1 100%);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.batchInviteBtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(74, 91, 244, 0.3);
+}
+
+.batchInviteBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.batchClearBtn {
+  padding: 8px 12px;
+  background: transparent;
+  color: #666;
+  border: 1px solid #e0e0e0;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.batchClearBtn:hover {
+  border-color: #999;
+  color: #333;
+}
+
 .rankingIndicator {
   display: flex;
   align-items: center;
@@ -668,39 +777,41 @@
   outline: none;
 }
 
-.pagination {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: #666;
-}
+/* Pagination removed - using scrollable list instead */
 
-.paginationBtn {
-  background: transparent;
-  border: none;
-  padding: 4px;
-  cursor: pointer;
-  color: #666;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.paginationBtn:hover:not(:disabled) {
-  color: #4a5bf4;
-}
-
-.paginationBtn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-/* Applicant List */
+/* Applicant List - Scrollable Container (fits at least 3 candidates) */
 .applicantList {
   background: white;
   border-radius: 0 0 8px 8px;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+  max-height: calc(100vh - 260px);
+  min-height: 500px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #ccc transparent;
+  transition: max-height 0.2s ease;
+}
+
+/* Expanded state when spotlights are collapsed */
+.applicantListExpanded {
+  max-height: calc(100vh - 160px);
+}
+
+.applicantList::-webkit-scrollbar {
+  width: 8px;
+}
+
+.applicantList::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.applicantList::-webkit-scrollbar-thumb {
+  background-color: #ccc;
+  border-radius: 4px;
+}
+
+.applicantList::-webkit-scrollbar-thumb:hover {
+  background-color: #999;
 }
 
 .applicantCard {
@@ -1510,13 +1621,27 @@
   border-radius: 12px;
   padding: 20px 24px;
   margin-bottom: 16px;
+  transition: padding 0.2s ease;
+}
+
+.topCandidatesPanelCollapsed {
+  padding: 12px 24px;
 }
 
 .topCandidatesHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.topCandidatesPanel:not(.topCandidatesPanelCollapsed) .topCandidatesHeader {
   margin-bottom: 16px;
+}
+
+.topCandidatesHeaderLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .topCandidatesTitle {
@@ -1526,6 +1651,23 @@
   font-size: 16px;
   font-weight: 600;
   color: #0369a1;
+}
+
+.topMatchesToggleBtn {
+  background: transparent;
+  border: 1px solid #0ea5e9;
+  border-radius: 6px;
+  padding: 6px 8px;
+  cursor: pointer;
+  color: #0369a1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.topMatchesToggleBtn:hover {
+  background: rgba(14, 165, 233, 0.1);
 }
 
 .topCandidatesTitle svg {

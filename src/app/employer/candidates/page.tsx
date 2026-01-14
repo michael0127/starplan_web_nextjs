@@ -176,7 +176,6 @@ function EmployerCandidatesContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedJob, setSelectedJob] = useState<string>(jobIdParam || '');
   const [sortBy, setSortBy] = useState<SortOption>(tabParam === 'recommended' ? 'ranking' : 'newest');
-  const [currentPage, setCurrentPage] = useState(1);
   const [showFilters, setShowFilters] = useState(true);
   
   // Tab state
@@ -200,9 +199,16 @@ function EmployerCandidatesContent() {
   // Track archived applicants
   const [archivedCount, setArchivedCount] = useState(0);
   
+  // Spotlight and Top AI Matches collapsed state
+  const [spotlightCollapsed, setSpotlightCollapsed] = useState(false);
+  const [topMatchesCollapsed, setTopMatchesCollapsed] = useState(false);
+  
   // Dropdown menu state for three-dot button
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Batch selection state
+  const [selectedApplicants, setSelectedApplicants] = useState<Set<string>>(new Set());
   
   // Invite Modal state
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
@@ -291,7 +297,7 @@ function EmployerCandidatesContent() {
     if (user && isEmployer) {
       fetchApplicants();
     }
-  }, [user, isEmployer, selectedJob, sortBy, currentPage, passedHardGateFilter, selectedSkills, selectedLocations, selectedExperienceLevels, searchQuery]);
+  }, [user, isEmployer, selectedJob, sortBy, passedHardGateFilter, selectedSkills, selectedLocations, selectedExperienceLevels, searchQuery]);
 
   // Click outside handler for dropdown
   useEffect(() => {
@@ -323,8 +329,9 @@ function EmployerCandidatesContent() {
       }
       
       const params = new URLSearchParams();
-      params.set('page', currentPage.toString());
-      params.set('limit', '25');
+      // Fetch all candidates at once (no pagination, use scrollable container instead)
+      params.set('page', '1');
+      params.set('limit', '200');
       params.set('sortBy', sortBy);
       
       if (selectedJob) {
@@ -415,7 +422,6 @@ function EmployerCandidatesContent() {
       newSet.add(value);
     }
     setFn(newSet);
-    setCurrentPage(1);
   };
 
   // AI Ranking function
@@ -488,7 +494,6 @@ function EmployerCandidatesContent() {
     setSkillSearchQuery('');
     setShowAllSkills(false);
     setShowAllLocations(false);
-    setCurrentPage(1);
   };
 
   // Fetch job posting details with screening questions
@@ -556,9 +561,72 @@ function EmployerCandidatesContent() {
   // Handle invite sent callback
   const handleInviteSent = (result: { success: boolean; count: number }) => {
     if (result.success) {
-      // Optionally refresh applicants to show updated invitation status
+      // Clear selection after successful invite
+      setSelectedApplicants(new Set());
       console.log(`Successfully sent ${result.count} invitation(s)`);
     }
+  };
+
+  // Toggle single applicant selection
+  const toggleApplicantSelection = (candidateId: string) => {
+    setSelectedApplicants(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(candidateId)) {
+        newSet.delete(candidateId);
+      } else {
+        newSet.add(candidateId);
+      }
+      return newSet;
+    });
+  };
+
+  // Select/deselect all visible applicants
+  const toggleSelectAll = () => {
+    const visibleApplicants = data?.applicants || [];
+    if (selectedApplicants.size === visibleApplicants.length && visibleApplicants.length > 0) {
+      // Deselect all
+      setSelectedApplicants(new Set());
+    } else {
+      // Select all
+      setSelectedApplicants(new Set(visibleApplicants.map(a => a.candidateId)));
+    }
+  };
+
+  // Handle batch invite button click
+  const handleBatchInviteClick = async () => {
+    if (!selectedJob) {
+      alert('Please select a job first to invite candidates.');
+      return;
+    }
+
+    if (selectedApplicants.size === 0) {
+      alert('Please select at least one candidate to invite.');
+      return;
+    }
+
+    setLoadingJobDetails(true);
+
+    // Fetch job details with screening questions
+    const jobDetails = await fetchJobDetails(selectedJob);
+    if (!jobDetails) {
+      setLoadingJobDetails(false);
+      alert('Failed to load job details. Please try again.');
+      return;
+    }
+
+    // Get all selected applicants' info
+    const selectedApplicantsList = (data?.applicants || [])
+      .filter(a => selectedApplicants.has(a.candidateId))
+      .map(a => ({
+        candidateId: a.candidateId,
+        candidateName: a.candidate.name,
+        candidateEmail: a.candidate.email,
+      }));
+
+    setSelectedJobDetails(jobDetails);
+    setInviteCandidates(selectedApplicantsList);
+    setInviteModalOpen(true);
+    setLoadingJobDetails(false);
   };
 
   // Handle message button click
@@ -662,7 +730,6 @@ function EmployerCandidatesContent() {
                 value={selectedJob}
                 onChange={(e) => {
                   setSelectedJob(e.target.value);
-                  setCurrentPage(1);
                 }}
                 className={styles.jobSelect}
               >
@@ -778,7 +845,6 @@ function EmployerCandidatesContent() {
                     value={searchQuery}
                     onChange={(e) => {
                       setSearchQuery(e.target.value);
-                      setCurrentPage(1);
                     }}
                     className={styles.searchInput}
                   />
@@ -920,7 +986,6 @@ function EmployerCandidatesContent() {
                       checked={passedHardGateFilter === 'true'}
                       onChange={() => {
                         setPassedHardGateFilter(passedHardGateFilter === 'true' ? '' : 'true');
-                        setCurrentPage(1);
                       }}
                       className={styles.checkbox}
                     />
@@ -933,7 +998,6 @@ function EmployerCandidatesContent() {
                       checked={passedHardGateFilter === 'false'}
                       onChange={() => {
                         setPassedHardGateFilter(passedHardGateFilter === 'false' ? '' : 'false');
-                        setCurrentPage(1);
                       }}
                       className={styles.checkbox}
                     />
@@ -949,66 +1013,87 @@ function EmployerCandidatesContent() {
           <div className={styles.mainContent}>
             {/* Spotlights / AI Ranking Info */}
             {activeTab === 'recommended' && rankingResult ? (
-              <div className={styles.topCandidatesPanel}>
+              <div className={`${styles.topCandidatesPanel} ${topMatchesCollapsed ? styles.topCandidatesPanelCollapsed : ''}`}>
                 <div className={styles.topCandidatesHeader}>
-                  <div className={styles.topCandidatesTitle}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                    </svg>
-                    <span>Top AI Matches</span>
+                  <div className={styles.topCandidatesHeaderLeft}>
+                    <div className={styles.topCandidatesTitle}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                      </svg>
+                      <span>Top AI Matches</span>
+                    </div>
+                    <span className={styles.topCandidatesSubtitle}>
+                      {rankingResult.totalCandidates} candidates ranked
+                      {rankingResult.cacheStatus?.cachedAt && (
+                        <> • Updated {new Date(rankingResult.cacheStatus.cachedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</>
+                      )}
+                    </span>
                   </div>
-                  <span className={styles.topCandidatesSubtitle}>
-                    {rankingResult.totalCandidates} candidates ranked
-                    {rankingResult.cacheStatus?.cachedAt && (
-                      <> • Updated {new Date(rankingResult.cacheStatus.cachedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</>
-                    )}
-                  </span>
+                  <button 
+                    className={styles.topMatchesToggleBtn}
+                    onClick={() => setTopMatchesCollapsed(!topMatchesCollapsed)}
+                    title={topMatchesCollapsed ? 'Expand top matches' : 'Collapse top matches'}
+                  >
+                    <svg 
+                      width="16" 
+                      height="16" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="2"
+                      style={{ transform: topMatchesCollapsed ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
+                    >
+                      <polyline points="18 15 12 9 6 15"></polyline>
+                    </svg>
+                  </button>
                 </div>
-                <div className={styles.topCandidatesGrid}>
-                  {rankingResult.rankedCandidates.slice(0, 3).map((candidate, index) => {
-                    const applicant = data?.applicants.find(a => a.candidateId === candidate.candidateId);
-                    const rankColors = ['#FFD700', '#C0C0C0', '#CD7F32'];
-                    const rankLabels = ['Top Match', '2nd Best', '3rd Best'];
-                    
-                    return (
-                      <div key={candidate.candidateId} className={`${styles.topCandidateCard} ${styles[`topCandidate${index + 1}`]}`}>
-                        <div className={styles.topCandidateRank} style={{ backgroundColor: rankColors[index] }}>
-                          <span>#{index + 1}</span>
-                        </div>
-                        <div className={styles.topCandidateInfo}>
-                          <div className={styles.topCandidateAvatar}>
-                            {candidate.avatarUrl ? (
-                              <img src={candidate.avatarUrl} alt={candidate.name || ''} />
-                            ) : (
-                              <div className={styles.avatarPlaceholder}>
-                                {(candidate.name || candidate.email || '?').charAt(0).toUpperCase()}
-                              </div>
-                            )}
+                {!topMatchesCollapsed && (
+                  <div className={styles.topCandidatesGrid}>
+                    {rankingResult.rankedCandidates.slice(0, 3).map((candidate, index) => {
+                      const applicant = data?.applicants.find(a => a.candidateId === candidate.candidateId);
+                      const rankColors = ['#FFD700', '#C0C0C0', '#CD7F32'];
+                      const rankLabels = ['Top Match', '2nd Best', '3rd Best'];
+                      
+                      return (
+                        <div key={candidate.candidateId} className={`${styles.topCandidateCard} ${styles[`topCandidate${index + 1}`]}`}>
+                          <div className={styles.topCandidateRank} style={{ backgroundColor: rankColors[index] }}>
+                            <span>#{index + 1}</span>
                           </div>
-                          <div className={styles.topCandidateDetails}>
-                            <Link 
-                              href={`/employer/candidates/${candidate.candidateId}`}
-                              className={styles.topCandidateNameLink}
-                            >
-                              <h4 className={styles.topCandidateName}>
-                                {candidate.name || candidate.email?.split('@')[0] || 'Unknown'}
-                              </h4>
-                            </Link>
-                            <p className={styles.topCandidateRole}>
-                              {applicant?.experience?.[0]?.title || applicant?.candidate?.headline || 'Candidate'}
-                            </p>
+                          <div className={styles.topCandidateInfo}>
+                            <div className={styles.topCandidateAvatar}>
+                              {candidate.avatarUrl ? (
+                                <img src={candidate.avatarUrl} alt={candidate.name || ''} />
+                              ) : (
+                                <div className={styles.avatarPlaceholder}>
+                                  {(candidate.name || candidate.email || '?').charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                            </div>
+                            <div className={styles.topCandidateDetails}>
+                              <Link 
+                                href={`/employer/candidates/${candidate.candidateId}`}
+                                className={styles.topCandidateNameLink}
+                              >
+                                <h4 className={styles.topCandidateName}>
+                                  {candidate.name || candidate.email?.split('@')[0] || 'Unknown'}
+                                </h4>
+                              </Link>
+                              <p className={styles.topCandidateRole}>
+                                {applicant?.experience?.[0]?.title || applicant?.candidate?.headline || 'Candidate'}
+                              </p>
+                            </div>
+                          </div>
+                          <div className={styles.topCandidateBadge}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                            </svg>
+                            <span>{rankLabels[index]}</span>
                           </div>
                         </div>
-                        <div className={styles.topCandidateBadge}>
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                          </svg>
-                          <span>{rankLabels[index]}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             ) : activeTab === 'recommended' && rankingError ? (
               <div className={styles.rankingErrorPanel}>
@@ -1064,41 +1149,62 @@ function EmployerCandidatesContent() {
                 </div>
               </div>
             ) : (
-              <div className={styles.spotlights}>
-                <h2 className={styles.spotlightsTitle}>
-                  Spotlights
-                  <button className={styles.infoBtn}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <line x1="12" y1="16" x2="12" y2="12"></line>
-                      <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              <div className={`${styles.spotlights} ${spotlightCollapsed ? styles.spotlightsCollapsed : ''}`}>
+                <div className={styles.spotlightsHeader}>
+                  <h2 className={styles.spotlightsTitle}>
+                    Spotlights
+                    <button className={styles.infoBtn}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                      </svg>
+                    </button>
+                  </h2>
+                  <button 
+                    className={styles.spotlightToggleBtn}
+                    onClick={() => setSpotlightCollapsed(!spotlightCollapsed)}
+                    title={spotlightCollapsed ? 'Expand spotlights' : 'Collapse spotlights'}
+                  >
+                    <svg 
+                      width="16" 
+                      height="16" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="2"
+                      style={{ transform: spotlightCollapsed ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
+                    >
+                      <polyline points="18 15 12 9 6 15"></polyline>
                     </svg>
                   </button>
-                </h2>
+                </div>
                 
-                <div className={styles.spotlightCards}>
-                  <div className={styles.spotlightCard}>
-                    <div className={styles.spotlightNumber}>{data?.spotlights.activeApplicants || 0}</div>
-                    <div className={styles.spotlightLabel}>Active applicants</div>
-                  </div>
-                  <div className={styles.spotlightCard}>
-                    <div className={styles.spotlightNumber}>{data?.spotlights.passedScreening || 0}</div>
-                    <div className={styles.spotlightLabel}>Passed screening</div>
-                  </div>
-                  <div className={styles.spotlightCard}>
-                    <div className={styles.spotlightNumber}>{data?.spotlights.interestedInCompany || 0}</div>
-                    <div className={styles.spotlightLabel}>
-                      Interested in your company
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={styles.dropdownIcon}>
-                        <polyline points="6 9 12 15 18 9"></polyline>
-                      </svg>
+                {!spotlightCollapsed && (
+                  <div className={styles.spotlightCards}>
+                    <div className={styles.spotlightCard}>
+                      <div className={styles.spotlightNumber}>{data?.spotlights.activeApplicants || 0}</div>
+                      <div className={styles.spotlightLabel}>Active applicants</div>
+                    </div>
+                    <div className={styles.spotlightCard}>
+                      <div className={styles.spotlightNumber}>{data?.spotlights.passedScreening || 0}</div>
+                      <div className={styles.spotlightLabel}>Passed screening</div>
+                    </div>
+                    <div className={styles.spotlightCard}>
+                      <div className={styles.spotlightNumber}>{data?.spotlights.interestedInCompany || 0}</div>
+                      <div className={styles.spotlightLabel}>
+                        Interested in your company
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={styles.dropdownIcon}>
+                          <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                      </div>
+                    </div>
+                    <div className={styles.spotlightCard}>
+                      <div className={styles.spotlightNumber}>{data?.stats.newApplicants || 0}</div>
+                      <div className={styles.spotlightLabel}>New applicants</div>
                     </div>
                   </div>
-                  <div className={styles.spotlightCard}>
-                    <div className={styles.spotlightNumber}>{data?.stats.newApplicants || 0}</div>
-                    <div className={styles.spotlightLabel}>New applicants</div>
-                  </div>
-                </div>
+                )}
               </div>
             )}
 
@@ -1119,13 +1225,42 @@ function EmployerCandidatesContent() {
                 <input
                   type="checkbox"
                   className={styles.selectAllCheckbox}
+                  checked={selectedApplicants.size > 0 && selectedApplicants.size === (data?.applicants?.length || 0)}
+                  onChange={toggleSelectAll}
                 />
                 <span className={styles.resultsText}>
-                  {activeTab === 'recommended' 
-                    ? `${data?.stats.passed || 0} RANKED CANDIDATES`
-                    : `${data?.pagination.total.toLocaleString() || 0} RESULTS`
+                  {selectedApplicants.size > 0 
+                    ? `${selectedApplicants.size} SELECTED`
+                    : activeTab === 'recommended' 
+                      ? `${data?.stats.passed || 0} RANKED CANDIDATES`
+                      : `${data?.pagination.total.toLocaleString() || 0} RESULTS`
                   }
                 </span>
+                
+                {/* Batch Action Buttons */}
+                {selectedApplicants.size > 0 && (
+                  <div className={styles.batchActions}>
+                    <button 
+                      className={styles.batchInviteBtn}
+                      onClick={handleBatchInviteClick}
+                      disabled={loadingJobDetails || !selectedJob}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="8.5" cy="7" r="4"></circle>
+                        <line x1="20" y1="8" x2="20" y2="14"></line>
+                        <line x1="23" y1="11" x2="17" y2="11"></line>
+                      </svg>
+                      {loadingJobDetails ? 'Loading...' : `Invite ${selectedApplicants.size} Candidate${selectedApplicants.size > 1 ? 's' : ''}`}
+                    </button>
+                    <button 
+                      className={styles.batchClearBtn}
+                      onClick={() => setSelectedApplicants(new Set())}
+                    >
+                      Clear Selection
+                    </button>
+                  </div>
+                )}
                 {activeTab === 'recommended' && (
                   <span className={`${styles.rankingIndicator} ${rankingResult ? styles.rankingComplete : ''}`}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
@@ -1162,27 +1297,6 @@ function EmployerCandidatesContent() {
                       </>
                     )}
                   </select>
-                </div>
-                <div className={styles.pagination}>
-                  <span>{((currentPage - 1) * 25) + 1} – {Math.min(currentPage * 25, data?.pagination.total || 0)}</span>
-                  <button 
-                    className={styles.paginationBtn}
-                    disabled={currentPage <= 1}
-                    onClick={() => setCurrentPage(p => p - 1)}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polyline points="15 18 9 12 15 6"></polyline>
-                    </svg>
-                  </button>
-                  <button 
-                    className={styles.paginationBtn}
-                    disabled={currentPage >= (data?.pagination.totalPages || 1)}
-                    onClick={() => setCurrentPage(p => p + 1)}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polyline points="9 18 15 12 9 6"></polyline>
-                    </svg>
-                  </button>
                 </div>
               </div>
             </div>
@@ -1235,7 +1349,7 @@ function EmployerCandidatesContent() {
                 <p>Start AI Ranking to see candidates sorted by match quality</p>
               </div>
             ) : (
-              <div className={styles.applicantList}>
+              <div className={`${styles.applicantList} ${(activeTab === 'recommended' ? topMatchesCollapsed : spotlightCollapsed) ? styles.applicantListExpanded : ''}`}>
                 {/* Filter and sort applicants based on active tab and sort option */}
                 {(() => {
                   let applicants = activeTab === 'recommended' 
@@ -1287,7 +1401,14 @@ function EmployerCandidatesContent() {
                   >
                     <div className={styles.applicantCardLeft}>
                       {/* Show ranking number in recommended tab */}
-                      {activeTab === 'recommended' ? (
+                      <input 
+                        type="checkbox" 
+                        className={styles.applicantCheckbox}
+                        checked={selectedApplicants.has(applicant.candidateId)}
+                        onChange={() => toggleApplicantSelection(applicant.candidateId)}
+                      />
+                      
+                      {activeTab === 'recommended' && (
                         <div className={styles.rankingNumber}>
                           {rankingResult ? (
                             <div className={`${styles.rankBadge} ${index < 3 ? styles[`rankBadge${index + 1}`] : styles.rankBadgeDefault}`}>
@@ -1306,8 +1427,6 @@ function EmployerCandidatesContent() {
                             </>
                           )}
                         </div>
-                      ) : (
-                        <input type="checkbox" className={styles.applicantCheckbox} />
                       )}
                       
                       <div className={styles.avatarContainer}>

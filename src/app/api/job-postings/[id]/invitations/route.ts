@@ -3,6 +3,18 @@ import { createClient } from '@supabase/supabase-js';
 import { prisma } from '@/lib/prisma';
 import { SYSTEM_SCREENING_QUESTIONS } from '@/lib/screeningOptions';
 
+// Supabase Admin client for checking email verification and sending verification emails
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  }
+);
+
 interface InvitationRecord {
   id: string;
   token: string;
@@ -156,11 +168,53 @@ export async function POST(
       })
     );
 
-    // TODO: Send invitation emails to candidates
     // Get base URL for invitation links
     const host = request.headers.get('host') || 'localhost:3000';
     const protocol = request.headers.get('x-forwarded-proto') || 'http';
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
+
+    // Check email verification status and send verification if needed
+    // Note: Currently invites one candidate at a time, but loop kept for future batch support
+    let unverifiedCount = 0;
+    let verificationsSent = 0;
+
+    for (const candidate of candidates) {
+      try {
+        // Get user from Supabase Auth to check email verification status
+        const { data: authUser, error: authUserError } = await supabaseAdmin.auth.admin.getUserById(candidate.id);
+        
+        if (authUserError || !authUser?.user) {
+          console.log(`Could not get auth user for ${candidate.email}:`, authUserError?.message);
+          continue;
+        }
+
+        // Check if email is not confirmed (email_confirmed_at is null)
+        const isEmailVerified = !!authUser.user.email_confirmed_at;
+        
+        if (!isEmailVerified) {
+          unverifiedCount++;
+          
+          // Send verification email using Supabase resend
+          // Redirect to auth/confirm which handles the verification flow
+          const { error: resendError } = await supabaseAdmin.auth.resend({
+            type: 'signup',
+            email: candidate.email,
+            options: {
+              emailRedirectTo: `${baseUrl}/auth/confirm`,
+            },
+          });
+
+          if (resendError) {
+            console.error(`Failed to send verification email to ${candidate.email}:`, resendError.message);
+          } else {
+            verificationsSent++;
+            console.log(`Verification email sent to unverified user: ${candidate.email}`);
+          }
+        }
+      } catch (err) {
+        console.error(`Error checking verification for ${candidate.email}:`, err);
+      }
+    }
 
     return NextResponse.json({
       success: true,
@@ -178,6 +232,11 @@ export async function POST(
         questionsCount: {
           system: jobPosting.systemScreeningAnswers.length,
           custom: jobPosting.customScreeningQuestions.length,
+        },
+        // Email verification info
+        emailVerification: {
+          unverifiedCount,
+          verificationsSent,
         },
       },
     });

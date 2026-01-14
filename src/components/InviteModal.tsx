@@ -55,6 +55,10 @@ export function InviteModal({
       candidateEmail: string;
       inviteLink: string;
     }>;
+    emailVerification?: {
+      unverifiedCount: number;
+      verificationsSent: number;
+    };
   } | null>(null);
 
   // Reset state when modal opens/closes
@@ -97,6 +101,7 @@ export function InviteModal({
         setResult({
           success: true,
           invitations: data.data.invitations,
+          emailVerification: data.data.emailVerification,
         });
         onInviteSent?.({ success: true, count: data.data.totalSent });
       } else {
@@ -145,6 +150,20 @@ export function InviteModal({
               <p className={styles.successText}>
                 Successfully sent {result.invitations.length} invitation{result.invitations.length !== 1 ? 's' : ''}!
               </p>
+              
+              {/* Email Verification Notice */}
+              {result.emailVerification && result.emailVerification.verificationsSent > 0 && (
+                <div className={styles.verificationNotice}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                    <polyline points="22,6 12,13 2,6" />
+                  </svg>
+                  <span>
+                    {result.emailVerification.verificationsSent} candidate{result.emailVerification.verificationsSent !== 1 ? 's have' : ' has'} not verified their email. 
+                    Verification email{result.emailVerification.verificationsSent !== 1 ? 's' : ''} sent.
+                  </span>
+                </div>
+              )}
               <div className={styles.invitationsList}>
                 {result.invitations.map((inv, idx) => (
                   <div key={idx} className={styles.invitationItem}>
@@ -199,8 +218,11 @@ export function InviteModal({
               <div className={styles.section}>
                 <h3 className={styles.sectionTitle}>
                   Selected Candidates ({candidates.length})
+                  {candidates.length > 1 && (
+                    <span className={styles.batchBadge}>Batch Invite</span>
+                  )}
                 </h3>
-                <div className={styles.candidatesList}>
+                <div className={`${styles.candidatesList} ${candidates.length > 5 ? styles.candidatesListScrollable : ''}`}>
                   {candidates.map((candidate) => (
                     <div key={candidate.candidateId} className={styles.candidateChip}>
                       <span className={styles.candidateAvatar}>
