@@ -117,24 +117,35 @@ export default function AdminDashboard() {
     router.push('/admin/matching');
   };
 
-  // Quick match job to all candidates
-  const matchJobToAll = (job: DashboardStats['recentJobs'][0], e: React.MouseEvent) => {
+  // Quick match job to all candidates (using Celery async task)
+  const matchJobToAll = async (job: DashboardStats['recentJobs'][0], e: React.MouseEvent) => {
     e.stopPropagation();
     
-    fetch(`${API_BASE_URL}/api/v1/match/job-to-all-candidates`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        job_posting_id: job.id,
-        skip_hard_gate: false,
-      }),
-    }).catch(err => console.error('Background matching error:', err));
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/tasks/matching/job-to-all-candidates`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          job_posting_id: job.id,
+          skip_hard_gate: false,
+        }),
+      });
 
-    addToast({
-      type: 'success',
-      title: `Matching started for "${job.jobTitle}"`,
-      message: 'The job will be matched against all candidates in the background.',
-    });
+      const data = await response.json();
+
+      addToast({
+        type: 'success',
+        title: `Matching task submitted for "${job.jobTitle}"`,
+        message: `Task ID: ${data.task_id}. The job will be matched against all candidates in the background.`,
+      });
+    } catch (err) {
+      console.error('Background matching error:', err);
+      addToast({
+        type: 'error',
+        title: 'Failed to submit matching task',
+        message: 'Please try again later.',
+      });
+    }
   };
 
   if (loading) {

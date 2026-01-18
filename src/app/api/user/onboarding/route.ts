@@ -10,11 +10,13 @@ import { supabase } from '@/lib/supabase';
 const BACKEND_URL = process.env.BACKEND_URL || 'http://127.0.0.1:8000';
 
 /**
- * 触发自动匹配（异步调用后端服务）
+ * 触发自动匹配（使用 Celery 异步任务接口）
+ * 返回任务 ID，匹配会在后台执行
  */
-async function triggerAutoMatching(candidateId: string) {
+async function triggerAutoMatching(candidateId: string): Promise<string | null> {
   try {
-    const response = await fetch(`${BACKEND_URL}/api/v1/match/candidate-to-all-jobs`, {
+    // 使用 Celery 异步任务接口
+    const response = await fetch(`${BACKEND_URL}/api/v1/tasks/matching/candidate-to-all-jobs`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -26,18 +28,20 @@ async function triggerAutoMatching(candidateId: string) {
 
     if (!response.ok) {
       const error = await response.text();
-      console.error('Auto-matching failed:', error);
-      return;
+      console.error('Auto-matching task submission failed:', error);
+      return null;
     }
 
     const result = await response.json();
-    console.log(`✅ Auto-matching completed for candidate ${candidateId}:`, {
-      total_jobs: result.total_jobs,
-      passed_count: result.passed_count,
-      failed_count: result.failed_count,
+    console.log(`✅ Auto-matching task submitted for candidate ${candidateId}:`, {
+      task_id: result.task_id,
+      status: result.status,
     });
+    
+    return result.task_id;
   } catch (error) {
     console.error('Auto-matching request error:', error);
+    return null;
   }
 }
 

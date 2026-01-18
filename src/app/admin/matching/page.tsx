@@ -162,13 +162,14 @@ export default function AdminMatching() {
     setResult(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/match/candidate-to-job`, {
+      // 使用 Celery 异步任务接口
+      const response = await fetch(`${API_BASE_URL}/api/v1/tasks/matching/candidate-to-job`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           candidate_id: selectedCandidate.id,
           job_posting_id: selectedJob.id,
-          cv_id: selectedCv?.id || undefined,
+          cv_id: selectedCv?.id || null,
           skip_hard_gate: skipHardGate,
         }),
       });
@@ -176,13 +177,40 @@ export default function AdminMatching() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail || 'Failed to match');
+        throw new Error(data.detail || 'Failed to submit matching task');
       }
 
-      setResult(data);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
+      // 轮询任务状态直到完成
+      const taskId = data.task_id;
+      const pollInterval = 1000; // 1 second
+      const maxAttempts = 60; // 60 seconds max
+      let attempts = 0;
+
+      const pollStatus = async () => {
+        attempts++;
+        const statusResponse = await fetch(`${API_BASE_URL}/api/v1/tasks/status/${taskId}`);
+        const statusData = await statusResponse.json();
+
+        if (statusData.ready) {
+          if (statusData.result?.success) {
+            setResult(statusData.result.result);
+          } else {
+            throw new Error(statusData.result?.error || statusData.error || 'Matching failed');
+          }
+          setLoading(false);
+        } else if (attempts < maxAttempts) {
+          setTimeout(pollStatus, pollInterval);
+        } else {
+          setResult({
+            message: `⏳ Task is still running (ID: ${taskId}). Check back later for results.`,
+          } as MatchResult);
+          setLoading(false);
+        }
+      };
+
+      pollStatus();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
       setLoading(false);
     }
   };
@@ -199,16 +227,22 @@ export default function AdminMatching() {
     setResult(null);
 
     try {
-      // Fire and forget
-      fetch(`${API_BASE_URL}/api/v1/match/candidate-to-all-jobs`, {
+      // 使用 Celery 异步任务接口
+      const response = await fetch(`${API_BASE_URL}/api/v1/tasks/matching/candidate-to-all-jobs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           candidate_id: selectedCandidateAll.id,
-          cv_id: selectedCvAll?.id || undefined,
+          cv_id: selectedCvAll?.id || null,
           skip_hard_gate: skipHardGateAll,
         }),
-      }).catch(err => console.error('Background matching error:', err));
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Failed to submit matching task');
+      }
 
       setResult({
         candidate_id: selectedCandidateAll.id,
@@ -216,12 +250,12 @@ export default function AdminMatching() {
         passed_count: 0,
         failed_count: 0,
         matches: [],
-        message: `✅ Matching started! Processing candidate "${selectedCandidateAll.label}" against all jobs in the background. You can continue with other tasks.`
-      } as any);
+        message: `✅ Matching task submitted! Task ID: ${data.task_id}. Processing candidate "${selectedCandidateAll.label}" against all jobs in the background. You can check task status at /api/tasks/${data.task_id}`
+      } as MatchResult);
 
       setLoading(false);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
       setLoading(false);
     }
   };
@@ -238,15 +272,21 @@ export default function AdminMatching() {
     setResult(null);
 
     try {
-      // Fire and forget
-      fetch(`${API_BASE_URL}/api/v1/match/job-to-all-candidates`, {
+      // 使用 Celery 异步任务接口
+      const response = await fetch(`${API_BASE_URL}/api/v1/tasks/matching/job-to-all-candidates`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           job_posting_id: selectedJobAll.id,
           skip_hard_gate: skipHardGateJobAll,
         }),
-      }).catch(err => console.error('Background matching error:', err));
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Failed to submit matching task');
+      }
 
       setResult({
         job_posting_id: selectedJobAll.id,
@@ -254,12 +294,12 @@ export default function AdminMatching() {
         passed_count: 0,
         failed_count: 0,
         matches: [],
-        message: `✅ Matching started! Processing job "${selectedJobAll.label}" against all candidates in the background. You can continue with other tasks.`
-      } as any);
+        message: `✅ Matching task submitted! Task ID: ${data.task_id}. Processing job "${selectedJobAll.label}" against all candidates in the background. You can check task status at /api/tasks/${data.task_id}`
+      } as MatchResult);
 
       setLoading(false);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
       setLoading(false);
     }
   };

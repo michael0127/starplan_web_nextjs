@@ -117,30 +117,36 @@ export default function AdminUsers() {
     router.push('/admin/matching');
   };
 
-  // Match candidate to all jobs
+  // Match candidate to all jobs (using Celery async task)
   const matchAllJobs = async (user: User) => {
     setMatchingUserId(user.id);
     try {
-      // Fire and forget
-      fetch(`${API_BASE_URL}/api/v1/match/candidate-to-all-jobs`, {
+      const response = await fetch(`${API_BASE_URL}/api/v1/tasks/matching/candidate-to-all-jobs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           candidate_id: user.id,
           skip_hard_gate: false,
         }),
-      }).catch(err => console.error('Background matching error:', err));
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Failed to submit matching task');
+      }
 
       // Show success toast
       addToast({
         type: 'success',
-        title: `Matching started for "${user.name || user.email}"`,
-        message: 'The candidate will be matched against all published jobs in the background.',
+        title: `Matching task submitted for "${user.name || user.email}"`,
+        message: `Task ID: ${data.task_id}. The candidate will be matched against all published jobs in the background.`,
       });
     } catch (err) {
+      console.error('Background matching error:', err);
       addToast({
         type: 'error',
-        title: 'Failed to start matching',
+        title: 'Failed to submit matching task',
         message: 'Please try again later.',
       });
     } finally {

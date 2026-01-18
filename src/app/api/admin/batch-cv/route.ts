@@ -1,12 +1,28 @@
+/**
+ * API Route: POST /api/admin/batch-cv
+ * 
+ * 使用 Redis + Celery 异步任务接口批量提取 CV
+ * 返回任务 ID，前端需要轮询 /api/tasks/[taskId] 获取结果
+ */
 import { NextRequest, NextResponse } from 'next/server';
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000';
 
+// 异步任务提交响应
+interface AsyncTaskResponse {
+  task_id: string;
+  total_files: number;
+  status: string;
+  message: string;
+  query_url: string;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    // Get the auto_invite query parameter
+    // Get query parameters
     const searchParams = request.nextUrl.searchParams;
     const autoInvite = searchParams.get('auto_invite') === 'true';
+    const createUser = searchParams.get('create_user') !== 'false'; // default true
 
     // Get the form data from the request
     const formData = await request.formData();
@@ -19,34 +35,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create a new FormData to send to the backend
+    // Create a new FormData to send to the backend (异步接口)
     const backendFormData = new FormData();
     files.forEach(file => {
       backendFormData.append('files', file);
     });
 
-    // Build the backend URL with query parameters
-    const backendUrl = new URL('/api/v1/cv-extraction/batch_extract', BACKEND_URL);
-    if (autoInvite) {
-      backendUrl.searchParams.set('auto_invite', 'true');
-    }
+    // 使用 Celery 异步任务接口
+    const backendUrl = new URL('/api/v1/tasks/cv/batch-extract-async', BACKEND_URL);
+    backendUrl.searchParams.set('auto_invite', autoInvite.toString());
+    backendUrl.searchParams.set('create_user', createUser.toString());
 
-    // Forward the request to the backend service
+    // Forward the request to the async backend service
     const response = await fetch(backendUrl.toString(), {
       method: 'POST',
       body: backendFormData,
     });
 
-    const data = await response.json();
+    const data: AsyncTaskResponse = await response.json();
 
     if (!response.ok) {
       return NextResponse.json(
-        { error: data.detail || 'Backend processing failed' },
+        { error: data.message || 'Backend processing failed' },
         { status: response.status }
       );
     }
 
-    return NextResponse.json(data);
+    // 返回异步任务信息
+    return NextResponse.json({
+      success: true,
+      async: true,
+      taskId: data.task_id,
+      totalFiles: data.total_files,
+      status: data.status,
+      message: '批量 CV 提取任务已提交，请使用 taskId 轮询结果',
+      pollUrl: `/api/tasks/${data.task_id}`,
+    });
   } catch (error) {
     console.error('Error in batch-cv route:', error);
     return NextResponse.json(

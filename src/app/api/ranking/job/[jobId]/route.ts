@@ -1,43 +1,26 @@
 /**
  * API Route: POST /api/ranking/job/[jobId]
  * 
- * Triggers AI-powered candidate ranking for a specific job posting.
- * Uses binary insertion with pairwise AI comparisons for optimal ranking.
- * Only candidates who passed hard gate screening will be ranked.
+ * 使用 Redis + Celery 异步任务接口触发候选人排名
+ * 返回任务 ID，前端需要轮询 /api/tasks/[taskId] 获取结果
  */
 import { NextRequest, NextResponse } from 'next/server';
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://127.0.0.1:8000';
 
-interface RankedCandidate {
-  candidate_id: string;
-  rank: number;
-  name: string | null;
-  email: string | null;
-  avatar_url: string | null;
-}
-
-interface RankingResponse {
+// 异步任务提交响应
+interface AsyncTaskResponse {
+  task_id: string;
   job_posting_id: string;
-  job_title: string;
-  ranked_candidates: RankedCandidate[];
-  total_candidates: number;
-  total_comparisons: number;
-  total_input_tokens: number;
-  total_output_tokens: number;
-  total_tokens: number;
-  input_cost: number;
-  output_cost: number;
-  total_cost: number;
-  // Cache status fields
-  from_cache: boolean;
-  is_incremental: boolean;
-  new_candidates_count: number;
-  cached_at: string | null;
+  status: string;
+  message: string;
+  query_url: string;
 }
 
 interface RankingRequestBody {
   useRawFile?: boolean;
+  // 如果为 true，则使用同步接口（用于需要立即返回结果的场景）
+  sync?: boolean;
 }
 
 export async function POST(
@@ -55,25 +38,24 @@ export async function POST(
     }
     
     // Parse request body for optional parameters
-    let useRawFile = true; // Default to true (use raw file)
+    let sync = false;
     try {
       const body: RankingRequestBody = await request.json();
-      if (typeof body.useRawFile === 'boolean') {
-        useRawFile = body.useRawFile;
+      if (typeof body.sync === 'boolean') {
+        sync = body.sync;
       }
     } catch {
-      // No body or invalid JSON, use defaults
+      // No body or invalid JSON, use defaults (async)
     }
     
-    // Call FastAPI backend ranking service
-    const response = await fetch(`${BACKEND_URL}/api/v1/ranking/rank_job_candidates`, {
+    // 使用 Celery 异步任务接口
+    const response = await fetch(`${BACKEND_URL}/api/v1/tasks/ranking/start`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         job_posting_id: jobId,
-        use_raw_file: useRawFile,
       }),
     });
     
@@ -87,38 +69,86 @@ export async function POST(
       );
     }
     
-    const data: RankingResponse = await response.json();
+    const data: AsyncTaskResponse = await response.json();
     
+    // 如果需要同步等待结果
+    if (sync) {
+      // 轮询任务状态直到完成（最多等待 5 分钟）
+      const maxWaitTime = 5 * 60 * 1000; // 5 minutes
+      const pollInterval = 2000; // 2 seconds
+      const startTime = Date.now();
+      
+      while (Date.now() - startTime < maxWaitTime) {
+        const statusResponse = await fetch(
+          `${BACKEND_URL}/api/v1/tasks/status/${data.task_id}`,
+          { method: 'GET' }
+        );
+        
+        if (statusResponse.ok) {
+          const statusData = await statusResponse.json();
+          
+          if (statusData.ready) {
+            if (statusData.result?.success) {
+              // 转换结果格式
+              const result = statusData.result;
+              return NextResponse.json({
+                success: true,
+                data: {
+                  jobPostingId: result.job_posting_id,
+                  jobTitle: result.job_title,
+                  rankedCandidates: (result.ranked_candidates || []).map((c: { candidate_id: string; rank: number; name?: string; email?: string; avatar_url?: string }) => ({
+                    candidateId: c.candidate_id,
+                    rank: c.rank,
+                    name: c.name,
+                    email: c.email,
+                    avatarUrl: c.avatar_url,
+                  })),
+                  totalCandidates: result.total_candidates,
+                  stats: {
+                    totalComparisons: result.total_comparisons,
+                    totalTokens: result.total_tokens || 0,
+                    totalCost: result.total_cost,
+                  },
+                  cacheStatus: {
+                    fromCache: result.from_cache,
+                    isIncremental: result.is_incremental,
+                    newCandidatesCount: result.new_candidates_count,
+                  },
+                },
+              });
+            } else {
+              return NextResponse.json(
+                { error: statusData.result?.error || 'Ranking task failed' },
+                { status: 500 }
+              );
+            }
+          }
+        }
+        
+        // 等待后继续轮询
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+      }
+      
+      // 超时
+      return NextResponse.json(
+        { 
+          error: 'Ranking task timeout',
+          taskId: data.task_id,
+          message: 'Task is still running. Use /api/tasks/[taskId] to check status.',
+        },
+        { status: 408 }
+      );
+    }
+    
+    // 异步模式：立即返回任务 ID
     return NextResponse.json({
       success: true,
-      data: {
-        jobPostingId: data.job_posting_id,
-        jobTitle: data.job_title,
-        rankedCandidates: data.ranked_candidates.map(c => ({
-          candidateId: c.candidate_id,
-          rank: c.rank,
-          name: c.name,
-          email: c.email,
-          avatarUrl: c.avatar_url,
-        })),
-        totalCandidates: data.total_candidates,
-        stats: {
-          totalComparisons: data.total_comparisons,
-          totalTokens: data.total_tokens,
-          totalCost: data.total_cost,
-          inputTokens: data.total_input_tokens,
-          outputTokens: data.total_output_tokens,
-          inputCost: data.input_cost,
-          outputCost: data.output_cost,
-        },
-        // Cache status
-        cacheStatus: {
-          fromCache: data.from_cache,
-          isIncremental: data.is_incremental,
-          newCandidatesCount: data.new_candidates_count,
-          cachedAt: data.cached_at,
-        },
-      },
+      async: true,
+      taskId: data.task_id,
+      jobPostingId: data.job_posting_id,
+      status: data.status,
+      message: '排名任务已提交，请使用 taskId 轮询结果',
+      pollUrl: `/api/tasks/${data.task_id}`,
     });
     
   } catch (error) {
@@ -126,7 +156,7 @@ export async function POST(
     
     return NextResponse.json(
       { 
-        error: 'Failed to rank candidates',
+        error: 'Failed to start ranking task',
         details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
