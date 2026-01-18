@@ -96,11 +96,13 @@ export async function GET(
         success: true,
         taskId: data.task_id,
         type: 'single',
-        status: data.status,
-        ready: data.ready,
-        result: data.result,
-        error: data.error,
-        progress: data.progress,
+        data: {
+          status: data.status,
+          ready: data.ready,
+          result: data.result,
+          error: data.error,
+          progress: data.progress,
+        },
       });
     }
     

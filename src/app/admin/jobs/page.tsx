@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminPageContainer from '@/components/admin/AdminPageContainer';
 import { Toast, useToast } from '@/components/admin/Toast';
+import SearchableSelect, { SelectOption } from '@/components/admin/SearchableSelect';
 import styles from './page.module.css';
 
 interface Job {
@@ -47,10 +48,89 @@ export default function AdminJobs() {
   const { toasts, addToast, dismissToast } = useToast();
   const router = useRouter();
 
+  // Create from JD modal state
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [employers, setEmployers] = useState<SelectOption[]>([]);
+  const [selectedEmployer, setSelectedEmployer] = useState<SelectOption | null>(null);
+  const [loadingEmployers, setLoadingEmployers] = useState(false);
+  const [jdFile, setJdFile] = useState<File | null>(null);
+  const [creating, setCreating] = useState(false);
+
   const API_BASE_URL = process.env.NEXT_PUBLIC_FASTAPI_URL || 'http://127.0.0.1:8000';
 
   // Get admin token
   const getToken = () => localStorage.getItem('adminToken') || '';
+
+  // Fetch employers for the create modal
+  const fetchEmployers = useCallback(async (searchQuery: string = '') => {
+    setLoadingEmployers(true);
+    try {
+      const response = await fetch(
+        `/api/admin/employers?search=${encodeURIComponent(searchQuery)}`,
+        {
+          headers: { Authorization: `Bearer ${getToken()}` },
+        }
+      );
+      const data = await response.json();
+      if (data.employers) {
+        setEmployers(data.employers);
+      }
+    } catch (err) {
+      console.error('Failed to fetch employers:', err);
+    } finally {
+      setLoadingEmployers(false);
+    }
+  }, []);
+
+  // Create job from JD
+  const handleCreateFromJD = async () => {
+    if (!jdFile || !selectedEmployer) {
+      addToast({
+        type: 'error',
+        title: 'Missing information',
+        message: 'Please select an employer and upload a JD file.',
+      });
+      return;
+    }
+
+    setCreating(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', jdFile);
+      formData.append('userId', selectedEmployer.id);
+
+      const response = await fetch('/api/admin/create-job-from-jd', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create job');
+      }
+
+      addToast({
+        type: 'success',
+        title: 'Job created successfully',
+        message: `Job posting created for ${selectedEmployer.label}. ID: ${data.jobPostingId?.slice(0, 8)}...`,
+      });
+
+      // Close modal and refresh
+      setShowCreateModal(false);
+      setJdFile(null);
+      setSelectedEmployer(null);
+      fetchJobs(1, search, statusFilter);
+    } catch (err) {
+      addToast({
+        type: 'error',
+        title: 'Failed to create job',
+        message: err instanceof Error ? err.message : 'Unknown error occurred',
+      });
+    } finally {
+      setCreating(false);
+    }
+  };
 
   // Fetch jobs
   const fetchJobs = useCallback(async (page: number = 1, searchQuery: string = '', status: string = '') => {
@@ -175,6 +255,76 @@ export default function AdminJobs() {
   return (
     <>
     <Toast toasts={toasts} onDismiss={dismissToast} />
+    
+    {/* Create from JD Modal */}
+    {showCreateModal && (
+      <div className={styles.modalOverlay} onClick={() => setShowCreateModal(false)}>
+        <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+          <div className={styles.modalHeader}>
+            <h2>Create Job from JD</h2>
+            <button 
+              className={styles.modalClose}
+              onClick={() => setShowCreateModal(false)}
+            >
+              <ClearIcon />
+            </button>
+          </div>
+          
+          <div className={styles.modalBody}>
+            <div className={styles.formGroup}>
+              <SearchableSelect
+                label="Employer (Owner of Job Posting)"
+                placeholder="Search by company or email..."
+                options={employers}
+                value={selectedEmployer}
+                onChange={setSelectedEmployer}
+                onSearch={fetchEmployers}
+                loading={loadingEmployers}
+                required
+                hint="Select which employer account will own this job posting"
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>
+                Job Description File <span className={styles.required}>*</span>
+              </label>
+              <input
+                type="file"
+                accept=".pdf,.docx"
+                onChange={(e) => setJdFile(e.target.files?.[0] || null)}
+                className={styles.fileInput}
+                disabled={creating}
+              />
+              {jdFile && (
+                <p className={styles.fileName}>Selected: {jdFile.name}</p>
+              )}
+              <p className={styles.formHint}>
+                Upload a PDF or DOCX job description. AI will extract job details automatically.
+              </p>
+            </div>
+          </div>
+
+          <div className={styles.modalFooter}>
+            <button
+              className={styles.cancelBtn}
+              onClick={() => setShowCreateModal(false)}
+              disabled={creating}
+            >
+              Cancel
+            </button>
+            <button
+              className={styles.submitBtn}
+              onClick={handleCreateFromJD}
+              disabled={creating || !jdFile || !selectedEmployer}
+            >
+              {creating ? 'Creating...' : 'Create Job Posting'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
     <AdminPageContainer
       title="Job Management"
       description="View and manage all job postings"
@@ -214,6 +364,16 @@ export default function AdminJobs() {
         <div className={styles.stats}>
           Total: <strong>{pagination.total}</strong> jobs
         </div>
+
+        <button
+          className={styles.createBtn}
+          onClick={() => {
+            setShowCreateModal(true);
+            if (employers.length === 0) fetchEmployers();
+          }}
+        >
+          <PlusIcon /> Create from JD
+        </button>
       </div>
 
       {/* Error */}
@@ -386,6 +546,14 @@ function LoadingIcon() {
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className={styles.spinning}>
       <circle cx="8" cy="8" r="6" stroke="#e0e0e0" strokeWidth="2"/>
       <path d="M14 8A6 6 0 008 2" stroke="#4a5bf4" strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M8 3V13M3 8H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
     </svg>
   );
 }

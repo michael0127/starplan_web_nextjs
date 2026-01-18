@@ -225,6 +225,12 @@ function EmployerCandidatesContent() {
   const [rankingResult, setRankingResult] = useState<RankingResult | null>(null);
   const [rankingError, setRankingError] = useState<string | null>(null);
   const [isLoadingRanking, setIsLoadingRanking] = useState(false);
+  const [rankingProgress, setRankingProgress] = useState<{
+    current: number;
+    total: number;
+    percent: number;
+    message: string;
+  } | null>(null);
   
   const fetchingRef = useRef(false);
   
@@ -424,7 +430,7 @@ function EmployerCandidatesContent() {
     setFn(newSet);
   };
 
-  // AI Ranking function
+  // AI Ranking function with real-time progress polling
   const handleStartRanking = async () => {
     if (!selectedJob) {
       setRankingError('Please select a job to rank candidates');
@@ -434,51 +440,143 @@ function EmployerCandidatesContent() {
     setIsRanking(true);
     setRankingError(null);
     setRankingResult(null);
+    setRankingProgress({ current: 0, total: 0, percent: 0, message: 'Starting ranking...' });
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         setRankingError('Session expired. Please log in again.');
         setIsRanking(false);
+        setRankingProgress(null);
         return;
       }
       
+      // Submit async ranking task
       const response = await fetch(`/api/ranking/job/${selectedJob}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ sync: false }), // 异步模式
       });
       
-      const result = await response.json();
+      const submitResult = await response.json();
       
-      if (result.success) {
-        setRankingResult(result.data);
-        
-        // Update applicants with AI ranking
-        setData(prev => {
-          if (!prev) return prev;
-          
-          const rankMap = new Map<string, number>();
-          result.data.rankedCandidates.forEach((rc: RankedCandidate) => {
-            rankMap.set(rc.candidateId, rc.rank);
-          });
-          
-          return {
-            ...prev,
-            applicants: prev.applicants.map(a => ({
-              ...a,
-              aiRank: rankMap.get(a.candidateId) || undefined,
-            })),
-          };
-        });
-      } else {
-        setRankingError(result.error || 'Failed to rank candidates');
+      if (!submitResult.success || !submitResult.taskId) {
+        setRankingError(submitResult.error || 'Failed to start ranking task');
+        setIsRanking(false);
+        setRankingProgress(null);
+        return;
       }
+      
+      const taskId = submitResult.taskId;
+      setRankingProgress({ current: 0, total: 0, percent: 0, message: 'Task submitted, waiting...' });
+      
+      // Poll for progress
+      const pollInterval = 1500; // 1.5 seconds
+      const maxWaitTime = 10 * 60 * 1000; // 10 minutes max
+      const startTime = Date.now();
+      
+      while (Date.now() - startTime < maxWaitTime) {
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+        
+        try {
+          const statusResponse = await fetch(`/api/tasks/${taskId}`);
+          const statusData = await statusResponse.json();
+          
+          if (!statusData.success) continue;
+          
+          const taskStatus = statusData.data;
+          
+          // Update progress from task metadata
+          if (taskStatus.progress) {
+            const progress = taskStatus.progress;
+            setRankingProgress({
+              current: progress.current || 0,
+              total: progress.total || 0,
+              percent: progress.progress_percent || 0,
+              message: progress.message || `Ranking in progress...`,
+            });
+          }
+          
+          // Task completed
+          if (taskStatus.ready) {
+            if (taskStatus.result?.success) {
+              const result = taskStatus.result;
+              
+              // Transform result to expected format
+              const rankingData: RankingResult = {
+                jobPostingId: result.job_posting_id,
+                jobTitle: result.job_title,
+                rankedCandidates: (result.ranked_candidates || []).map((c: { candidate_id: string; rank: number; name?: string; email?: string }) => ({
+                  candidateId: c.candidate_id,
+                  rank: c.rank,
+                  name: c.name,
+                  email: c.email,
+                })),
+                totalCandidates: result.total_candidates,
+                stats: {
+                  totalComparisons: result.total_comparisons || 0,
+                  totalTokens: result.total_tokens || 0,
+                  totalCost: result.total_cost || 0,
+                  inputTokens: result.total_input_tokens || 0,
+                  outputTokens: result.total_output_tokens || 0,
+                  inputCost: result.input_cost || 0,
+                  outputCost: result.output_cost || 0,
+                },
+                cacheStatus: {
+                  fromCache: result.from_cache || false,
+                  isIncremental: result.is_incremental || false,
+                  newCandidatesCount: result.new_candidates_count || 0,
+                  cachedAt: null,
+                },
+              };
+              
+              setRankingResult(rankingData);
+              
+              // Update applicants with AI ranking
+              setData(prev => {
+                if (!prev) return prev;
+                
+                const rankMap = new Map<string, number>();
+                (rankingData.rankedCandidates || []).forEach((rc: RankedCandidate) => {
+                  rankMap.set(rc.candidateId, rc.rank);
+                });
+                
+                return {
+                  ...prev,
+                  applicants: prev.applicants.map(a => ({
+                    ...a,
+                    aiRank: rankMap.get(a.candidateId) || undefined,
+                  })),
+                };
+              });
+              
+              setRankingProgress(null);
+              setIsRanking(false);
+              return;
+            } else {
+              setRankingError(taskStatus.result?.error || 'Ranking task failed');
+              setRankingProgress(null);
+              setIsRanking(false);
+              return;
+            }
+          }
+        } catch (pollError) {
+          console.error('Poll error:', pollError);
+          // Continue polling on error
+        }
+      }
+      
+      // Timeout
+      setRankingError('Ranking task timed out. Please try again.');
+      setRankingProgress(null);
+      
     } catch (error) {
       console.error('Ranking error:', error);
       setRankingError(error instanceof Error ? error.message : 'An error occurred while ranking');
+      setRankingProgress(null);
     } finally {
       setIsRanking(false);
     }
@@ -1111,8 +1209,25 @@ function EmployerCandidatesContent() {
                   <div className={styles.progressSpinner}></div>
                   <div className={styles.progressText}>
                     <h3>AI Ranking in Progress</h3>
-                    <p>Comparing candidates using binary insertion algorithm...</p>
-                    <p className={styles.progressHint}>This may take a moment depending on the number of candidates</p>
+                    {rankingProgress ? (
+                      <>
+                        <p className={styles.progressMessage}>{rankingProgress.message}</p>
+                        <div className={styles.progressBarContainer}>
+                          <div 
+                            className={styles.progressBar} 
+                            style={{ width: `${rankingProgress.percent}%` }}
+                          />
+                        </div>
+                        <p className={styles.progressStats}>
+                          {rankingProgress.current} / {rankingProgress.total} candidates • {rankingProgress.percent}% complete
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p>Comparing candidates using binary insertion algorithm...</p>
+                        <p className={styles.progressHint}>This may take a moment depending on the number of candidates</p>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
