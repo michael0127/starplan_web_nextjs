@@ -120,7 +120,12 @@ export async function PUT(request: NextRequest) {
       location,
       foundedYear,
       linkedinUrl,
-      twitterUrl
+      twitterUrl,
+      // Billing fields
+      billingAddress,
+      billingEmail,
+      billingEmailSameAsRegistration,
+      abn
     } = body;
 
     // Validate required fields
@@ -157,7 +162,12 @@ export async function PUT(request: NextRequest) {
         location: location?.trim() || null,
         foundedYear: foundedYear ? parseInt(foundedYear) : null,
         linkedinUrl: linkedinUrl?.trim() || null,
-        twitterUrl: twitterUrl?.trim() || null
+        twitterUrl: twitterUrl?.trim() || null,
+        // Billing fields
+        billingAddress: billingAddress?.trim() || null,
+        billingEmail: billingEmailSameAsRegistration ? null : (billingEmail?.trim() || null),
+        billingEmailSameAsRegistration: billingEmailSameAsRegistration ?? true,
+        abn: abn?.trim() || null
       },
       create: {
         userId: user.id,
@@ -172,7 +182,12 @@ export async function PUT(request: NextRequest) {
         location: location?.trim() || null,
         foundedYear: foundedYear ? parseInt(foundedYear) : null,
         linkedinUrl: linkedinUrl?.trim() || null,
-        twitterUrl: twitterUrl?.trim() || null
+        twitterUrl: twitterUrl?.trim() || null,
+        // Billing fields
+        billingAddress: billingAddress?.trim() || null,
+        billingEmail: billingEmailSameAsRegistration ? null : (billingEmail?.trim() || null),
+        billingEmailSameAsRegistration: billingEmailSameAsRegistration ?? true,
+        abn: abn?.trim() || null
       }
     });
 

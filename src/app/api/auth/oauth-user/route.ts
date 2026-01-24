@@ -15,9 +15,10 @@ export async function POST(request: NextRequest) {
 
     const finalUserType = (userType === 'EMPLOYER' ? 'EMPLOYER' : 'CANDIDATE') as 'CANDIDATE' | 'EMPLOYER';
 
-    // 检查用户是否存在
+    // 检查用户是否存在（包含公司信息）
     const existingUser = await prisma.user.findUnique({
-      where: { id: userId }
+      where: { id: userId },
+      include: { company: true }
     });
 
     if (!existingUser) {
@@ -36,11 +37,12 @@ export async function POST(request: NextRequest) {
       
       console.log(`Created new OAuth user: ${email}, type: ${finalUserType}`);
       
+      // 新注册的 employer 跳转到 settings 页面完善公司信息
       return NextResponse.json({
         success: true,
         action: 'created',
         userType: finalUserType,
-        redirectTo: finalUserType === 'EMPLOYER' ? '/employer/dashboard' : '/onboarding'
+        redirectTo: finalUserType === 'EMPLOYER' ? '/employer/settings' : '/onboarding'
       });
     } else {
       // 用户已存在，可能需要更新
@@ -72,8 +74,14 @@ export async function POST(request: NextRequest) {
       
       // 确定重定向 URL
       let redirectTo = '/onboarding';
-      if (existingUser.userType === 'EMPLOYER' || updates.userType === 'EMPLOYER') {
-        redirectTo = '/employer/dashboard';
+      const isEmployer = existingUser.userType === 'EMPLOYER' || updates.userType === 'EMPLOYER';
+      if (isEmployer) {
+        // 检查是否已完善公司信息
+        if (!existingUser.company || !existingUser.company.companyName) {
+          redirectTo = '/employer/settings';
+        } else {
+          redirectTo = '/employer/dashboard';
+        }
       } else if (existingUser.hasCompletedOnboarding) {
         redirectTo = '/explore';
       }

@@ -56,13 +56,8 @@ export default function ConfirmAuth() {
     // 优先使用 OAuth 信息中的用户类型
     const effectiveUserType = oauthInfo?.userType || userType;
     
-    // 如果已知是 EMPLOYER，直接跳转到 employer dashboard
-    if (effectiveUserType === 'EMPLOYER') {
-      return '/employer/dashboard';
-    }
-    
-    // 如果有 OAuth 信息中的 redirectTo
-    if (oauthInfo?.redirectTo && oauthInfo.redirectTo !== '/onboarding') {
+    // 如果有 OAuth 信息中的 redirectTo（非默认值）
+    if (oauthInfo?.redirectTo && oauthInfo.redirectTo !== '/onboarding' && oauthInfo.redirectTo !== '/employer/dashboard') {
       return oauthInfo.redirectTo;
     }
     
@@ -72,6 +67,10 @@ export default function ConfirmAuth() {
       if (response.ok) {
         const userData = await response.json();
         if (userData.userType === 'EMPLOYER') {
+          // 检查是否已完善公司信息
+          if (!userData.company || !userData.company.companyName) {
+            return '/employer/settings';
+          }
           return '/employer/dashboard';
         }
         if (userData.hasCompletedOnboarding) {
@@ -80,6 +79,11 @@ export default function ConfirmAuth() {
       }
     } catch (err) {
       console.error('Error fetching user data:', err);
+    }
+    
+    // 如果已知是 EMPLOYER 但无法获取用户信息，跳转到 settings
+    if (effectiveUserType === 'EMPLOYER') {
+      return '/employer/settings';
     }
     
     // 默认跳转到 onboarding
@@ -169,7 +173,8 @@ export default function ConfirmAuth() {
             let redirectUrl: string;
             if (isGoogleOAuth && oauthInfo) {
               const apiRedirectTo = await handleUserSetup(user.id, user.email!, oauthInfo, user.user_metadata || {});
-              redirectUrl = apiRedirectTo || (oauthInfo.userType === 'EMPLOYER' ? '/employer/dashboard' : '/onboarding');
+              // 新注册的 employer 默认跳转到 settings 页面
+              redirectUrl = apiRedirectTo || (oauthInfo.userType === 'EMPLOYER' ? '/employer/settings' : '/onboarding');
             } else {
               const userType = user.user_metadata?.user_type;
               redirectUrl = await getRedirectUrl(user.id, userType, oauthInfo);
@@ -196,7 +201,8 @@ export default function ConfirmAuth() {
           let redirectUrl: string;
           if (isGoogleOAuth && oauthInfo) {
             const apiRedirectTo = await handleUserSetup(user.id, user.email!, oauthInfo, user.user_metadata || {});
-            redirectUrl = apiRedirectTo || (oauthInfo.userType === 'EMPLOYER' ? '/employer/dashboard' : '/onboarding');
+            // 新注册的 employer 默认跳转到 settings 页面
+            redirectUrl = apiRedirectTo || (oauthInfo.userType === 'EMPLOYER' ? '/employer/settings' : '/onboarding');
           } else {
             const userType = user.user_metadata?.user_type;
             redirectUrl = await getRedirectUrl(user.id, userType, oauthInfo);

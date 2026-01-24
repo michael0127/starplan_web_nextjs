@@ -41,9 +41,12 @@ export async function getAllUsers(): Promise<User[]> {
 /**
  * 根据 ID 获取用户
  */
-export async function getUserById(id: string): Promise<User | null> {
+export async function getUserById(id: string) {
   return prisma.user.findUnique({
     where: { id },
+    include: {
+      company: true,
+    },
   });
 }
 

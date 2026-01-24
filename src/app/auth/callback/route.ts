@@ -97,8 +97,8 @@ export async function GET(request: NextRequest) {
           
           console.log(`Created new user: ${user.email}, type: ${finalUserType}`);
           
-          // 设置正确的重定向 URL
-          redirectUrl = finalUserType === 'EMPLOYER' ? '/employer/dashboard' : '/onboarding';
+          // 新注册的 employer 跳转到 settings 页面完善公司信息
+          redirectUrl = finalUserType === 'EMPLOYER' ? '/employer/settings' : '/onboarding';
         } else {
           // 用户已存在
           console.log('Existing user:', { 
@@ -109,7 +109,16 @@ export async function GET(request: NextRequest) {
           
           // 设置重定向 URL
           if (existingUser.userType === 'EMPLOYER') {
-            redirectUrl = '/employer/dashboard';
+            // 检查是否已完善公司信息
+            const company = await prisma.company.findUnique({
+              where: { userId: existingUser.id }
+            });
+            // 如果没有公司信息或公司名称为空，跳转到 settings
+            if (!company || !company.companyName) {
+              redirectUrl = '/employer/settings';
+            } else {
+              redirectUrl = '/employer/dashboard';
+            }
           } else if (existingUser.hasCompletedOnboarding) {
             redirectUrl = '/explore';
           } else {

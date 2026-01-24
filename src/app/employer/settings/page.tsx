@@ -26,6 +26,11 @@ interface CompanySettings {
   foundedYear: string;
   linkedinUrl: string;
   twitterUrl: string;
+  // Billing information
+  billingAddress: string;
+  billingEmail: string;
+  billingEmailSameAsRegistration: boolean;
+  abn: string;
 }
 
 const initialSettings: CompanySettings = {
@@ -40,7 +45,12 @@ const initialSettings: CompanySettings = {
   location: '',
   foundedYear: '',
   linkedinUrl: '',
-  twitterUrl: ''
+  twitterUrl: '',
+  // Billing information
+  billingAddress: '',
+  billingEmail: '',
+  billingEmailSameAsRegistration: true,
+  abn: ''
 };
 
 const companySizeOptions = [
@@ -197,7 +207,12 @@ export default function CompanySettingsPage() {
             location: data.location || '',
             foundedYear: data.foundedYear?.toString() || '',
             linkedinUrl: data.linkedinUrl || '',
-            twitterUrl: data.twitterUrl || ''
+            twitterUrl: data.twitterUrl || '',
+            // Billing information
+            billingAddress: data.billingAddress || '',
+            billingEmail: data.billingEmail || '',
+            billingEmailSameAsRegistration: data.billingEmailSameAsRegistration ?? true,
+            abn: data.abn || ''
           };
         }
         
@@ -886,6 +901,76 @@ export default function CompanySettingsPage() {
                     ></iframe>
                   </div>
                 )}
+              </section>
+
+              {/* Billing Information */}
+              <section className={styles.section}>
+                <div className={styles.sectionHeader}>
+                  <h2>Billing Information</h2>
+                  <p>Set up your billing details for invoices and payments</p>
+                </div>
+                <div className={styles.billingGrid}>
+                  <div className={styles.formGroup}>
+                    <label htmlFor="billingAddress">Billing Address</label>
+                    <textarea
+                      id="billingAddress"
+                      name="billingAddress"
+                      value={settings.billingAddress}
+                      onChange={handleInputChange}
+                      placeholder="Enter your billing address"
+                      rows={3}
+                      className={styles.billingAddressTextarea}
+                    />
+                  </div>
+                  
+                  <div className={styles.formGroup}>
+                    <label htmlFor="abn">ABN (Australian Business Number)</label>
+                    <input
+                      type="text"
+                      id="abn"
+                      name="abn"
+                      value={settings.abn}
+                      onChange={handleInputChange}
+                      placeholder="e.g., 12 345 678 901"
+                      maxLength={14}
+                    />
+                  </div>
+                  
+                  <div className={styles.billingEmailSection}>
+                    <div className={styles.checkboxGroup}>
+                      <label className={styles.checkboxLabel}>
+                        <input
+                          type="checkbox"
+                          checked={settings.billingEmailSameAsRegistration}
+                          onChange={(e) => {
+                            setSettings(prev => ({
+                              ...prev,
+                              billingEmailSameAsRegistration: e.target.checked,
+                              billingEmail: e.target.checked ? '' : prev.billingEmail
+                            }));
+                            setSaveSuccess(false);
+                            setError(null);
+                          }}
+                        />
+                        <span>Billing email is the same as registration email ({user?.email})</span>
+                      </label>
+                    </div>
+                    
+                    {!settings.billingEmailSameAsRegistration && (
+                      <div className={styles.formGroup}>
+                        <label htmlFor="billingEmail">Billing Email</label>
+                        <input
+                          type="email"
+                          id="billingEmail"
+                          name="billingEmail"
+                          value={settings.billingEmail}
+                          onChange={handleInputChange}
+                          placeholder="billing@company.com"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
               </section>
 
               {/* Website & Social Links */}

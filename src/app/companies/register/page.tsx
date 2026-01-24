@@ -53,7 +53,7 @@ function EmployerRegisterForm() {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=/employer/dashboard`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/employer/settings`,
           data: {
             user_type: 'EMPLOYER', // 标记为雇主账户 (必须大写以匹配数据库enum)
           }
@@ -143,7 +143,7 @@ function EmployerRegisterForm() {
         </div>
 
         {/* Google注册按钮 */}
-        <GoogleButton userType="EMPLOYER" redirectTo="/employer/dashboard">
+        <GoogleButton userType="EMPLOYER" redirectTo="/employer/settings">
           Continue with Google
         </GoogleButton>
 

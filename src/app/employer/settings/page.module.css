@@ -612,6 +612,61 @@
   height: 100%;
 }
 
+/* Billing Grid */
+.billingGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.billingAddressTextarea {
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+  line-height: 1.6;
+}
+
+.billingEmailSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.checkboxGroup {
+  display: flex;
+  align-items: flex-start;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 14px;
+  color: #374151;
+  cursor: pointer;
+  line-height: 1.5;
+}
+
+.checkboxLabel input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #d1d5db;
+  border-radius: 6px;
+  cursor: pointer;
+  accent-color: #4a5bf4;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.checkboxLabel input[type="checkbox"]:checked {
+  background: #4a5bf4;
+  border-color: #4a5bf4;
+}
+
+.checkboxLabel span {
+  flex: 1;
+}
+
 /* Social Links Grid */
 .socialLinksGrid {
   display: grid;
