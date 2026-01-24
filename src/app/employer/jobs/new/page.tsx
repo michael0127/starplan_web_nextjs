@@ -29,6 +29,7 @@ import {
 import {
   WORK_AUTH_OPTIONS,
   SYSTEM_SCREENING_QUESTIONS,
+  GATE_REQUIREMENT_CONFIG,
   type AnswerRequirement,
   type CustomQuestionType,
   type SystemScreeningAnswer,
@@ -78,6 +79,7 @@ interface JobFormData {
   // Step 3: Screening
   selectedCountries: string[]; // Multiple countries/regions can be selected
   workAuthByCountry: Record<string, string[]>; // Country -> selected work auth options (multi-select)
+  workAuthEnabled: boolean; // Whether work authorization screening is enabled
   systemScreeningAnswers: SystemScreeningAnswer[];
   customScreeningQuestions: CustomScreeningQuestion[];
   applicationDeadline: string;
@@ -147,6 +149,7 @@ function CreateJobAdForm() {
     videoLink: '',
     selectedCountries: [],
     workAuthByCountry: {},
+    workAuthEnabled: true, // Work authorization screening enabled by default
     systemScreeningAnswers: [],
     customScreeningQuestions: [],
     applicationDeadline: '',
@@ -200,7 +203,12 @@ function CreateJobAdForm() {
             videoLink: job.videoLink || '',
             selectedCountries: job.selectedCountries,
             workAuthByCountry: job.workAuthByCountry || {},
-            systemScreeningAnswers: job.systemScreeningAnswers || [],
+            // Infer workAuthEnabled from data: if there are selected countries or work auth options, assume enabled
+            workAuthEnabled: job.selectedCountries?.length > 0 || Object.keys(job.workAuthByCountry || {}).length > 0,
+            systemScreeningAnswers: (job.systemScreeningAnswers || []).map((a: SystemScreeningAnswer) => ({
+              ...a,
+              enabled: true, // All saved questions are enabled (disabled ones were not saved)
+            })),
             customScreeningQuestions: job.customScreeningQuestions || [],
             applicationDeadline: job.applicationDeadline || '',
           });
@@ -844,16 +852,28 @@ function CreateJobAdForm() {
   const handleSystemScreeningChange = (
     questionId: string,
     requirement: AnswerRequirement,
-    answers: string[]
+    answers: string[],
+    enabled?: boolean
   ) => {
     setFormData(prev => {
       const existingIndex = prev.systemScreeningAnswers.findIndex(a => a.questionId === questionId);
       const newAnswers = [...prev.systemScreeningAnswers];
       
       if (existingIndex >= 0) {
-        newAnswers[existingIndex] = { questionId, requirement, selectedAnswers: answers };
+        const existingEnabled = newAnswers[existingIndex].enabled;
+        newAnswers[existingIndex] = { 
+          questionId, 
+          requirement, 
+          selectedAnswers: answers,
+          enabled: enabled !== undefined ? enabled : existingEnabled ?? true,
+        };
       } else {
-        newAnswers.push({ questionId, requirement, selectedAnswers: answers });
+        newAnswers.push({ 
+          questionId, 
+          requirement, 
+          selectedAnswers: answers,
+          enabled: enabled !== undefined ? enabled : true,
+        });
       }
       
       return {
@@ -861,6 +881,44 @@ function CreateJobAdForm() {
         systemScreeningAnswers: newAnswers,
       };
     });
+  };
+
+  // Toggle system screening question enabled state
+  const handleToggleSystemQuestion = (questionId: string, enabled: boolean) => {
+    setFormData(prev => {
+      const existingIndex = prev.systemScreeningAnswers.findIndex(a => a.questionId === questionId);
+      const newAnswers = [...prev.systemScreeningAnswers];
+      
+      if (existingIndex >= 0) {
+        newAnswers[existingIndex] = { 
+          ...newAnswers[existingIndex],
+          enabled,
+        };
+      } else {
+        // If question doesn't exist yet, create it with default values
+        newAnswers.push({ 
+          questionId, 
+          requirement: 'accept-any' as AnswerRequirement, 
+          selectedAnswers: [],
+          enabled,
+        });
+      }
+      
+      return {
+        ...prev,
+        systemScreeningAnswers: newAnswers,
+      };
+    });
+  };
+
+  // Toggle work authorization screening
+  const handleToggleWorkAuth = (enabled: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      workAuthEnabled: enabled,
+      // Clear work auth data if disabled
+      ...(enabled ? {} : { selectedCountries: [], workAuthByCountry: {} }),
+    }));
   };
 
   // Page 3: Custom Question handlers
@@ -963,6 +1021,33 @@ function CreateJobAdForm() {
     }
   };
 
+  // Helper to prepare payload for API - filters disabled questions and handles workAuth
+  const preparePayloadForApi = (status: 'DRAFT' | 'PUBLISHED') => {
+    // Filter out disabled system screening answers
+    const enabledSystemAnswers = formData.systemScreeningAnswers.filter(a => a.enabled !== false);
+    
+    // Only include work auth data if enabled
+    const workAuthData = formData.workAuthEnabled 
+      ? {
+          selectedCountries: formData.selectedCountries,
+          workAuthByCountry: formData.workAuthByCountry,
+        }
+      : {
+          selectedCountries: [],
+          workAuthByCountry: {},
+        };
+
+    return {
+      ...formData,
+      id: editId || undefined,
+      currency: typeof formData.currency === 'object' ? formData.currency.code : formData.currency,
+      status,
+      // Override with filtered/conditional data
+      systemScreeningAnswers: enabledSystemAnswers,
+      ...workAuthData,
+    };
+  };
+
   // 保存草稿
   const handleSaveDraft = async () => {
     setIsSaving(true);
@@ -974,13 +1059,7 @@ function CreateJobAdForm() {
         throw new Error('Please login to save your job posting');
       }
       
-      const payload = {
-        ...formData,
-        id: editId || undefined,  // Include ID if editing
-        // Convert currency object to string (code only)
-        currency: typeof formData.currency === 'object' ? formData.currency.code : formData.currency,
-        status: 'DRAFT' as const,
-      };
+      const payload = preparePayloadForApi('DRAFT');
       
       const response = await fetch('/api/job-postings', {
         method: 'POST',
@@ -1043,13 +1122,7 @@ function CreateJobAdForm() {
         throw new Error('Please login to publish your job posting');
       }
       
-      const payload = {
-        ...formData,
-        id: editId || undefined,  // Include ID if editing
-        // Convert currency object to string (code only)
-        currency: typeof formData.currency === 'object' ? formData.currency.code : formData.currency,
-        status: 'PUBLISHED' as const,
-      };
+      const payload = preparePayloadForApi('PUBLISHED');
       
       const response = await fetch('/api/job-postings', {
         method: 'POST',
@@ -1999,137 +2072,203 @@ function CreateJobAdForm() {
                     Set up screening questions and work authorization requirements for applicants.
                   </p>
 
-                  {/* FR-S1: Work Authorization by Country/Region */}
-                  <div className={styles.formSection}>
-                    <h3 className={styles.sectionTitle}>Work Authorization Requirements</h3>
-                    <p className={styles.sectionDescription}>
-                      Select countries/regions and specify required work authorization status
-                    </p>
-
-                    {/* Countries/Regions Selection */}
-                    <div className={styles.formGroup}>
-                      <label className={styles.label}>Countries/Regions</label>
-                      <span className={styles.hint}>
-                        Based on your job location selection in Step 1
-                      </span>
-                      <div className={styles.countriesGrid}>
-                        {COUNTRIES_REGIONS
-                          .filter(country => 
-                            country.value === formData.countryRegion || country.value === 'Remote'
-                          )
-                          .map((country) => (
-                          <label
-                            key={country.value}
-                            className={`${styles.countryCard} ${
-                              formData.selectedCountries.includes(country.value) ? styles.countryCardActive : ''
-                            }`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={formData.selectedCountries.includes(country.value)}
-                              onChange={() => handleCountryToggle(country.value)}
-                            />
-                            <span className={styles.countryFlag}>{country.flag}</span>
-                            <span className={styles.countryName}>{country.label}</span>
-                          </label>
-                        ))}
+                  {/* FR-S1: Work Authorization Screening (Optional Module) */}
+                  <div className={`${styles.formSection} ${!formData.workAuthEnabled ? styles.formSectionDisabled : ''}`}>
+                    <div className={styles.sectionHeader}>
+                      <div className={styles.sectionTitleRow}>
+                        <h3 className={styles.sectionTitle}>
+                          <span className={styles.screeningBadge}>Screening</span>
+                          Work Authorization Requirements
+                        </h3>
+                        <label className={styles.masterToggle}>
+                          <input
+                            type="checkbox"
+                            checked={formData.workAuthEnabled}
+                            onChange={(e) => handleToggleWorkAuth(e.target.checked)}
+                          />
+                          <span className={styles.toggleSlider}></span>
+                          <span className={styles.toggleLabel}>
+                            {formData.workAuthEnabled ? 'Enabled' : 'Disabled'}
+                          </span>
+                        </label>
                       </div>
+                      <p className={styles.sectionDescription}>
+                        {formData.workAuthEnabled 
+                          ? 'Screen candidates based on their work authorization status for specific countries/regions.'
+                          : 'Work authorization screening is disabled. Enable to filter candidates by work authorization status.'}
+                      </p>
                     </div>
 
-                    {/* Work Auth Options for Selected Countries */}
-                    {formData.selectedCountries.map((country) => (
-                      <div key={country} className={styles.workAuthSection}>
-                        <h4 className={styles.workAuthTitle}>
-                          {COUNTRIES_REGIONS.find(c => c.value === country)?.flag}{' '}
-                          {country} - Work Authorization
-                        </h4>
-                        <p className={styles.workAuthDescription}>
-                          Select work authorization status(es) that candidates must have (multi-select)
-                        </p>
-                        <div className={styles.workAuthOptions}>
-                          {WORK_AUTH_OPTIONS[country as keyof typeof WORK_AUTH_OPTIONS]?.map((option, index) => (
-                            <label
-                              key={index}
-                              className={`${styles.workAuthOption} ${
-                                (formData.workAuthByCountry[country] || []).includes(option) ? styles.workAuthOptionActive : ''
-                              }`}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={(formData.workAuthByCountry[country] || []).includes(option)}
-                                onChange={() => handleWorkAuthToggle(country, option)}
-                              />
-                              <span>{option}</span>
-                            </label>
-                          ))}
-                        </div>
-                        {(formData.workAuthByCountry[country] || []).length > 0 && (
-                          <div className={styles.selectedAuthCount}>
-                            {(formData.workAuthByCountry[country] || []).length} option(s) selected
+                    {formData.workAuthEnabled && (
+                      <>
+                        {/* Countries/Regions Selection */}
+                        <div className={styles.formGroup}>
+                          <label className={styles.label}>Countries/Regions</label>
+                          <span className={styles.hint}>
+                            Based on your job location selection in Step 1
+                          </span>
+                          <div className={styles.countriesGrid}>
+                            {COUNTRIES_REGIONS
+                              .filter(country => 
+                                country.value === formData.countryRegion || country.value === 'Remote'
+                              )
+                              .map((country) => (
+                              <label
+                                key={country.value}
+                                className={`${styles.countryCard} ${
+                                  formData.selectedCountries.includes(country.value) ? styles.countryCardActive : ''
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={formData.selectedCountries.includes(country.value)}
+                                  onChange={() => handleCountryToggle(country.value)}
+                                />
+                                <span className={styles.countryFlag}>{country.flag}</span>
+                                <span className={styles.countryName}>{country.label}</span>
+                              </label>
+                            ))}
                           </div>
-                        )}
-                      </div>
-                    ))}
+                        </div>
+
+                        {/* Work Auth Options for Selected Countries */}
+                        {formData.selectedCountries.map((country) => (
+                          <div key={country} className={styles.workAuthSection}>
+                            <h4 className={styles.workAuthTitle}>
+                              {COUNTRIES_REGIONS.find(c => c.value === country)?.flag}{' '}
+                              {country} - Work Authorization
+                            </h4>
+                            <p className={styles.workAuthDescription}>
+                              Select work authorization status(es) that candidates must have (multi-select)
+                            </p>
+                            <div className={styles.workAuthOptions}>
+                              {WORK_AUTH_OPTIONS[country as keyof typeof WORK_AUTH_OPTIONS]?.map((option, index) => (
+                                <label
+                                  key={index}
+                                  className={`${styles.workAuthOption} ${
+                                    (formData.workAuthByCountry[country] || []).includes(option) ? styles.workAuthOptionActive : ''
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={(formData.workAuthByCountry[country] || []).includes(option)}
+                                    onChange={() => handleWorkAuthToggle(country, option)}
+                                  />
+                                  <span>{option}</span>
+                                </label>
+                              ))}
+                            </div>
+                            {(formData.workAuthByCountry[country] || []).length > 0 && (
+                              <div className={styles.selectedAuthCount}>
+                                {(formData.workAuthByCountry[country] || []).length} option(s) selected
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </>
+                    )}
                   </div>
 
                   {/* FR-S2: System Screening Questions */}
                   <div className={styles.formSection}>
                     <h3 className={styles.sectionTitle}>System Screening Questions</h3>
                     <p className={styles.sectionDescription}>
-                      Configure standard screening questions with requirement levels
+                      Configure standard screening questions with requirement levels. Toggle questions on/off to include them in screening.
                     </p>
 
                     {SYSTEM_SCREENING_QUESTIONS.map((question) => {
                       const answer = formData.systemScreeningAnswers.find(a => a.questionId === question.id);
+                      const isEnabled = answer?.enabled ?? true;
+                      const currentRequirement = answer?.requirement || 'accept-any';
                       
                       return (
-                        <div key={question.id} className={styles.screeningQuestion}>
-                          <h4 className={styles.questionTitle}>{question.question}</h4>
-                          
-                          {/* Requirement Level */}
-                          <div className={styles.requirementToggle}>
-                            {(['must-have', 'preferred', 'accept-any'] as AnswerRequirement[]).map((req) => (
-                              <button
-                                key={req}
-                                type="button"
-                                className={`${styles.requirementBtn} ${
-                                  answer?.requirement === req ? styles.requirementBtnActive : ''
-                                }`}
-                                onClick={() => handleSystemScreeningChange(question.id, req, answer?.selectedAnswers || [])}
-                              >
-                                {req === 'must-have' && '⭐ Must Have'}
-                                {req === 'preferred' && '✓ Preferred'}
-                                {req === 'accept-any' && '○ Accept Any'}
-                              </button>
-                            ))}
+                        <div 
+                          key={question.id} 
+                          className={`${styles.screeningQuestion} ${!isEnabled ? styles.screeningQuestionDisabled : ''}`}
+                        >
+                          {/* Question Header with Enable Toggle */}
+                          <div className={styles.questionHeader}>
+                            <label className={styles.questionEnableToggle}>
+                              <input
+                                type="checkbox"
+                                checked={isEnabled}
+                                onChange={(e) => handleToggleSystemQuestion(question.id, e.target.checked)}
+                              />
+                              <span className={styles.toggleSlider}></span>
+                            </label>
+                            <h4 className={styles.questionTitle}>{question.question}</h4>
                           </div>
 
-                          {/* Answer Options - All questions support multi-select */}
-                          <div className={styles.answerOptions}>
-                            {question.options.map((option) => (
-                              <label key={option} className={styles.checkboxOption}>
-                                <input
-                                  type="checkbox"
-                                  checked={answer?.selectedAnswers.includes(option) || false}
-                                  onChange={(e) => {
-                                    const current = answer?.selectedAnswers || [];
-                                    const newAnswers = e.target.checked
-                                      ? [...current, option]
-                                      : current.filter(a => a !== option);
-                                    handleSystemScreeningChange(
-                                      question.id,
-                                      answer?.requirement || 'accept-any',
-                                      newAnswers
-                                    );
-                                  }}
-                                />
-                                <span>{option}</span>
-                              </label>
-                            ))}
-                          </div>
-                          {(answer?.selectedAnswers?.length || 0) > 0 && (
-                            <div className={styles.selectedAuthCount}>
-                              {answer?.selectedAnswers.length} option(s) selected
+                          {/* Answer Options - Only show when enabled */}
+                          {isEnabled && (
+                            <>
+                              <div className={styles.answerOptions}>
+                                {question.options.map((option) => (
+                                  <label key={option} className={styles.checkboxOption}>
+                                    <input
+                                      type="checkbox"
+                                      checked={answer?.selectedAnswers.includes(option) || false}
+                                      onChange={(e) => {
+                                        const current = answer?.selectedAnswers || [];
+                                        const newAnswers = e.target.checked
+                                          ? [...current, option]
+                                          : current.filter(a => a !== option);
+                                        handleSystemScreeningChange(
+                                          question.id,
+                                          currentRequirement,
+                                          newAnswers,
+                                          isEnabled
+                                        );
+                                      }}
+                                    />
+                                    <span>{option}</span>
+                                  </label>
+                                ))}
+                              </div>
+                              
+                              {(answer?.selectedAnswers?.length || 0) > 0 && (
+                                <div className={styles.selectedAuthCount}>
+                                  {answer?.selectedAnswers.length} option(s) selected
+                                </div>
+                              )}
+
+                              {/* Requirement Level - Now below options */}
+                              <div className={styles.gateSection}>
+                                <label className={styles.gateLabel}>Requirement Level (Gate)</label>
+                                <div className={styles.requirementToggle}>
+                                  {(['must-have', 'preferred', 'accept-any'] as AnswerRequirement[]).map((req) => (
+                                    <button
+                                      key={req}
+                                      type="button"
+                                      className={`${styles.requirementBtn} ${
+                                        currentRequirement === req ? styles.requirementBtnActive : ''
+                                      } ${styles[`requirementBtn${req.replace('-', '')}`] || ''}`}
+                                      onClick={() => handleSystemScreeningChange(question.id, req, answer?.selectedAnswers || [], isEnabled)}
+                                    >
+                                      {GATE_REQUIREMENT_CONFIG[req].label}
+                                    </button>
+                                  ))}
+                                </div>
+                                
+                                {/* Gate Explanation */}
+                                <div className={styles.gateExplanation}>
+                                  <span className={styles.gateExplanationIcon}>ℹ️</span>
+                                  <div className={styles.gateExplanationText}>
+                                    <strong>{GATE_REQUIREMENT_CONFIG[currentRequirement].shortLabel}:</strong>{' '}
+                                    {GATE_REQUIREMENT_CONFIG[currentRequirement].description}
+                                    <span className={styles.gateImpact}>
+                                      {GATE_REQUIREMENT_CONFIG[currentRequirement].impactText}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </>
+                          )}
+                          
+                          {/* Disabled state message */}
+                          {!isEnabled && (
+                            <div className={styles.disabledMessage}>
+                              This question is disabled and will not be included in screening.
                             </div>
                           )}
                         </div>

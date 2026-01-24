@@ -167,6 +167,36 @@ export const SYSTEM_SCREENING_QUESTIONS = [
 // Answer requirement types
 export type AnswerRequirement = 'must-have' | 'preferred' | 'accept-any';
 
+// Gate requirement explanation texts - configurable for future changes
+export const GATE_REQUIREMENT_CONFIG = {
+  'must-have': {
+    label: '⭐ Must Have',
+    shortLabel: 'Must Have',
+    description: 'Candidates who do not meet this requirement will be automatically archived and marked as not qualified.',
+    impactText: 'Auto-archive if not met',
+    rankingPenalty: null, // Not applicable - auto-disqualify
+  },
+  'preferred': {
+    label: '✓ Preferred',
+    shortLabel: 'Preferred',
+    description: 'Candidates who do not meet this requirement will have their ranking reduced significantly.',
+    impactText: 'Ranking reduced by ~50% if not met',
+    rankingPenalty: 0.5, // 50% ranking penalty
+  },
+  'accept-any': {
+    label: '○ Accept Any',
+    shortLabel: 'Accept Any',
+    description: 'Candidates who do not meet this requirement will have a minor reduction in ranking.',
+    impactText: 'Ranking reduced by ~25% if not met',
+    rankingPenalty: 0.25, // 25% ranking penalty
+  },
+} as const;
+
+// Helper to get explanation for a requirement
+export const getRequirementExplanation = (requirement: AnswerRequirement): string => {
+  return GATE_REQUIREMENT_CONFIG[requirement].description;
+};
+
 // Custom screening question answer types
 export type CustomQuestionType = 'single' | 'multiple' | 'yes-no' | 'short-text';
 
@@ -174,6 +204,7 @@ export interface SystemScreeningAnswer {
   questionId: string;
   requirement: AnswerRequirement;
   selectedAnswers: string[];
+  enabled: boolean; // Whether this question is enabled for screening
 }
 
 export interface CustomScreeningQuestion {

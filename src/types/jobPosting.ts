@@ -35,6 +35,7 @@ export interface JobPostingFormData {
   // Step 3: Screening
   selectedCountries: string[];
   workAuthByCountry: Record<string, string[]>; // Multi-select work auth options per country
+  workAuthEnabled: boolean; // Whether work authorization screening is enabled
   systemScreeningAnswers: SystemScreeningAnswerInput[];
   customScreeningQuestions: CustomScreeningQuestionInput[];
   applicationDeadline: string;
@@ -44,6 +45,7 @@ export interface SystemScreeningAnswerInput {
   questionId: string;
   requirement: 'must-have' | 'preferred' | 'accept-any';
   selectedAnswers: string[];
+  enabled: boolean; // Whether this question is enabled for screening
 }
 
 export interface CustomScreeningQuestionInput {
