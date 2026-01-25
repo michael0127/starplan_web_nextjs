@@ -2414,6 +2414,56 @@ function CreateJobAdForm() {
                             </div>
                           )}
                         </div>
+
+                        {/* Company Summary */}
+                        {formData.jobSummary && (
+                          <div className={styles.reviewSubSection}>
+                            <div className={styles.reviewSubHeader}>
+                              <svg className={styles.reviewSubIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" />
+                                <path d="M3 9h18" />
+                                <path d="M9 21V9" />
+                              </svg>
+                              <h5>Company Summary</h5>
+                            </div>
+                            <p className={styles.reviewSummaryText}>{formData.jobSummary}</p>
+                          </div>
+                        )}
+
+                        {/* Skills */}
+                        {formData.categorySkills.length > 0 && (
+                          <div className={styles.reviewSubSection}>
+                            <div className={styles.reviewSubHeader}>
+                              <svg className={styles.reviewSubIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                              </svg>
+                              <h5>Required Skills</h5>
+                            </div>
+                            <div className={styles.reviewSkillsTags}>
+                              {formData.categorySkills.map((skill, index) => (
+                                <span key={index} className={styles.reviewSkillTag}>{skill}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Key Selling Points */}
+                        {(formData.keySellingPoint1 || formData.keySellingPoint2 || formData.keySellingPoint3) && (
+                          <div className={styles.reviewSubSection}>
+                            <div className={styles.reviewSubHeader}>
+                              <svg className={styles.reviewSubIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+                                <polyline points="22 4 12 14.01 9 11.01" />
+                              </svg>
+                              <h5>Key Highlights</h5>
+                            </div>
+                            <ul className={styles.reviewHighlightsList}>
+                              {formData.keySellingPoint1 && <li>{formData.keySellingPoint1}</li>}
+                              {formData.keySellingPoint2 && <li>{formData.keySellingPoint2}</li>}
+                              {formData.keySellingPoint3 && <li>{formData.keySellingPoint3}</li>}
+                            </ul>
+                          </div>
+                        )}
                       </div>
                     </div>
 
