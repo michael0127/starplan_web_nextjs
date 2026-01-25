@@ -275,24 +275,17 @@ function CreateJobAdForm() {
     loadCompanySettings();
   }, [editId, user, session]);
 
-  // Job title 变化时触发智能推荐
+  // Job title 变化时触发智能推荐（不自动选择，需用户手动选择才能显示推荐的skills）
   useEffect(() => {
     if (formData.jobTitle && formData.jobTitle.trim().length > 0 && !editId) {
       const recommendations = getRecommendedCategories(formData.jobTitle);
       const categoryNames = recommendations.map(r => r.category);
       setRecommendedCategories(categoryNames);
-      
-      // 只有在未手动选择时，才自动设置推荐的 category（选择第一个）
-      if (!formData.isCategoryManuallySelected && categoryNames.length > 0) {
-        setFormData(prev => ({
-          ...prev,
-          categories: [categoryNames[0]]
-        }));
-      }
+      // 不再自动选择推荐的category，让用户手动选择
     } else {
       setRecommendedCategories([]);
     }
-  }, [formData.jobTitle, formData.isCategoryManuallySelected, editId]);
+  }, [formData.jobTitle, editId]);
 
   // Country/Region 变化时自动建议货币
   useEffect(() => {
