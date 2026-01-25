@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import styles from './EditPanel.module.css';
 import { UserProfile, CVPersonalInfo, CVEducation, CVWorkExperience, CVSkills } from '@/types/profile';
+import { searchCities, getMajorCitiesForCountry, SUPPORTED_COUNTRIES, COUNTRY_FLAGS } from '@/lib/locationData';
 
 interface EditPanelProps {
   isOpen: boolean;
@@ -21,6 +22,11 @@ export default function EditPanel({ isOpen, onClose, section, profile, onSave }:
   const [employmentData, setEmploymentData] = useState<any>({});
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // City search state
+  const [citySearchTerm, setCitySearchTerm] = useState('');
+  const [showCityDropdown, setShowCityDropdown] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState('Australia'); // Default country for city search
 
   // Initialize form data based on section
   useEffect(() => {
@@ -333,18 +339,18 @@ export default function EditPanel({ isOpen, onClose, section, profile, onSave }:
 
         <div className={styles.formRow}>
           <div className={styles.formGroup}>
-            <label className={styles.label}>City</label>
+            <label className={styles.label}>Country</label>
             <select
-              name="city"
-              value={formData.city || ''}
-              onChange={handleChange}
+              name="country"
+              value={selectedCountry}
+              onChange={(e) => setSelectedCountry(e.target.value)}
               className={styles.select}
             >
-              <option value="">Select City</option>
-              <option value="ROWVILLE">ROWVILLE</option>
-              <option value="Melbourne">Melbourne</option>
-              <option value="Sydney">Sydney</option>
-              <option value="Brisbane">Brisbane</option>
+              {SUPPORTED_COUNTRIES.map((country) => (
+                <option key={country} value={country}>
+                  {COUNTRY_FLAGS[country]} {country}
+                </option>
+              ))}
             </select>
           </div>
           <div className={styles.formGroup}>
@@ -357,6 +363,70 @@ export default function EditPanel({ isOpen, onClose, section, profile, onSave }:
               className={styles.input}
             />
           </div>
+        </div>
+
+        <div className={styles.formGroup} style={{ position: 'relative' }}>
+          <label className={styles.label}>City</label>
+          <input
+            type="text"
+            name="city"
+            value={citySearchTerm || formData.city || ''}
+            onChange={(e) => {
+              setCitySearchTerm(e.target.value);
+              setShowCityDropdown(true);
+            }}
+            onFocus={() => setShowCityDropdown(true)}
+            onBlur={() => setTimeout(() => setShowCityDropdown(false), 200)}
+            className={styles.input}
+            placeholder={`Search cities in ${selectedCountry}...`}
+            autoComplete="off"
+          />
+          {showCityDropdown && (
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              right: 0,
+              maxHeight: '200px',
+              overflowY: 'auto',
+              background: 'white',
+              border: '1px solid #ddd',
+              borderRadius: '8px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              zIndex: 1000,
+              marginTop: '4px'
+            }}>
+              {searchCities(selectedCountry, citySearchTerm, 20).map((city) => (
+                <div
+                  key={city}
+                  onClick={() => {
+                    setFormData((prev: any) => ({ ...prev, city }));
+                    setCitySearchTerm('');
+                    setShowCityDropdown(false);
+                  }}
+                  style={{
+                    padding: '10px 12px',
+                    cursor: 'pointer',
+                    borderBottom: '1px solid #f0f0f0',
+                    fontSize: '14px',
+                    background: formData.city === city ? '#f0f4ff' : 'transparent'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#f5f5f5'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = formData.city === city ? '#f0f4ff' : 'transparent'}
+                >
+                  {city}
+                </div>
+              ))}
+              {searchCities(selectedCountry, citySearchTerm, 20).length === 0 && (
+                <div style={{ padding: '10px 12px', color: '#999', fontSize: '14px' }}>
+                  No cities found
+                </div>
+              )}
+            </div>
+          )}
+          <p style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
+            💡 Type to search from all cities in {selectedCountry}
+          </p>
         </div>
 
         <div className={styles.formGroup}>
@@ -685,17 +755,26 @@ export default function EditPanel({ isOpen, onClose, section, profile, onSave }:
               </div>
               <div className={styles.formGroup}>
                 <label className={styles.label}>Location</label>
-                <select
+                <input
+                  type="text"
                   value={work.location}
                   onChange={(e) => handleWorkChange(index, 'location', e.target.value)}
-                  className={styles.select}
-                >
-                  <option value="">Select Location</option>
-                  <option value="Melbourne">Melbourne</option>
-                  <option value="Sydney">Sydney</option>
-                  <option value="Brisbane">Brisbane</option>
+                  className={styles.input}
+                  placeholder="Enter city name..."
+                  list={`work-cities-${index}`}
+                />
+                <datalist id={`work-cities-${index}`}>
                   <option value="Remote">Remote</option>
-                </select>
+                  {getMajorCitiesForCountry('Australia', 20).map((city) => (
+                    <option key={city} value={city}>{city}</option>
+                  ))}
+                  {getMajorCitiesForCountry('United States', 20).map((city) => (
+                    <option key={city} value={city}>{city}</option>
+                  ))}
+                  {getMajorCitiesForCountry('Singapore', 10).map((city) => (
+                    <option key={city} value={city}>{city}</option>
+                  ))}
+                </datalist>
               </div>
             </div>
 
@@ -911,23 +990,38 @@ export default function EditPanel({ isOpen, onClose, section, profile, onSave }:
           <label className={styles.label}>
             <span className={styles.required}>*</span> Preferred Location
           </label>
-          <select
+          <input
+            type="text"
             value={employmentData.preferredLocation || ''}
             onChange={(e) => handleEmploymentChange('preferredLocation', e.target.value)}
-            className={styles.select}
+            className={styles.input}
+            placeholder="Enter preferred city or location..."
+            list="preferred-locations"
             required
-          >
-            <option value="">Select Location</option>
-            <option value="Melbourne">Melbourne</option>
-            <option value="Sydney">Sydney</option>
-            <option value="Brisbane">Brisbane</option>
-            <option value="Perth">Perth</option>
-            <option value="Adelaide">Adelaide</option>
-            <option value="Canberra">Canberra</option>
+          />
+          <datalist id="preferred-locations">
             <option value="Remote - Australia">Remote - Australia</option>
             <option value="Remote - Global">Remote - Global</option>
             <option value="Flexible">Flexible</option>
-          </select>
+            {getMajorCitiesForCountry('Australia', 25).map((city) => (
+              <option key={city} value={city}>{city}</option>
+            ))}
+            {getMajorCitiesForCountry('United States', 25).map((city) => (
+              <option key={city} value={city}>{city}</option>
+            ))}
+            {getMajorCitiesForCountry('Singapore', 10).map((city) => (
+              <option key={city} value={city}>{city}</option>
+            ))}
+            {getMajorCitiesForCountry('Mainland China', 20).map((city) => (
+              <option key={city} value={city}>{city}</option>
+            ))}
+            {getMajorCitiesForCountry('HKSAR of China', 10).map((city) => (
+              <option key={city} value={city}>{city}</option>
+            ))}
+          </datalist>
+          <p style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
+            💡 Type to search or select from suggestions
+          </p>
         </div>
 
         <div className={styles.formGroup}>

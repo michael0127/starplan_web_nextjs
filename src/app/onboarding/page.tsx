@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { useUserType } from '@/hooks/useUserType';
 import { COUNTRIES_REGIONS, EXPERIENCE_LEVELS, WORK_TYPES, PAY_TYPES, CURRENCIES } from '@/lib/jobConstants';
 import { WORK_AUTH_OPTIONS } from '@/lib/screeningOptions';
+import { getLocationOptions, searchCities, getAllCitiesForCountry, COUNTRY_FLAGS } from '@/lib/locationData';
 import type { Currency } from '@/lib/jobConstants';
 import styles from './page.module.css';
 
@@ -164,34 +165,9 @@ const ALL_CATEGORIES = [
 
 // Work authorization options are imported from screeningOptions.ts
 
-// Countries with major cities for location preferences
-const LOCATION_OPTIONS = [
-      {
-    country: 'Australia',
-    flag: '🇦🇺',
-    cities: ['Sydney', 'Melbourne', 'Brisbane', 'Perth', 'Adelaide', 'Canberra', 'Gold Coast', 'Newcastle', 'Wollongong', 'Hobart']
-  },
-  {
-    country: 'United States',
-    flag: '🇺🇸',
-    cities: ['New York', 'Los Angeles', 'San Francisco', 'Seattle', 'Austin', 'Boston', 'Chicago', 'Denver', 'Miami', 'Atlanta', 'San Diego', 'Portland']
-  },
-  {
-    country: 'Singapore',
-    flag: '🇸🇬',
-    cities: ['Singapore City', 'Jurong', 'Woodlands', 'Tampines', 'Queenstown']
-  },
-  {
-    country: 'Mainland China',
-    flag: '🇨🇳',
-    cities: ['Beijing', 'Shanghai', 'Shenzhen', 'Guangzhou', 'Hangzhou', 'Chengdu', 'Nanjing', 'Wuhan', 'Xi\'an', 'Suzhou']
-  },
-  {
-    country: 'HKSAR of China',
-    flag: '🇭🇰',
-    cities: ['Hong Kong Island', 'Kowloon', 'New Territories', 'Lantau Island']
-  },
-];
+// Get location options from the comprehensive city database
+// This provides 151,000+ cities from open source data
+const LOCATION_OPTIONS = getLocationOptions();
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -208,6 +184,7 @@ export default function OnboardingPage() {
   const [error, setError] = useState('');
   const [isCategoryExpanded, setIsCategoryExpanded] = useState(false);
   const [categorySearchTerm, setCategorySearchTerm] = useState('');
+  const [citySearchTerms, setCitySearchTerms] = useState<Record<string, string>>({});
   const [processingStep, setProcessingStep] = useState(0);
   const [formData, setFormData] = useState<OnboardingData>({
     categories: [],
@@ -950,49 +927,129 @@ export default function OnboardingPage() {
                                 }}>
                                   Select specific cities (optional):
                                 </p>
+                                
+                                {/* City Search Input */}
+                                <div style={{ marginBottom: '12px' }}>
+                                  <input
+                                    type="text"
+                                    placeholder={`🔍 Search cities in ${location.country}...`}
+                                    value={citySearchTerms[location.country] || ''}
+                                    onChange={(e) => setCitySearchTerms(prev => ({
+                                      ...prev,
+                                      [location.country]: e.target.value
+                                    }))}
+                                    style={{
+                                      width: '100%',
+                                      padding: '10px 12px',
+                                      border: '1px solid #ddd',
+                                      borderRadius: '8px',
+                                      fontSize: '14px',
+                                      outline: 'none'
+                                    }}
+                                    onFocus={(e) => e.target.style.borderColor = '#4A5BF4'}
+                                    onBlur={(e) => e.target.style.borderColor = '#ddd'}
+                                  />
+                                  {citySearchTerms[location.country] && (
+                                    <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                                      Showing results for &quot;{citySearchTerms[location.country]}&quot;
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                {/* Selected Cities Display */}
+                                {selectedCities.length > 0 && (
+                                  <div style={{ 
+                                    marginBottom: '12px',
+                                    padding: '8px 12px',
+                                    background: 'rgba(74, 91, 244, 0.08)',
+                                    borderRadius: '8px'
+                                  }}>
+                                    <div style={{ fontSize: '12px', color: '#666', marginBottom: '6px' }}>
+                                      Selected ({selectedCities.length}):
+                                    </div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                      {selectedCities.map((city) => (
+                                        <span
+                                          key={city}
+                                          style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            padding: '4px 10px',
+                                            background: '#4A5BF4',
+                                            color: 'white',
+                                            borderRadius: '12px',
+                                            fontSize: '12px',
+                                          }}
+                                        >
+                                          {city}
+                                          <button
+                                            type="button"
+                                            onClick={() => handleLocationCityToggle(location.country, city)}
+                                            style={{
+                                              background: 'none',
+                                              border: 'none',
+                                              color: 'white',
+                                              cursor: 'pointer',
+                                              padding: '0 2px',
+                                              fontSize: '14px',
+                                              lineHeight: 1
+                                            }}
+                                          >
+                                            ×
+                                          </button>
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {/* City Options - with search filtering */}
                                 <div style={{ 
                                   display: 'flex', 
                                   flexWrap: 'wrap', 
-                                  gap: '8px'
+                                  gap: '8px',
+                                  maxHeight: '200px',
+                                  overflowY: 'auto',
+                                  padding: '4px'
                                 }}>
-                                  {location.cities.map((city) => (
+                                  {searchCities(location.country, citySearchTerms[location.country] || '', 30)
+                                    .filter(city => !selectedCities.includes(city))
+                                    .map((city, idx) => (
                                     <label
-                                      key={city}
+                                      key={`${city}-${idx}`}
                                       style={{
                                         display: 'inline-flex',
                                         alignItems: 'center',
                                         gap: '6px',
                                         padding: '6px 12px',
-                                        background: selectedCities.includes(city) ? '#4A5BF4' : '#f5f5f5',
-                                        color: selectedCities.includes(city) ? 'white' : '#252525',
+                                        background: '#f5f5f5',
+                                        color: '#252525',
                                         borderRadius: '16px',
                                         fontSize: '13px',
                                         cursor: 'pointer',
                                         transition: 'all 0.2s ease',
-                                        border: selectedCities.includes(city) ? '1px solid #4A5BF4' : '1px solid #e0e0e0',
+                                        border: '1px solid #e0e0e0',
                                       }}
                                       onMouseEnter={(e) => {
-                                        if (!selectedCities.includes(city)) {
-                                          e.currentTarget.style.background = '#e8e8e8';
-                                        }
+                                        e.currentTarget.style.background = '#e8e8e8';
                                       }}
                                       onMouseLeave={(e) => {
-                                        if (!selectedCities.includes(city)) {
-                                          e.currentTarget.style.background = '#f5f5f5';
-                                        }
+                                        e.currentTarget.style.background = '#f5f5f5';
                                       }}
                                     >
-                        <input
-                          type="checkbox"
-                                        checked={selectedCities.includes(city)}
+                                      <input
+                                        type="checkbox"
+                                        checked={false}
                                         onChange={() => handleLocationCityToggle(location.country, city)}
                                         style={{ display: 'none' }}
-                        />
+                                      />
                                       {city}
-                      </label>
+                                    </label>
                                   ))}
-                    </div>
-                                {selectedCities.length === 0 && (
+                                </div>
+                                
+                                {selectedCities.length === 0 && !citySearchTerms[location.country] && (
                                   <p style={{ 
                                     fontSize: '12px', 
                                     color: '#999', 
@@ -1002,6 +1059,14 @@ export default function OnboardingPage() {
                                     No cities selected - you&apos;re open to any location in {location.country}
                                   </p>
                                 )}
+                                
+                                <p style={{ 
+                                  fontSize: '11px', 
+                                  color: '#999', 
+                                  marginTop: '8px'
+                                }}>
+                                  💡 Type to search from all cities in {location.country}
+                                </p>
                               </div>
                             )}
                           </div>

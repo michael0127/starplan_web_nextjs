@@ -16,6 +16,7 @@
     "@tiptap/extension-placeholder": "^3.13.0",
     "@tiptap/react": "^3.13.0",
     "@tiptap/starter-kit": "^3.13.0",
+    "country-state-city": "^3.2.1",
     "framer-motion": "^12.23.25",
     "fuse.js": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
