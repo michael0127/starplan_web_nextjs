@@ -78,7 +78,7 @@ function EmployerRegisterForm() {
 
   return (
     <PageTransition>
-      <AuthLayout mounted={mounted}>
+      <AuthLayout mounted={mounted} variant="employer">
         <div className={formStyles.title}>
           Register as an <span className={formStyles.highlight}>Employer</span>
         </div>
@@ -163,7 +163,7 @@ export default function EmployerRegister() {
   return (
     <Suspense fallback={
       <PageTransition>
-        <AuthLayout mounted={true}>
+        <AuthLayout mounted={true} variant="employer">
           <div className={formStyles.title}>
             Register as an <span className={formStyles.highlight}>Employer</span>
           </div>

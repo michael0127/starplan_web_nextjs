@@ -378,6 +378,62 @@
   text-decoration: underline;
 }
 
+/* Hierarchical Location Filter Styles */
+.locationHierarchy {
+  margin-bottom: 4px;
+}
+
+.locationCountryRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.locationExpandBtn {
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  cursor: pointer;
+  color: #666;
+  font-size: 10px;
+  min-width: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.locationExpandBtn:hover {
+  color: #4a5bf4;
+}
+
+.locationStateList {
+  margin-left: 24px;
+  border-left: 1px solid #e5e7eb;
+  padding-left: 8px;
+  margin-top: 4px;
+}
+
+.locationStateItem {
+  margin-bottom: 2px;
+}
+
+.locationStateRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.locationCityList {
+  margin-left: 24px;
+  border-left: 1px solid #e5e7eb;
+  padding-left: 8px;
+  margin-top: 4px;
+}
+
+.locationCityList .checkboxLabel {
+  padding: 2px 0;
+}
+
 .selectedCount {
   font-size: 12px;
   color: #4a5bf4;

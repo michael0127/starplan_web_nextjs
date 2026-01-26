@@ -66,7 +66,7 @@ function EmployerLoginForm() {
 
   return (
     <PageTransition>
-      <AuthLayout mounted={mounted}>
+      <AuthLayout mounted={mounted} variant="employer">
         <div className={formStyles.title}>
           Employer <span className={formStyles.highlight}>Login</span>
         </div>
@@ -150,7 +150,7 @@ export default function EmployerLogin() {
   return (
     <Suspense fallback={
       <PageTransition>
-        <AuthLayout mounted={true}>
+        <AuthLayout mounted={true} variant="employer">
           <div className={formStyles.title}>
             Employer <span className={formStyles.highlight}>Login</span>
           </div>

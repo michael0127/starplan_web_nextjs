@@ -133,6 +133,28 @@ interface FilterOption {
   count: number;
 }
 
+// Hierarchical location types for structured filtering
+interface LocationCity {
+  name: string;
+  count: number;
+}
+
+interface LocationState {
+  name: string;
+  count: number;
+  cities: LocationCity[];
+}
+
+interface LocationCountry {
+  name: string;
+  count: number;
+  states: LocationState[];
+}
+
+interface LocationHierarchy {
+  countries: LocationCountry[];
+}
+
 interface ApplicantsData {
   jobs: Job[];
   applicants: Applicant[];
@@ -155,7 +177,7 @@ interface ApplicantsData {
   };
   filterOptions: {
     skills: FilterOption[];
-    locations: FilterOption[];
+    locations: LocationHierarchy;
     experienceLevels: FilterOption[];
   };
 }
@@ -190,6 +212,10 @@ function EmployerCandidatesContent() {
   const [skillSearchQuery, setSkillSearchQuery] = useState('');
   const [showAllSkills, setShowAllSkills] = useState(false);
   const [showAllLocations, setShowAllLocations] = useState(false);
+  
+  // Hierarchical location filter states
+  const [expandedCountries, setExpandedCountries] = useState<Set<string>>(new Set());
+  const [expandedStates, setExpandedStates] = useState<Set<string>>(new Set());
   
   // Expanded sections
   const [expandedExperience, setExpandedExperience] = useState<Set<string>>(new Set());
@@ -1008,7 +1034,7 @@ function EmployerCandidatesContent() {
                 </div>
               </div>
 
-              {/* Location Filter */}
+              {/* Location Filter - Hierarchical */}
               <div className={styles.filterSection}>
                 <h3 className={styles.filterTitle}>
                   Location
@@ -1017,28 +1043,112 @@ function EmployerCandidatesContent() {
                   )}
                 </h3>
                 <div className={styles.filterOptions}>
-                  {(data?.filterOptions?.locations?.length || 0) === 0 ? (
+                  {(data?.filterOptions?.locations?.countries?.length || 0) === 0 ? (
                     <div className={styles.noFilterOptions}>No locations available</div>
                   ) : (
                     <>
-                      {(data?.filterOptions?.locations || []).slice(0, showAllLocations ? undefined : 6).map(location => (
-                        <label key={location.name} className={styles.checkboxLabel}>
-                          <input
-                            type="checkbox"
-                            checked={selectedLocations.has(location.name)}
-                            onChange={() => toggleFilter(selectedLocations, setSelectedLocations, location.name)}
-                            className={styles.checkbox}
-                          />
-                          <span className={styles.filterOptionName}>{location.name}</span>
-                          <span className={styles.filterCount}>({location.count})</span>
-                        </label>
+                      {(data?.filterOptions?.locations?.countries || [])
+                        .slice(0, showAllLocations ? undefined : 6)
+                        .map(country => (
+                        <div key={country.name} className={styles.locationHierarchy}>
+                          {/* Country Level */}
+                          <div className={styles.locationCountryRow}>
+                            <button
+                              type="button"
+                              className={styles.locationExpandBtn}
+                              onClick={() => {
+                                const newSet = new Set(expandedCountries);
+                                if (newSet.has(country.name)) {
+                                  newSet.delete(country.name);
+                                } else {
+                                  newSet.add(country.name);
+                                }
+                                setExpandedCountries(newSet);
+                              }}
+                            >
+                              {expandedCountries.has(country.name) ? '▼' : '▶'}
+                            </button>
+                            <label className={styles.checkboxLabel}>
+                              <input
+                                type="checkbox"
+                                checked={selectedLocations.has(`country:${country.name.toLowerCase()}`)}
+                                onChange={() => toggleFilter(selectedLocations, setSelectedLocations, `country:${country.name.toLowerCase()}`)}
+                                className={styles.checkbox}
+                              />
+                              <span className={styles.filterOptionName}>{country.name}</span>
+                              <span className={styles.filterCount}>({country.count})</span>
+                            </label>
+                          </div>
+                          
+                          {/* State Level - shown when country expanded */}
+                          {expandedCountries.has(country.name) && country.states && (
+                            <div className={styles.locationStateList}>
+                              {country.states
+                                .filter(state => state.name !== '(No State)')
+                                .map(state => (
+                                <div key={`${country.name}-${state.name}`} className={styles.locationStateItem}>
+                                  <div className={styles.locationStateRow}>
+                                    {state.cities && state.cities.filter(c => c.name !== '(No City)').length > 0 && (
+                                      <button
+                                        type="button"
+                                        className={styles.locationExpandBtn}
+                                        onClick={() => {
+                                          const key = `${country.name}-${state.name}`;
+                                          const newSet = new Set(expandedStates);
+                                          if (newSet.has(key)) {
+                                            newSet.delete(key);
+                                          } else {
+                                            newSet.add(key);
+                                          }
+                                          setExpandedStates(newSet);
+                                        }}
+                                      >
+                                        {expandedStates.has(`${country.name}-${state.name}`) ? '▼' : '▶'}
+                                      </button>
+                                    )}
+                                    <label className={styles.checkboxLabel}>
+                                      <input
+                                        type="checkbox"
+                                        checked={selectedLocations.has(`state:${state.name.toLowerCase()}`)}
+                                        onChange={() => toggleFilter(selectedLocations, setSelectedLocations, `state:${state.name.toLowerCase()}`)}
+                                        className={styles.checkbox}
+                                      />
+                                      <span className={styles.filterOptionName}>{state.name}</span>
+                                      <span className={styles.filterCount}>({state.count})</span>
+                                    </label>
+                                  </div>
+                                  
+                                  {/* City Level - shown when state expanded */}
+                                  {expandedStates.has(`${country.name}-${state.name}`) && state.cities && (
+                                    <div className={styles.locationCityList}>
+                                      {state.cities
+                                        .filter(city => city.name !== '(No City)')
+                                        .map(city => (
+                                        <label key={`${country.name}-${state.name}-${city.name}`} className={styles.checkboxLabel}>
+                                          <input
+                                            type="checkbox"
+                                            checked={selectedLocations.has(`city:${city.name.toLowerCase()}`)}
+                                            onChange={() => toggleFilter(selectedLocations, setSelectedLocations, `city:${city.name.toLowerCase()}`)}
+                                            className={styles.checkbox}
+                                          />
+                                          <span className={styles.filterOptionName}>{city.name}</span>
+                                          <span className={styles.filterCount}>({city.count})</span>
+                                        </label>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       ))}
-                      {(data?.filterOptions?.locations?.length || 0) > 6 && (
+                      {(data?.filterOptions?.locations?.countries?.length || 0) > 6 && (
                         <button 
                           className={styles.showMoreFiltersBtn}
                           onClick={() => setShowAllLocations(!showAllLocations)}
                         >
-                          {showAllLocations ? 'Show less' : `Show all ${data?.filterOptions?.locations?.length}`}
+                          {showAllLocations ? 'Show less' : `Show all ${data?.filterOptions?.locations?.countries?.length} countries`}
                         </button>
                       )}
                     </>
