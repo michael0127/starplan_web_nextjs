@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
 
     const userId = user.id;
 
-    // Fetch company settings to get default logo, cover, and video
+    // Fetch company settings to get default logo, cover, video, and description
     const companySettings = await prisma.company.findUnique({
       where: { userId },
       select: {
@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
         companyLogo: true,
         companyCoverImage: true,
         videoLink: true,
+        description: true,
       },
     });
 
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
       }
       if (!body.jobSummary || !body.jobSummary.trim()) {
         return NextResponse.json(
-          { error: 'Job summary is required for publishing' },
+          { error: 'Company summary is required for publishing' },
           { status: 400 }
         );
       }
@@ -111,10 +112,11 @@ export async function POST(request: NextRequest) {
       salaryDisplayText: body.salaryDisplayText || null,
       
       // Step 2: Job Details (allow empty for drafts)
-      // Use company settings as defaults for company name, logo, cover, and video
+      // Use company settings as defaults for company name, logo, cover, video, and description
       companyName: body.companyName || companySettings?.companyName || '',
       jobDescription: body.jobDescription || '',
-      jobSummary: body.jobSummary || '',
+      // Use company description as default for jobSummary (Company Summary)
+      jobSummary: body.jobSummary || companySettings?.description || '',
       keySellingPoint1: body.keySellingPoint1 || null,
       keySellingPoint2: body.keySellingPoint2 || null,
       keySellingPoint3: body.keySellingPoint3 || null,

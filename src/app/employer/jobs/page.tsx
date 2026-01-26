@@ -1126,10 +1126,10 @@ export default function EmployerJobs() {
                   </div>
                 )}
 
-                {/* Job Summary */}
+                {/* Company Summary */}
                 {previewJob.jobSummary && (
                   <div className={styles.previewSection}>
-                    <h4 className={styles.previewSectionTitle}>Summary</h4>
+                    <h4 className={styles.previewSectionTitle}>Company Summary</h4>
                     <p className={styles.previewSummary}>{previewJob.jobSummary}</p>
                   </div>
                 )}

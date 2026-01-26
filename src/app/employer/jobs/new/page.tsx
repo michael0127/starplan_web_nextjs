@@ -115,6 +115,14 @@ function CreateJobAdForm() {
   const [isPurchaseComplete, setIsPurchaseComplete] = useState(false);
   const [isAlreadyPaid, setIsAlreadyPaid] = useState(false);  // Track if job was already paid for
   
+  // JD 文件上传状态
+  const [jdFile, setJdFile] = useState<File | null>(null);
+  const [jdUploadStatus, setJdUploadStatus] = useState<'idle' | 'uploading' | 'analyzing' | 'success' | 'error'>('idle');
+  const [jdUploadProgress, setJdUploadProgress] = useState(0);
+  const [jdUploadError, setJdUploadError] = useState<string | null>(null);
+  const [jdTaskId, setJdTaskId] = useState<string | null>(null);
+  const jdFileInputRef = useRef<HTMLInputElement>(null);
+  
   // 使用权限检查 hook
   const { user, loading, isEmployer } = useUserType({
     required: 'EMPLOYER',
@@ -259,6 +267,8 @@ function CreateJobAdForm() {
             if (!prev.companyLogo && company.companyLogo) updates.companyLogo = company.companyLogo;
             if (!prev.companyCoverImage && company.companyCoverImage) updates.companyCoverImage = company.companyCoverImage;
             if (!prev.videoLink && company.videoLink) updates.videoLink = company.videoLink;
+            // Sync company description to jobSummary (Company Summary)
+            if (!prev.jobSummary && company.description) updates.jobSummary = company.description;
             
             return Object.keys(updates).length > 0 ? { ...prev, ...updates } : prev;
           });
@@ -536,6 +546,275 @@ function CreateJobAdForm() {
     }
   };
 
+  // JD 文件上传处理
+  const handleJdFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const fileName = file.name.toLowerCase();
+      if (!fileName.endsWith('.pdf') && !fileName.endsWith('.docx')) {
+        setJdUploadError('Only PDF and DOCX files are supported');
+        return;
+      }
+      setJdFile(file);
+      setJdUploadError(null);
+      handleJdUpload(file);
+    }
+  };
+
+  const handleJdFileDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      const fileName = file.name.toLowerCase();
+      if (!fileName.endsWith('.pdf') && !fileName.endsWith('.docx')) {
+        setJdUploadError('Only PDF and DOCX files are supported');
+        return;
+      }
+      setJdFile(file);
+      setJdUploadError(null);
+      handleJdUpload(file);
+    }
+  };
+
+  const handleJdDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const fillFormFromJdData = (data: Record<string, unknown>) => {
+    // 从 JD 分析结果填充表单
+    setFormData(prev => {
+      const updates: Partial<JobFormData> = {};
+      
+      // 直接映射字段
+      if (data.jobTitle) updates.jobTitle = String(data.jobTitle);
+      if (data.companyName) updates.companyName = String(data.companyName);
+      if (data.jobDescription) updates.jobDescription = String(data.jobDescription);
+      if (data.jobSummary) updates.jobSummary = String(data.jobSummary);
+      if (data.keySellingPoint1) updates.keySellingPoint1 = String(data.keySellingPoint1);
+      if (data.keySellingPoint2) updates.keySellingPoint2 = String(data.keySellingPoint2);
+      if (data.keySellingPoint3) updates.keySellingPoint3 = String(data.keySellingPoint3);
+      
+      // 数组字段
+      if (Array.isArray(data.categories) && data.categories.length > 0) {
+        updates.categories = data.categories as string[];
+        updates.isCategoryManuallySelected = true;
+      }
+      if (Array.isArray(data.categorySkills)) {
+        updates.categorySkills = data.categorySkills as string[];
+      }
+      
+      // 枚举字段 - 需要匹配现有选项
+      if (data.countryRegion) {
+        const country = String(data.countryRegion);
+        const matchedCountry = COUNTRIES_REGIONS.find(c => c.value === country);
+        if (matchedCountry) {
+          updates.countryRegion = matchedCountry.value;
+        }
+      }
+      
+      if (data.experienceLevel) {
+        const level = String(data.experienceLevel);
+        const matchedLevel = EXPERIENCE_LEVELS.find(l => 
+          l.level.toUpperCase() === level.toUpperCase() || 
+          l.level === level
+        );
+        if (matchedLevel) {
+          updates.experienceLevel = matchedLevel.level;
+        }
+      }
+      
+      if (data.experienceYearsFrom !== undefined) {
+        updates.experienceYearsFrom = Number(data.experienceYearsFrom) || 0;
+      }
+      if (data.experienceYearsTo !== undefined) {
+        const yearsTo = data.experienceYearsTo;
+        if (yearsTo === 'Unlimited' || yearsTo === 'unlimited') {
+          updates.experienceYearsTo = 'Unlimited';
+        } else {
+          updates.experienceYearsTo = Number(yearsTo) || 0;
+        }
+      }
+      
+      if (data.workType) {
+        const workType = String(data.workType);
+        const matchedType = WORK_TYPES.find(t => 
+          t.toUpperCase().replace(/[_-]/g, '') === workType.toUpperCase().replace(/[_-]/g, '') ||
+          t === workType
+        );
+        if (matchedType) {
+          updates.workType = matchedType;
+        }
+      }
+      
+      if (data.payType) {
+        const payType = String(data.payType);
+        const matchedPayType = PAY_TYPES.find(p => 
+          p.toUpperCase().replace(/[_\s]/g, '') === payType.toUpperCase().replace(/[_\s]/g, '') ||
+          p === payType
+        );
+        if (matchedPayType) {
+          updates.payType = matchedPayType;
+        }
+      }
+      
+      if (data.currency) {
+        const currencyCode = String(data.currency).toUpperCase();
+        const matchedCurrency = CURRENCIES.find(c => c.code.toUpperCase() === currencyCode);
+        if (matchedCurrency) {
+          updates.currency = matchedCurrency;
+        }
+      }
+      
+      if (data.payFrom) updates.payFrom = String(data.payFrom);
+      if (data.payTo) updates.payTo = String(data.payTo);
+      if (data.showSalaryOnAd !== undefined) updates.showSalaryOnAd = Boolean(data.showSalaryOnAd);
+      
+      return { ...prev, ...updates };
+    });
+  };
+
+  const handleJdUpload = async (file: File) => {
+    if (!session) {
+      setJdUploadError('Please login to upload files');
+      return;
+    }
+    
+    setJdUploadStatus('uploading');
+    setJdUploadProgress(10);
+    setJdUploadError(null);
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // 上传文件并启动分析任务
+      const uploadResponse = await fetch('/api/employer/jd-upload?save_to_db=true&create_job_posting=true&create_as_draft=true&create_successful_payment=false', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: formData,
+      });
+      
+      const uploadData = await uploadResponse.json();
+      
+      if (!uploadResponse.ok || !uploadData.success) {
+        throw new Error(uploadData.error || 'Failed to upload file');
+      }
+      
+      setJdUploadProgress(30);
+      setJdUploadStatus('analyzing');
+      setJdTaskId(uploadData.taskId);
+      
+      // 轮询任务状态 - 两阶段：先等外层任务完成获取 batch_task_id，再轮询批量任务状态
+      const pollInterval = 2000; // 2 秒
+      const maxAttempts = 60; // 最多 2 分钟
+      let attempts = 0;
+      let batchTaskId: string | null = null;
+      
+      const pollStatus = async () => {
+        attempts++;
+        
+        try {
+          // 如果还没有 batch_task_id，先查询外层任务
+          if (!batchTaskId) {
+            const statusResponse = await fetch(`/api/tasks/${uploadData.taskId}`);
+            const statusData = await statusResponse.json();
+            
+            if (!statusResponse.ok) {
+              throw new Error(statusData.error || 'Failed to get task status');
+            }
+            
+            // 模拟进度
+            setJdUploadProgress(Math.min(50, 30 + attempts * 2));
+            
+            if (statusData.data?.ready) {
+              // 外层任务完成，获取 batch_task_id
+              if (statusData.data.result?.batch_task_id) {
+                batchTaskId = statusData.data.result.batch_task_id;
+                // 继续轮询批量任务
+                setTimeout(pollStatus, pollInterval);
+              } else {
+                throw new Error('Failed to get batch task ID');
+              }
+            } else if (statusData.data?.status === 'FAILURE') {
+              throw new Error(statusData.data.error || 'Task failed');
+            } else if (attempts < maxAttempts) {
+              setTimeout(pollStatus, pollInterval);
+            } else {
+              throw new Error('Analysis timeout');
+            }
+          } else {
+            // 查询批量任务状态
+            const batchResponse = await fetch(`/api/tasks/${batchTaskId}?batch=true`);
+            const batchData = await batchResponse.json();
+            
+            if (!batchResponse.ok) {
+              throw new Error(batchData.error || 'Failed to get batch status');
+            }
+            
+            // 更新进度
+            if (batchData.completed !== undefined && batchData.total) {
+              setJdUploadProgress(50 + (batchData.completed / batchData.total) * 45);
+            } else {
+              setJdUploadProgress(Math.min(90, 50 + attempts * 2));
+            }
+            
+            if (batchData.ready) {
+              // 批量任务完成，获取第一个结果
+              const firstResult = batchData.results?.[0];
+              
+              if (firstResult?.result?.success) {
+                setJdUploadProgress(100);
+                setJdUploadStatus('success');
+                
+                // 填充表单数据
+                if (firstResult.result.data) {
+                  fillFormFromJdData(firstResult.result.data);
+                }
+                
+                // 如果创建了 JobPosting，保存 ID
+                if (firstResult.result.job_posting_id) {
+                  setCurrentJobPostingId(firstResult.result.job_posting_id);
+                }
+              } else {
+                throw new Error(firstResult?.result?.error || firstResult?.error || 'Analysis failed');
+              }
+            } else if (attempts < maxAttempts) {
+              setTimeout(pollStatus, pollInterval);
+            } else {
+              throw new Error('Analysis timeout');
+            }
+          }
+        } catch (error) {
+          setJdUploadStatus('error');
+          setJdUploadError(error instanceof Error ? error.message : 'Analysis failed');
+        }
+      };
+      
+      // 开始轮询
+      setTimeout(pollStatus, pollInterval);
+      
+    } catch (error) {
+      setJdUploadStatus('error');
+      setJdUploadError(error instanceof Error ? error.message : 'Failed to upload file');
+    }
+  };
+
+  const handleJdUploadReset = () => {
+    setJdFile(null);
+    setJdUploadStatus('idle');
+    setJdUploadProgress(0);
+    setJdUploadError(null);
+    setJdTaskId(null);
+    if (jdFileInputRef.current) {
+      jdFileInputRef.current.value = '';
+    }
+  };
+
   const validateStep1 = (): boolean => {
     const newErrors: Record<string, string> = {};
     
@@ -579,7 +858,7 @@ function CreateJobAdForm() {
       newErrors.jobDescription = 'Job description is required';
     }
     if (!formData.jobSummary.trim()) {
-      newErrors.jobSummary = 'Job summary is required';
+      newErrors.jobSummary = 'Company summary is required';
     }
     
     // YouTube link validation (optional, but if provided must be valid)
@@ -1259,6 +1538,130 @@ function CreateJobAdForm() {
                     Provide the essential details to help candidates find your position.
                   </p>
 
+                  {/* JD 文件上传区域 - 仅在非编辑模式下显示 */}
+                  {!editId && (
+                    <div className={styles.jdUploadSection}>
+                      <div className={styles.jdUploadHeader}>
+                        <div className={styles.jdUploadIcon}>
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <line x1="12" y1="18" x2="12" y2="12" />
+                            <line x1="9" y1="15" x2="15" y2="15" />
+                          </svg>
+                        </div>
+                        <div className={styles.jdUploadTitle}>
+                          <h3>Upload your JD file to auto-fill</h3>
+                          <span className={styles.optionalBadge}>Optional</span>
+                        </div>
+                      </div>
+                      <p className={styles.jdUploadDescription}>
+                        Upload a PDF or DOCX file and our AI will extract the job details to pre-fill the form for you.
+                      </p>
+                      
+                      {jdUploadStatus === 'idle' && (
+                        <div 
+                          className={styles.jdDropzone}
+                          onDrop={handleJdFileDrop}
+                          onDragOver={handleJdDragOver}
+                          onClick={() => jdFileInputRef.current?.click()}
+                        >
+                          <input
+                            ref={jdFileInputRef}
+                            type="file"
+                            accept=".pdf,.docx"
+                            onChange={handleJdFileSelect}
+                            className={styles.hiddenInput}
+                          />
+                          <div className={styles.dropzoneIcon}>
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                              <polyline points="17 8 12 3 7 8" />
+                              <line x1="12" y1="3" x2="12" y2="15" />
+                            </svg>
+                          </div>
+                          <p className={styles.dropzoneText}>
+                            <span className={styles.dropzoneHighlight}>Click to upload</span> or drag and drop
+                          </p>
+                          <p className={styles.dropzoneHint}>PDF or DOCX (max 10MB)</p>
+                        </div>
+                      )}
+                      
+                      {(jdUploadStatus === 'uploading' || jdUploadStatus === 'analyzing') && (
+                        <div className={styles.jdProgressContainer}>
+                          <div className={styles.jdProgressHeader}>
+                            <div className={styles.jdFileName}>
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                <polyline points="14 2 14 8 20 8" />
+                              </svg>
+                              <span>{jdFile?.name}</span>
+                            </div>
+                            <span className={styles.jdProgressPercent}>{Math.round(jdUploadProgress)}%</span>
+                          </div>
+                          <div className={styles.jdProgressBar}>
+                            <div 
+                              className={styles.jdProgressFill} 
+                              style={{ width: `${jdUploadProgress}%` }}
+                            />
+                          </div>
+                          <p className={styles.jdProgressStatus}>
+                            {jdUploadStatus === 'uploading' ? 'Uploading...' : 'Analyzing your JD file with AI...'}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {jdUploadStatus === 'success' && (
+                        <div className={styles.jdSuccessContainer}>
+                          <div className={styles.jdSuccessIcon}>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                              <polyline points="22 4 12 14.01 9 11.01" />
+                            </svg>
+                          </div>
+                          <div className={styles.jdSuccessText}>
+                            <h4>JD analyzed successfully!</h4>
+                            <p>Form fields have been pre-filled. Review and edit as needed.</p>
+                          </div>
+                          <button 
+                            type="button"
+                            className={styles.jdUploadAgainBtn}
+                            onClick={handleJdUploadReset}
+                          >
+                            Upload different file
+                          </button>
+                        </div>
+                      )}
+                      
+                      {jdUploadStatus === 'error' && (
+                        <div className={styles.jdErrorContainer}>
+                          <div className={styles.jdErrorIcon}>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <circle cx="12" cy="12" r="10" />
+                              <line x1="15" y1="9" x2="9" y2="15" />
+                              <line x1="9" y1="9" x2="15" y2="15" />
+                            </svg>
+                          </div>
+                          <div className={styles.jdErrorText}>
+                            <h4>Analysis failed</h4>
+                            <p>{jdUploadError || 'Something went wrong. Please try again.'}</p>
+                          </div>
+                          <button 
+                            type="button"
+                            className={styles.jdRetryBtn}
+                            onClick={handleJdUploadReset}
+                          >
+                            Try again
+                          </button>
+                        </div>
+                      )}
+                      
+                      <div className={styles.jdDivider}>
+                        <span>OR fill in manually</span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* FR-C1: Job Title */}
                   <div className={styles.formGroup}>
                     <label className={styles.label}>
@@ -1852,28 +2255,28 @@ function CreateJobAdForm() {
                     </div>
                   </div>
 
-                  {/* FR-W2: Job Summary */}
+                  {/* FR-W2: Company Summary - synced from Settings > About Your Company */}
                   <div className={styles.formSection}>
                     <div className={styles.formGroup}>
                       <label className={styles.label}>
-                        Job Summary <span className={styles.required}>*</span>
+                        Company Summary <span className={styles.required}>*</span>
                       </label>
                       <span className={styles.hint}>
-                        A short, compelling summary that appears in search results (150-200 characters recommended)
+                        This is synced from Settings → About Your Company. You can edit it here for this job posting.
                       </span>
                       <textarea
                         className={`${styles.textarea} ${errors.jobSummary ? styles.inputError : ''}`}
-                        placeholder="e.g., Join our AI team to build cutting-edge machine learning solutions that impact millions of users worldwide."
+                        placeholder="Share your company's mission, culture, and what makes it a great place to work..."
                         value={formData.jobSummary}
                         onChange={(e) => setFormData(prev => ({ ...prev, jobSummary: e.target.value }))}
                         rows={3}
-                        maxLength={250}
+                        maxLength={2000}
                       />
                       {errors.jobSummary && (
                         <span className={styles.errorText}>{errors.jobSummary}</span>
                       )}
                       <div className={styles.charCount}>
-                        {formData.jobSummary.length} / 250 characters
+                        {formData.jobSummary.length} / 2000 characters
                       </div>
                     </div>
                   </div>
