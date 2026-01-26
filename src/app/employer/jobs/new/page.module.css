@@ -2418,6 +2418,300 @@
   font-size: 1.05rem;
 }
 
+/* JD Upload Section */
+.jdUploadSection {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 2px dashed #7dd3fc;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.jdUploadHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.jdUploadIcon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.jdUploadTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.jdUploadTitle h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #0c4a6e;
+}
+
+.optionalBadge {
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.jdUploadDescription {
+  color: #0369a1;
+  font-size: 0.9rem;
+  margin: 0 0 1rem 0;
+}
+
+.jdDropzone {
+  background: white;
+  border: 2px dashed #cbd5e1;
+  border-radius: 10px;
+  padding: 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.jdDropzone:hover {
+  border-color: #0ea5e9;
+  background: #f0f9ff;
+}
+
+.hiddenInput {
+  display: none;
+}
+
+.dropzoneIcon {
+  margin-bottom: 0.75rem;
+  color: #94a3b8;
+}
+
+.jdDropzone:hover .dropzoneIcon {
+  color: #0ea5e9;
+}
+
+.dropzoneText {
+  margin: 0 0 0.25rem 0;
+  font-size: 0.95rem;
+  color: #475569;
+}
+
+.dropzoneHighlight {
+  color: #0ea5e9;
+  font-weight: 600;
+}
+
+.dropzoneHint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+/* JD Upload Progress */
+.jdProgressContainer {
+  background: white;
+  border-radius: 10px;
+  padding: 1.25rem;
+}
+
+.jdProgressHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.jdFileName {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #334155;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.jdFileName svg {
+  color: #0ea5e9;
+}
+
+.jdProgressPercent {
+  color: #0ea5e9;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.jdProgressBar {
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+
+.jdProgressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #0ea5e9 0%, #06b6d4 100%);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.jdProgressStatus {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #64748b;
+  text-align: center;
+}
+
+/* JD Upload Success */
+.jdSuccessContainer {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 10px;
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.jdSuccessIcon {
+  width: 48px;
+  height: 48px;
+  background: #22c55e;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+.jdSuccessText {
+  flex: 1;
+}
+
+.jdSuccessText h4 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #166534;
+}
+
+.jdSuccessText p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #15803d;
+}
+
+.jdUploadAgainBtn {
+  background: transparent;
+  border: 1px solid #86efac;
+  color: #15803d;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.jdUploadAgainBtn:hover {
+  background: #dcfce7;
+  border-color: #22c55e;
+}
+
+/* JD Upload Error */
+.jdErrorContainer {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.jdErrorIcon {
+  width: 48px;
+  height: 48px;
+  background: #ef4444;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+.jdErrorText {
+  flex: 1;
+}
+
+.jdErrorText h4 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #991b1b;
+}
+
+.jdErrorText p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #b91c1c;
+}
+
+.jdRetryBtn {
+  background: #ef4444;
+  border: none;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.jdRetryBtn:hover {
+  background: #dc2626;
+}
+
+/* JD Divider */
+.jdDivider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.jdDivider::before,
+.jdDivider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #bae6fd;
+}
+
+.jdDivider span {
+  color: #0369a1;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
   .paymentContainer {
@@ -2459,5 +2753,21 @@
   .purchaseButton {
     padding: 0.95rem 1.5rem;
     font-size: 0.95rem;
+  }
+
+  /* JD Upload Responsive */
+  .jdUploadSection {
+    padding: 1rem;
+  }
+
+  .jdSuccessContainer,
+  .jdErrorContainer {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .jdUploadAgainBtn,
+  .jdRetryBtn {
+    width: 100%;
   }
 }
