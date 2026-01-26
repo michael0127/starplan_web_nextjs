@@ -592,7 +592,7 @@ function CreateJobAdForm() {
       if (data.jobTitle) updates.jobTitle = String(data.jobTitle);
       if (data.companyName) updates.companyName = String(data.companyName);
       if (data.jobDescription) updates.jobDescription = String(data.jobDescription);
-      if (data.jobSummary) updates.jobSummary = String(data.jobSummary);
+      // 注意: jobSummary (Company Summary) 不从 JD 提取，应从 Settings > About Your Company 同步
       if (data.keySellingPoint1) updates.keySellingPoint1 = String(data.keySellingPoint1);
       if (data.keySellingPoint2) updates.keySellingPoint2 = String(data.keySellingPoint2);
       if (data.keySellingPoint3) updates.keySellingPoint3 = String(data.keySellingPoint3);
