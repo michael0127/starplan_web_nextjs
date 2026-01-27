@@ -33,7 +33,7 @@ interface Applicant {
     email: string;
     avatarUrl: string | null;
     headline: string;
-    location: string;
+    location: string | { city?: string; state?: string; country?: string } | null;
     experienceLevel: string | null;
     experienceYears: number | null;
   };
@@ -257,6 +257,9 @@ function EmployerCandidatesContent() {
     percent: number;
     message: string;
   } | null>(null);
+  
+  // AI Ranking prompt modal state
+  const [showRankingPromptModal, setShowRankingPromptModal] = useState(false);
   
   const fetchingRef = useRef(false);
   
@@ -789,6 +792,14 @@ function EmployerCandidatesContent() {
 
   const hasActiveFilters = selectedSkills.size > 0 || selectedLocations.size > 0 || 
     selectedExperienceLevels.size > 0 || passedHardGateFilter !== '' || searchQuery !== '';
+
+  // Format location which can be a string or an object with city/state/country
+  const formatLocation = (location: string | { city?: string; state?: string; country?: string } | null): string => {
+    if (!location) return '';
+    if (typeof location === 'string') return location;
+    const parts = [location.city, location.state, location.country].filter(Boolean);
+    return parts.join(', ');
+  };
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -1704,7 +1715,7 @@ function EmployerCandidatesContent() {
                         </div>
                         
                         <p className={styles.applicantHeadline}>{applicant.candidate.headline}</p>
-                        <p className={styles.applicantLocation}>{applicant.candidate.location}</p>
+                        <p className={styles.applicantLocation}>{formatLocation(applicant.candidate.location)}</p>
 
                         {/* Experience Section */}
                         {applicant.experience.length > 0 && (

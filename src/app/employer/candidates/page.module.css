@@ -2636,3 +2636,271 @@
   max-width: 280px;
   line-height: 1.5;
 }
+
+/* ================================
+   AI Ranking Prompt Modal
+   ================================ */
+.rankingPromptModalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  z-index: 1000;
+  padding: 140px 24px 24px 24px;
+  animation: rankingModalFadeIn 0.2s ease;
+}
+
+@keyframes rankingModalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.rankingPromptModal {
+  position: relative;
+  background: #ffffff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  animation: rankingModalSlideIn 0.3s ease;
+  overflow: visible;
+}
+
+@keyframes rankingModalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) translateX(0);
+  }
+}
+
+/* Arrow pointing to top-right button */
+.rankingPromptArrow {
+  position: absolute;
+  top: -40px;
+  right: 60px;
+  color: #4a5bf4;
+  animation: rankingArrowBounce 1.5s ease-in-out infinite;
+}
+
+@keyframes rankingArrowBounce {
+  0%, 100% { transform: translateY(0) rotate(-45deg); }
+  50% { transform: translateY(-8px) rotate(-45deg); }
+}
+
+.rankingPromptArrow svg {
+  filter: drop-shadow(0 2px 4px rgba(74, 91, 244, 0.3));
+}
+
+.rankingPromptModalContent {
+  padding: 28px;
+  text-align: center;
+}
+
+.rankingPromptModalIcon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 20px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f59e0b;
+}
+
+.rankingPromptModalIcon svg {
+  fill: #fbbf24;
+  stroke: #f59e0b;
+}
+
+.rankingPromptModalTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 12px 0;
+}
+
+.rankingPromptModalDesc {
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.6;
+  margin: 0 0 20px 0;
+}
+
+.rankingPromptModalDesc strong {
+  color: #4a5bf4;
+  font-weight: 600;
+}
+
+/* Visual indicator showing the button */
+.rankingPromptModalIndicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  border: 1px dashed #d1d5db;
+}
+
+.rankingPromptModalButtonPreview {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
+  color: white;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
+}
+
+.rankingPromptModalArrowText {
+  color: #4a5bf4;
+  font-size: 13px;
+  font-weight: 600;
+  animation: rankingArrowTextPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes rankingArrowTextPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Benefits list */
+.rankingPromptModalBenefits {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px 0;
+  text-align: left;
+}
+
+.rankingPromptModalBenefits li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.4;
+}
+
+.rankingPromptModalBenefits li svg {
+  flex-shrink: 0;
+  color: #10b981;
+  margin-top: 1px;
+}
+
+/* Action buttons */
+.rankingPromptModalActions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rankingPromptModalStartBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, #4a5bf4 0%, #6366f1 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.rankingPromptModalStartBtn:hover {
+  background: linear-gradient(135deg, #3d4ce0 0%, #5558e8 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(74, 91, 244, 0.35);
+}
+
+.rankingPromptModalStartBtn:active {
+  transform: translateY(0);
+}
+
+.rankingPromptModalDismissBtn {
+  background: transparent;
+  border: none;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 8px;
+  transition: color 0.2s;
+}
+
+.rankingPromptModalDismissBtn:hover {
+  color: #374151;
+}
+
+/* Close button */
+.rankingPromptModalCloseBtn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  color: #9ca3af;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.rankingPromptModalCloseBtn:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .rankingPromptModalOverlay {
+    padding: 120px 16px 16px 16px;
+    justify-content: center;
+  }
+  
+  .rankingPromptModal {
+    max-width: 100%;
+  }
+  
+  .rankingPromptArrow {
+    display: none;
+  }
+  
+  .rankingPromptModalContent {
+    padding: 24px 20px;
+  }
+  
+  .rankingPromptModalIcon {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .rankingPromptModalIcon svg {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .rankingPromptModalTitle {
+    font-size: 18px;
+  }
+}

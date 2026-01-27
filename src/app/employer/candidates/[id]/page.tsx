@@ -14,7 +14,7 @@ interface CandidateDetail {
   avatarUrl: string | null;
   headline: string | null;
   bio: string | null;
-  location: string | null;
+  location: string | { city?: string; state?: string; country?: string } | null;
   experienceLevel: string | null;
   experienceYears: number | null;
   personal: {
@@ -26,7 +26,7 @@ interface CandidateDetail {
   workExperience: Array<{
     title: string | null;
     company: string | null;
-    location: string | null;
+    location: string | { city?: string; state?: string; country?: string } | null;
     startDate: string | null;
     endDate: string | null;
     isCurrent: boolean | null;
@@ -117,6 +117,14 @@ export default function CandidateDetailPage() {
       .join('')
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  // Format location which can be a string or an object with city/state/country
+  const formatLocation = (location: string | { city?: string; state?: string; country?: string } | null): string | null => {
+    if (!location) return null;
+    if (typeof location === 'string') return location;
+    const parts = [location.city, location.state, location.country].filter(Boolean);
+    return parts.length > 0 ? parts.join(', ') : null;
   };
 
   if (sessionLoading || loading) {
@@ -272,13 +280,13 @@ export default function CandidateDetailPage() {
               {candidate.headline && (
                 <p className={styles.headline}>{candidate.headline}</p>
               )}
-              {candidate.location && (
+              {formatLocation(candidate.location) && (
                 <p className={styles.location}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                     <circle cx="12" cy="10" r="3"></circle>
                   </svg>
-                  {candidate.location}
+                  {formatLocation(candidate.location)}
                 </p>
               )}
             </div>
@@ -347,8 +355,8 @@ export default function CandidateDetailPage() {
                         <p className={styles.expDate}>
                           {formatDate(exp.startDate)} - {exp.isCurrent ? 'Present' : formatDate(exp.endDate)}
                         </p>
-                        {exp.location && (
-                          <p className={styles.expLocation}>{exp.location}</p>
+                        {formatLocation(exp.location) && (
+                          <p className={styles.expLocation}>{formatLocation(exp.location)}</p>
                         )}
                         {exp.description && (
                           <p className={styles.expDescription}>{exp.description}</p>
