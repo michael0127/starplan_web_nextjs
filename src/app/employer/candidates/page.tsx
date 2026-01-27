@@ -275,6 +275,21 @@ function EmployerCandidatesContent() {
     }
   }, [user, isEmployer, selectedJob, activeTab]);
 
+  // Show ranking prompt modal when switching to recommended tab without ranking
+  useEffect(() => {
+    if (activeTab === 'recommended' && selectedJob && !rankingResult && !isRanking && !isLoadingRanking) {
+      // Delay modal slightly to allow ranking data to load first
+      const timer = setTimeout(() => {
+        if (!rankingResult && !isRanking) {
+          setShowRankingPromptModal(true);
+        }
+      }, 500);
+      return () => clearTimeout(timer);
+    } else {
+      setShowRankingPromptModal(false);
+    }
+  }, [activeTab, selectedJob, rankingResult, isRanking, isLoadingRanking]);
+
   // Fetch existing ranking from database
   const fetchExistingRanking = async (jobId: string) => {
     try {
@@ -1983,6 +1998,116 @@ function EmployerCandidatesContent() {
         candidates={messageCandidates}
         onMessageSent={handleMessageSent}
       />
+
+      {/* AI Ranking Prompt Modal */}
+      {showRankingPromptModal && (
+        <div 
+          className={styles.rankingPromptModalOverlay}
+          onClick={() => setShowRankingPromptModal(false)}
+        >
+          <div 
+            className={styles.rankingPromptModal}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Arrow pointing to the Start AI Ranking button */}
+            <div className={styles.rankingPromptArrow}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 19V5M5 12l7-7 7 7"/>
+              </svg>
+            </div>
+            
+            {/* Close button */}
+            <button 
+              className={styles.rankingPromptModalCloseBtn}
+              onClick={() => setShowRankingPromptModal(false)}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+            
+            <div className={styles.rankingPromptModalContent}>
+              {/* Icon */}
+              <div className={styles.rankingPromptModalIcon}>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+              </div>
+              
+              {/* Title */}
+              <h3 className={styles.rankingPromptModalTitle}>
+                Start AI Ranking
+              </h3>
+              
+              {/* Description */}
+              <p className={styles.rankingPromptModalDesc}>
+                Use AI to intelligently rank your candidates. Click the <strong>"Start AI Ranking"</strong> button in the top-right corner to begin.
+              </p>
+              
+              {/* Visual indicator showing the button preview */}
+              <div className={styles.rankingPromptModalIndicator}>
+                <div className={styles.rankingPromptModalButtonPreview}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 20V10"></path>
+                    <path d="M18 20V4"></path>
+                    <path d="M6 20v-4"></path>
+                  </svg>
+                  Start AI Ranking
+                </div>
+                <span className={styles.rankingPromptModalArrowText}>← Click here</span>
+              </div>
+              
+              {/* Benefits list */}
+              <ul className={styles.rankingPromptModalBenefits}>
+                <li>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  AI compares candidates using job requirements
+                </li>
+                <li>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  Automatically sorts by best match
+                </li>
+                <li>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  Highlights top 3 candidates
+                </li>
+              </ul>
+              
+              {/* Action buttons */}
+              <div className={styles.rankingPromptModalActions}>
+                <button 
+                  className={styles.rankingPromptModalStartBtn}
+                  onClick={() => {
+                    setShowRankingPromptModal(false);
+                    handleStartRanking();
+                  }}
+                  disabled={!selectedJob}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 20V10"></path>
+                    <path d="M18 20V4"></path>
+                    <path d="M6 20v-4"></path>
+                  </svg>
+                  Start AI Ranking Now
+                </button>
+                <button 
+                  className={styles.rankingPromptModalDismissBtn}
+                  onClick={() => setShowRankingPromptModal(false)}
+                >
+                  Maybe later
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </PageTransition>
   );
 }
