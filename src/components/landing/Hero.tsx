@@ -232,30 +232,32 @@ export function Hero() {
           transition={{ duration: 0.8, delay: 0.6 }}
           className="mt-24 pt-12 border-t border-border/50"
         >
-          <div className="flex items-center justify-center gap-12 md:gap-20">
+          <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16">
             {[
               { value: '45%', label: 'faster hiring' },
               { value: '4.8', label: 'satisfaction' },
               { value: '12+', label: 'active clients' },
-            ].map((stat, i) => (
-              <motion.div
-                key={i}
-                className={`text-center ${i === 2 ? 'hidden sm:block' : ''}`}
-                whileHover={{ scale: 1.05 }}
-              >
+            ].map((stat, i, arr) => (
+              <div key={i} className="flex items-center gap-8 md:gap-16">
                 <motion.div
-                  className="text-3xl font-semibold"
-                  style={{ color: BRAND_COLOR }}
-                  animate={{ opacity: [0.8, 1, 0.8] }}
-                  transition={{ duration: 3, repeat: Infinity, delay: i * 0.5 }}
+                  className="text-center"
+                  whileHover={{ scale: 1.05 }}
                 >
-                  {stat.value}
+                  <motion.div
+                    className="text-3xl font-semibold"
+                    style={{ color: BRAND_COLOR }}
+                    animate={{ opacity: [0.8, 1, 0.8] }}
+                    transition={{ duration: 3, repeat: Infinity, delay: i * 0.5 }}
+                  >
+                    {stat.value}
+                  </motion.div>
+                  <div className="text-sm text-text-muted mt-1">{stat.label}</div>
                 </motion.div>
-                <div className="text-sm text-text-muted mt-1">{stat.label}</div>
-              </motion.div>
+                {i < arr.length - 1 && (
+                  <div className="w-px h-10 bg-border" />
+                )}
+              </div>
             ))}
-            <div className="w-px h-10 bg-border hidden sm:block" style={{ order: 1 }} />
-            <div className="w-px h-10 bg-border" style={{ order: 3 }} />
           </div>
         </motion.div>
       </div>

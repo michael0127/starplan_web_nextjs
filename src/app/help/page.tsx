@@ -21,7 +21,7 @@ export default function HelpCentre() {
             <div className={styles.contactSection}>
               <div className={styles.contactCard}>
                 <h2>Contact Support</h2>
-                <p className={styles.phone}>1300 658 700</p>
+                <p className={styles.phone}>+61 413 678 116</p>
                 <p className={styles.hours}>Mon - Fri, 8:30am - 6pm AEST</p>
               </div>
 

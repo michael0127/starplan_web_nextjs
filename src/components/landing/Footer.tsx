@@ -18,6 +18,9 @@ export function Footer() {
               <Link href="/terms" className="text-sm text-text-muted hover:text-text-secondary transition-colors">
                 Terms
               </Link>
+              <Link href="/cookies" className="text-sm text-text-muted hover:text-text-secondary transition-colors">
+                Cookies
+              </Link>
             </nav>
           </div>
           
