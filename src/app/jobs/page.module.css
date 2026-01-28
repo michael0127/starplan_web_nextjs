@@ -1,0 +1,392 @@
+/* Preview Panel Overlay */
+.previewOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 999;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Preview Panel */
+.previewPanel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 600px;
+  max-width: 100%;
+  background: white;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+  animation: slideInRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.previewHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e0e0e0;
+  background: #fafafa;
+  flex-shrink: 0;
+}
+
+.previewTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.previewClose {
+  background: transparent;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.previewClose:hover {
+  background: #f0f0f0;
+  color: #1a1a1a;
+}
+
+.previewContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.previewLoading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  gap: 16px;
+  color: #666;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e0e0e0;
+  border-top-color: #4F46E5;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.previewError {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: #666;
+}
+
+/* Preview Cover Image */
+.previewCover {
+  width: 100%;
+  height: 160px;
+  overflow: hidden;
+  background: #f0f0f0;
+}
+
+.previewCover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Preview Company Info */
+.previewCompanyInfo {
+  display: flex;
+  gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.previewLogo {
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  object-fit: contain;
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  flex-shrink: 0;
+}
+
+.previewCompanyDetails {
+  flex: 1;
+  min-width: 0;
+}
+
+.previewJobTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 4px;
+  line-height: 1.3;
+}
+
+.previewCompanyName {
+  font-size: 15px;
+  color: #4F46E5;
+  margin: 0 0 8px;
+  font-weight: 500;
+}
+
+.previewMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #666;
+  flex-wrap: wrap;
+}
+
+.previewDot {
+  color: #ccc;
+}
+
+/* Preview Sections */
+.previewSection {
+  padding: 20px 24px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.previewSection:last-child {
+  border-bottom: none;
+}
+
+.previewSectionTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Selling Points */
+.previewSellingPoints {
+  margin: 0;
+  padding-left: 20px;
+  list-style: none;
+}
+
+.previewSellingPoints li {
+  position: relative;
+  padding: 8px 0;
+  font-size: 14px;
+  color: #333;
+  line-height: 1.5;
+}
+
+.previewSellingPoints li::before {
+  content: '✓';
+  position: absolute;
+  left: -20px;
+  color: #10b981;
+  font-weight: 600;
+}
+
+/* Info Grid */
+.previewInfoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 20px 24px;
+  background: #fafafa;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.previewInfoCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.previewInfoIcon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(79, 70, 229, 0.08);
+  border-radius: 8px;
+  color: #4F46E5;
+  flex-shrink: 0;
+}
+
+.previewInfoContent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.previewInfoLabel {
+  font-size: 12px;
+  color: #666;
+}
+
+.previewInfoValue {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1a1a1a;
+  word-break: break-word;
+}
+
+/* Tags */
+.previewTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.previewTag {
+  display: inline-block;
+  padding: 6px 12px;
+  background: rgba(79, 70, 229, 0.08);
+  color: #4F46E5;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.previewSkillTag {
+  display: inline-block;
+  padding: 6px 12px;
+  background: #f0f0f0;
+  color: #333;
+  border-radius: 16px;
+  font-size: 13px;
+}
+
+/* Summary */
+.previewSummary {
+  font-size: 14px;
+  color: #333;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Description */
+.previewDescription {
+  font-size: 14px;
+  color: #333;
+  line-height: 1.7;
+}
+
+.previewDescription h1,
+.previewDescription h2,
+.previewDescription h3,
+.previewDescription h4 {
+  margin-top: 16px;
+  margin-bottom: 8px;
+  color: #1a1a1a;
+}
+
+.previewDescription h1 { font-size: 18px; }
+.previewDescription h2 { font-size: 16px; }
+.previewDescription h3 { font-size: 15px; }
+
+.previewDescription ul,
+.previewDescription ol {
+  padding-left: 24px;
+  margin: 8px 0;
+}
+
+.previewDescription li {
+  margin: 4px 0;
+}
+
+.previewDescription p {
+  margin: 8px 0;
+}
+
+/* Preview Footer */
+.previewFooter {
+  display: flex;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid #e0e0e0;
+  background: #fafafa;
+  flex-shrink: 0;
+}
+
+.previewApplyBtn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 24px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  background: #4F46E5;
+  border: none;
+  color: white;
+}
+
+.previewApplyBtn:hover {
+  background: #4338CA;
+}
+
+/* Preview Panel Responsive */
+@media (max-width: 640px) {
+  .previewPanel {
+    width: 100%;
+  }
+
+  .previewInfoGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .previewCompanyInfo {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .previewMeta {
+    justify-content: center;
+  }
+
+  .previewFooter {
+    flex-direction: column;
+  }
+}
