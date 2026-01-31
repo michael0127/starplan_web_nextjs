@@ -231,7 +231,9 @@ function TeamManagementContent() {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${session?.access_token}`,
+              'Content-Type': 'application/json',
             },
+            body: JSON.stringify({ companyId: teamData?.company.id }),
           });
 
           const result = await response.json();

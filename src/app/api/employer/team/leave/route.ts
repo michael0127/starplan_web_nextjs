@@ -33,11 +33,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: TEAM_ERRORS.UNAUTHORIZED }, { status: 401 });
     }
 
-    // Get user's current membership
+    // Get companyId from request body
+    const body = await request.json().catch(() => ({}));
+    const { companyId } = body as { companyId?: string };
+
+    // Get user's membership for the specified company (or first active if not specified)
     const membership = await prisma.organizationMember.findFirst({
       where: {
         userId: user.id,
-        isActive: true
+        isActive: true,
+        ...(companyId ? { companyId } : {})
       },
       include: {
         company: true,
