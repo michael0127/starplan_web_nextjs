@@ -330,7 +330,7 @@ function buildEmailTemplate({
           <tr>
             <td style="background-color: #f9fafb; padding: 24px 40px; text-align: center; border-top: 1px solid #eee;">
               <p style="color: #999999; font-size: 12px; margin: 0;">
-                This message was sent via <a href="https://starplan.app" style="color: #4a5bf4; text-decoration: none;">StarPlan</a>
+                This message was sent via <a href="https://starplan.ai" style="color: #4a5bf4; text-decoration: none;">StarPlan</a>
               </p>
               <p style="color: #cccccc; font-size: 11px; margin: 8px 0 0 0;">
                 © ${new Date().getFullYear()} StarPlan. All rights reserved.
