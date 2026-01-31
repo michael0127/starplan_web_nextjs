@@ -28,7 +28,7 @@ async function getUserFromToken(request: NextRequest) {
 }
 
 // Helper to get user's membership in their company
-async function getUserMembership(userId: string) {
+async function getUserMembership(userId: string, preferredCompanyId?: string) {
   // First get the user's company (as owner via the Company.userId relation)
   const userWithCompany = await prisma.user.findUnique({
     where: { id: userId },
@@ -36,7 +36,8 @@ async function getUserMembership(userId: string) {
       company: true,
       organizationMemberships: {
         where: { isActive: true },
-        include: { company: true }
+        include: { company: true },
+        orderBy: { joinedAt: 'desc' } // Most recently joined first
       }
     }
   });
@@ -47,11 +48,28 @@ async function getUserMembership(userId: string) {
 
   // Check if user is a member of any company
   if (userWithCompany.organizationMemberships.length > 0) {
+    // If preferredCompanyId is provided, try to find that membership
+    if (preferredCompanyId) {
+      const preferredMembership = userWithCompany.organizationMemberships.find(
+        m => m.companyId === preferredCompanyId
+      );
+      if (preferredMembership) {
+        return {
+          companyId: preferredMembership.companyId,
+          role: preferredMembership.role as OrganizationRole,
+          company: preferredMembership.company,
+          allMemberships: userWithCompany.organizationMemberships
+        };
+      }
+    }
+    
+    // Return the most recently joined membership
     const membership = userWithCompany.organizationMemberships[0];
     return {
       companyId: membership.companyId,
       role: membership.role as OrganizationRole,
-      company: membership.company
+      company: membership.company,
+      allMemberships: userWithCompany.organizationMemberships
     };
   }
 
@@ -98,7 +116,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: TEAM_ERRORS.UNAUTHORIZED }, { status: 401 });
     }
 
-    const membership = await getUserMembership(user.id);
+    // Allow switching companies via query parameter
+    const { searchParams } = new URL(request.url);
+    const preferredCompanyId = searchParams.get('companyId') || undefined;
+
+    const membership = await getUserMembership(user.id, preferredCompanyId);
     if (!membership) {
       return NextResponse.json({ error: TEAM_ERRORS.NO_COMPANY }, { status: 404 });
     }
@@ -146,6 +168,19 @@ export async function GET(request: NextRequest) {
       isCurrentUser: member.userId === user.id
     }));
 
+    // Include available companies for switching
+    const availableCompanies = membership.allMemberships?.map(m => ({
+      id: m.companyId,
+      companyName: m.company.companyName,
+      companyLogo: m.company.companyLogo,
+      role: m.role as OrganizationRole
+    })) || [{
+      id: membership.companyId,
+      companyName: membership.company.companyName,
+      companyLogo: membership.company.companyLogo,
+      role: membership.role
+    }];
+
     const response: TeamListResponse = {
       company: {
         id: membership.companyId,
@@ -154,7 +189,8 @@ export async function GET(request: NextRequest) {
       },
       members: teamMembers,
       currentUserRole: membership.role,
-      pendingInvitations
+      pendingInvitations,
+      availableCompanies
     };
 
     return NextResponse.json({ success: true, data: response });

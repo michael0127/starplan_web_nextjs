@@ -101,6 +101,7 @@ export default function CompanySettingsPage() {
   const [draftSaving, setDraftSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [syncedJobsCount, setSyncedJobsCount] = useState<number | null>(null);
+  const [companyNameError, setCompanyNameError] = useState(false);
   
   const logoInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
@@ -468,8 +469,13 @@ export default function CompanySettingsPage() {
   const handleSave = async () => {
     if (!settings.companyName.trim()) {
       setError('Company name is required');
+      setCompanyNameError(true);
+      // Scroll to the company name field
+      document.getElementById('companyName')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      document.getElementById('companyName')?.focus();
       return;
     }
+    setCompanyNameError(false);
     
     try {
       setIsSaving(true);
@@ -777,10 +783,19 @@ export default function CompanySettingsPage() {
                         id="companyName"
                         name="companyName"
                         value={settings.companyName}
-                        onChange={handleInputChange}
+                        onChange={(e) => {
+                          handleInputChange(e);
+                          if (e.target.value.trim()) {
+                            setCompanyNameError(false);
+                          }
+                        }}
                         placeholder="Enter your company name"
                         required
+                        className={companyNameError ? styles.inputError : ''}
                       />
+                      {companyNameError && (
+                        <span className={styles.fieldError}>Company name is required</span>
+                      )}
                     </div>
                     
                     <div className={styles.formRow}>

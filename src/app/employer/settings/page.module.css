@@ -533,6 +533,26 @@
   color: #9ca3af;
 }
 
+.formGroup input.inputError,
+.formGroup select.inputError,
+.formGroup textarea.inputError {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+.formGroup input.inputError:focus,
+.formGroup select.inputError:focus,
+.formGroup textarea.inputError:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+}
+
+.fieldError {
+  color: #ef4444;
+  font-size: 13px;
+  margin-top: 6px;
+}
+
 .formGroup select {
   cursor: pointer;
   appearance: none;

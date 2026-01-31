@@ -41,6 +41,8 @@ function TeamManagementContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
+  const [showCompanySelector, setShowCompanySelector] = useState(false);
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -65,7 +67,7 @@ function TeamManagementContent() {
   }, [searchParams]);
 
   // Fetch team data
-  const fetchTeamData = useCallback(async () => {
+  const fetchTeamData = useCallback(async (companyId?: string) => {
     if (!user || !isEmployer) return;
 
     try {
@@ -74,7 +76,11 @@ function TeamManagementContent() {
 
       if (!session) return;
 
-      const response = await fetch('/api/employer/team', {
+      const url = companyId 
+        ? `/api/employer/team?companyId=${companyId}`
+        : '/api/employer/team';
+      
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
         },
@@ -120,9 +126,15 @@ function TeamManagementContent() {
   }, [user, isEmployer]);
 
   useEffect(() => {
-    fetchTeamData();
+    fetchTeamData(selectedCompanyId || undefined);
     fetchInvitations();
-  }, [fetchTeamData, fetchInvitations]);
+  }, [fetchTeamData, fetchInvitations, selectedCompanyId]);
+
+  // Handle company switch
+  const handleCompanySwitch = (companyId: string) => {
+    setSelectedCompanyId(companyId);
+    setShowCompanySelector(false);
+  };
 
   // Handle member removal
   const handleRemoveMember = async (memberId: string, memberName: string) => {
@@ -383,6 +395,40 @@ function TeamManagementContent() {
               <p className={styles.subtitle}>
                 Manage your company&apos;s team members and their roles
               </p>
+              {/* Company Selector - show if user has multiple companies */}
+              {teamData?.availableCompanies && teamData.availableCompanies.length > 1 && (
+                <div className={styles.companySelector}>
+                  <span className={styles.companySelectorLabel}>Current company:</span>
+                  <div className={styles.companySelectorDropdown}>
+                    <button 
+                      className={styles.companySelectorButton}
+                      onClick={() => setShowCompanySelector(!showCompanySelector)}
+                    >
+                      <span>{teamData.company.companyName}</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                    </button>
+                    {showCompanySelector && (
+                      <>
+                        <div className={styles.companySelectorOverlay} onClick={() => setShowCompanySelector(false)}></div>
+                        <div className={styles.companySelectorMenu}>
+                          {teamData.availableCompanies.map(company => (
+                            <button
+                              key={company.id}
+                              className={`${styles.companySelectorItem} ${company.id === teamData.company.id ? styles.companySelectorItemActive : ''}`}
+                              onClick={() => handleCompanySwitch(company.id)}
+                            >
+                              <span className={styles.companyName}>{company.companyName}</span>
+                              <span className={styles.companyRole}>{company.role}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
             {permissions?.canInvite && (
               <button

@@ -39,11 +39,19 @@ export interface TeamCompany {
   companyLogo: string | null;
 }
 
+export interface AvailableCompany {
+  id: string;
+  companyName: string;
+  companyLogo: string | null;
+  role: OrganizationRole;
+}
+
 export interface TeamListResponse {
   company: TeamCompany;
   members: TeamMember[];
   currentUserRole: OrganizationRole;
   pendingInvitations: number;
+  availableCompanies?: AvailableCompany[];
 }
 
 export interface InviteMemberRequest {
