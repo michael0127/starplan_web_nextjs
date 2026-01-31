@@ -27,7 +27,7 @@ export interface TeamInvitation {
     id: string;
     name: string | null;
     email: string;
-  };
+  } | null;
   createdAt: string;
   expiresAt: string;
   respondedAt: string | null;
@@ -65,7 +65,7 @@ export interface TeamActivityLog {
   action: string;
   actionLabel: string;
   user: {
-    id: string;
+    id: string | null;
     name: string | null;
     email: string;
   };

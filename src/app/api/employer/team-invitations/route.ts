@@ -128,11 +128,11 @@ export async function GET(request: NextRequest) {
       role: inv.role as OrganizationRole,
       status: inv.status as TeamInvitation['status'],
       message: inv.message,
-      invitedBy: {
+      invitedBy: inv.inviter ? {
         id: inv.inviter.id,
         name: inv.inviter.name,
         email: inv.inviter.email
-      },
+      } : null,
       createdAt: inv.createdAt.toISOString(),
       expiresAt: inv.expiresAt.toISOString(),
       respondedAt: inv.respondedAt?.toISOString() || null

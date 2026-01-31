@@ -82,7 +82,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           companyLogo: invitation.company.companyLogo
         },
         invitedBy: {
-          name: invitation.inviter.name
+          name: invitation.inviter?.name || null
         },
         email: invitation.email,
         role: invitation.role,

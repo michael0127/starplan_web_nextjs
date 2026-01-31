@@ -122,8 +122,8 @@ export async function GET(request: NextRequest) {
       take: limit
     });
 
-    // Get user info for all logs
-    const userIds = [...new Set(logs.map(log => log.userId))];
+    // Get user info for all logs (filter out null userIds)
+    const userIds = [...new Set(logs.map(log => log.userId).filter((id): id is string => id !== null))];
     const users = await prisma.user.findMany({
       where: { id: { in: userIds } },
       select: { id: true, name: true, email: true }
@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
 
     // Format logs
     const formattedLogs: TeamActivityLog[] = logs.map(log => {
-      const logUser = userMap.get(log.userId);
+      const logUser = log.userId ? userMap.get(log.userId) : null;
       const details = log.details as Record<string, unknown> | null;
       
       return {

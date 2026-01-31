@@ -88,7 +88,7 @@ export default function PendingInvitationsList({
                 </div>
                 <div className={styles.metaRow}>
                   <span className={styles.invitedBy}>
-                    Invited by {invitation.invitedBy.name || invitation.invitedBy.email}
+                    Invited by {invitation.invitedBy?.name || invitation.invitedBy?.email || 'Unknown'}
                   </span>
                   <span className={styles.separator}>•</span>
                   <span className={styles.date}>{formatDate(invitation.createdAt)}</span>
