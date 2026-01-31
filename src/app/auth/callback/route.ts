@@ -10,8 +10,9 @@ export async function GET(request: NextRequest) {
   const errorDescription = requestUrl.searchParams.get('error_description');
   const type = requestUrl.searchParams.get('type'); // 邀请类型
   const next = requestUrl.searchParams.get('next');
+  const teamInvitation = requestUrl.searchParams.get('team_invitation'); // 团队邀请 token
 
-  console.log('Auth callback params:', { code: !!code, error, type, next });
+  console.log('Auth callback params:', { code: !!code, error, type, next, teamInvitation: !!teamInvitation });
 
   // Handle error from Supabase
   if (error) {
@@ -133,6 +134,12 @@ export async function GET(request: NextRequest) {
       // 检查是否是邀请类型
       if (type === 'invite') {
         return NextResponse.redirect(new URL('/auth/set-password', requestUrl.origin));
+      }
+      
+      // 检查是否有团队邀请 token，如果有则重定向到邀请页面
+      if (teamInvitation) {
+        console.log('Team invitation token found, redirecting to invitation page');
+        return NextResponse.redirect(new URL(`/team-invitation/${teamInvitation}`, requestUrl.origin));
       }
       
       console.log('Redirecting to:', redirectUrl);

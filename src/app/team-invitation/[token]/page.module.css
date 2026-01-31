@@ -1,0 +1,345 @@
+.container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+}
+
+.card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  padding: 2.5rem;
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+}
+
+.logo {
+  margin-bottom: 2rem;
+}
+
+.logo img {
+  height: 40px;
+  width: auto;
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem 0;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #4F46E5;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.companySection {
+  margin-bottom: 2rem;
+}
+
+.companyLogo {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
+
+.companyLogoPlaceholder {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #4F46E5, #8B5CF6);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 700;
+  color: white;
+  margin: 0 auto 1rem;
+}
+
+.companyName {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.invitationContent {
+  margin-bottom: 2rem;
+}
+
+.invitationContent h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #334155;
+  margin: 0 0 1.5rem;
+}
+
+.roleInfo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.roleLabel {
+  color: #64748b;
+  font-size: 0.9375rem;
+}
+
+.roleBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.375rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.roleOWNER {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.roleADMIN {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.roleMEMBER {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.roleDescription {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0 0 1.5rem;
+  line-height: 1.5;
+}
+
+.invitedBy {
+  font-size: 0.9375rem;
+  color: #475569;
+  margin: 0 0 1rem;
+}
+
+.messageBox {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+.messageLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.messageText {
+  font-size: 0.9375rem;
+  color: #334155;
+  margin: 0.5rem 0 0;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+.expiryInfo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #94a3b8;
+}
+
+.expiryInfo svg {
+  stroke: #94a3b8;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.acceptButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.875rem 1.5rem;
+  background: linear-gradient(135deg, #4F46E5, #6366f1);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.acceptButton:hover:not(:disabled) {
+  background: linear-gradient(135deg, #4338ca, #4F46E5);
+  transform: translateY(-1px);
+}
+
+.acceptButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.declineButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  background: transparent;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.declineButton:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.declineButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.secondaryButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  background: #f1f5f9;
+  color: #475569;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.secondaryButton:hover {
+  background: #e2e8f0;
+}
+
+.authHint {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.authHint a {
+  color: #4F46E5;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.authHint a:hover {
+  text-decoration: underline;
+}
+
+.loggedInAs {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0;
+  padding: 0.75rem;
+  background: #f0fdf4;
+  border-radius: 6px;
+}
+
+.loggedInAs strong {
+  color: #166534;
+}
+
+.errorState {
+  padding: 2rem 0;
+}
+
+.errorIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: #94a3b8;
+}
+
+.errorState h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #334155;
+  margin: 0 0 0.75rem;
+}
+
+.errorState p {
+  font-size: 0.9375rem;
+  color: #64748b;
+  margin: 0 0 0.5rem;
+  line-height: 1.5;
+}
+
+.hint {
+  font-size: 0.875rem;
+  color: #94a3b8;
+  margin-top: 1rem;
+}
+
+.homeLink {
+  display: inline-block;
+  margin-top: 1.5rem;
+  padding: 0.75rem 1.5rem;
+  background: #f1f5f9;
+  color: #475569;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.homeLink:hover {
+  background: #e2e8f0;
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .card {
+    padding: 1.5rem;
+  }
+}

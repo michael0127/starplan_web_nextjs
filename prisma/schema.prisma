@@ -38,6 +38,12 @@ model User {
   company                Company?
   cvs                    CV[]
   jobPostings            JobPosting[]
+  
+  // Organization/Team relations
+  organizationMemberships  OrganizationMember[]
+  invitedMembers           OrganizationMember[]   @relation("InvitedByUser")
+  sentTeamInvitations      TeamInvitation[]       @relation("TeamInviter")
+  acceptedTeamInvitations  TeamInvitation[]       @relation("AcceptedInvitation")
 
   @@map("users")
 }
@@ -65,6 +71,11 @@ model Company {
   createdAt                    DateTime @default(now()) @map("created_at")
   updatedAt                    DateTime @updatedAt @map("updated_at")
   user                         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Organization/Team relations
+  members                      OrganizationMember[]
+  teamInvitations              TeamInvitation[]
+  activityLogs                 OrganizationActivityLog[]
 
   @@map("companies")
 }
@@ -372,4 +383,127 @@ enum EmailStatus {
   CLICKED   // Link in email clicked (if tracking available)
   BOUNCED   // Email bounced
   FAILED    // Email failed to send
+}
+
+// ============================================
+// Organization/Team Management Models
+// ============================================
+
+enum OrganizationRole {
+  OWNER   // Owner - highest permission, unique per company
+  ADMIN   // Admin - can manage members, invite/remove
+  MEMBER  // Member - basic operation permissions
+}
+
+enum TeamInvitationStatus {
+  PENDING   // Awaiting acceptance
+  ACCEPTED  // Accepted
+  DECLINED  // Declined
+  EXPIRED   // Expired
+  REVOKED   // Revoked by admin
+}
+
+// Organization member relationship table (many-to-many)
+model OrganizationMember {
+  id             String           @id @default(uuid()) @db.Uuid
+  companyId      String           @map("company_id") @db.Uuid
+  userId         String           @map("user_id") @db.Uuid
+  role           OrganizationRole @default(MEMBER)
+  
+  // Invitation related
+  invitedBy      String?          @map("invited_by") @db.Uuid
+  invitedAt      DateTime         @default(now()) @map("invited_at")
+  joinedAt       DateTime?        @map("joined_at")
+  
+  // Status
+  isActive       Boolean          @default(true) @map("is_active")
+  deactivatedAt  DateTime?        @map("deactivated_at")
+  deactivatedBy  String?          @map("deactivated_by") @db.Uuid
+  
+  // Timestamps
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+  
+  // Relations
+  company        Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inviter        User?            @relation("InvitedByUser", fields: [invitedBy], references: [id])
+  
+  @@unique([companyId, userId])
+  @@index([companyId])
+  @@index([userId])
+  @@index([role])
+  @@index([isActive])
+  @@map("organization_members")
+}
+
+// Team invitation table
+model TeamInvitation {
+  id             String               @id @default(uuid()) @db.Uuid
+  token          String               @unique @default(uuid())
+  companyId      String               @map("company_id") @db.Uuid
+  
+  // Invitation info
+  email          String
+  role           OrganizationRole     @default(MEMBER)
+  invitedBy      String               @map("invited_by") @db.Uuid
+  
+  // Status
+  status         TeamInvitationStatus @default(PENDING)
+  
+  // Personal message (optional)
+  message        String?
+  
+  // Time
+  expiresAt      DateTime             @map("expires_at")
+  respondedAt    DateTime?            @map("responded_at")
+  
+  // Timestamps
+  createdAt      DateTime             @default(now()) @map("created_at")
+  updatedAt      DateTime             @updatedAt @map("updated_at")
+  
+  // User linked after accepting (could be new or existing user)
+  acceptedUserId String?              @map("accepted_user_id") @db.Uuid
+  
+  // Relations
+  company        Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  inviter        User                 @relation("TeamInviter", fields: [invitedBy], references: [id])
+  acceptedUser   User?                @relation("AcceptedInvitation", fields: [acceptedUserId], references: [id])
+  
+  @@index([companyId])
+  @@index([email])
+  @@index([token])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("team_invitations")
+}
+
+// Activity log table (audit trail)
+model OrganizationActivityLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  
+  // Activity info
+  action      String   // e.g.: member_invited, member_removed, role_changed, invitation_revoked
+  targetType  String   @map("target_type")  // e.g.: member, invitation
+  targetId    String   @map("target_id") @db.Uuid
+  
+  // Details (JSON format for before/after state)
+  details     Json?
+  
+  // IP and device info (optional, for security audit)
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent")
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  // Relations
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@index([companyId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("organization_activity_logs")
 }
