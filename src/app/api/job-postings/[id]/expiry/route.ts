@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { prisma } from '@/lib/prisma';
 import { getDaysUntilExpiry, isJobPostingExpired } from '@/lib/jobPostingExpiry';
+import { hasJobAccess } from '@/lib/company-access';
 
 export async function GET(
   request: NextRequest,
@@ -68,8 +69,9 @@ export async function GET(
       );
     }
 
-    // Verify ownership
-    if (jobPosting.userId !== user.id) {
+    // Check if user has access to this job (own job or same company)
+    const hasAccess = await hasJobAccess(user.id, jobPosting.userId);
+    if (!hasAccess) {
       return NextResponse.json(
         { error: 'Forbidden' },
         { status: 403 }
@@ -102,4 +104,3 @@ export async function GET(
     );
   }
 }
-

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { prisma } from '@/lib/prisma';
+import { hasJobAccess, canModifyJob, canDeleteJob } from '@/lib/company-access';
 
 // GET /api/job-postings/[id] - Get a specific job posting
 export async function GET(
@@ -66,8 +67,9 @@ export async function GET(
       );
     }
 
-    // Verify the user owns this job posting
-    if (jobPosting.userId !== user.id) {
+    // Check if user has access to this job (own job or same company)
+    const hasAccess = await hasJobAccess(user.id, jobPosting.userId);
+    if (!hasAccess) {
       return NextResponse.json(
         { error: 'Forbidden' },
         { status: 403 }
@@ -145,10 +147,11 @@ export async function DELETE(
       );
     }
 
-    // Verify the user owns this job posting
-    if (jobPosting.userId !== user.id) {
+    // Check if user can delete this job (own job or OWNER role in company)
+    const deletePermission = await canDeleteJob(user.id, jobPosting.userId);
+    if (!deletePermission.allowed) {
       return NextResponse.json(
-        { error: 'Forbidden' },
+        { error: deletePermission.reason || 'Forbidden' },
         { status: 403 }
       );
     }
@@ -239,10 +242,11 @@ export async function PATCH(
       );
     }
 
-    // Verify the user owns this job posting
-    if (jobPosting.userId !== user.id) {
+    // Check if user can modify this job (own job or OWNER/ADMIN role in company)
+    const modifyPermission = await canModifyJob(user.id, jobPosting.userId);
+    if (!modifyPermission.allowed) {
       return NextResponse.json(
-        { error: 'Forbidden' },
+        { error: modifyPermission.reason || 'Forbidden' },
         { status: 403 }
       );
     }

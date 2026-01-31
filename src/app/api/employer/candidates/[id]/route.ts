@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { prisma } from '@/lib/prisma';
+import { getUserCompanyContext } from '@/lib/company-access';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -46,6 +47,12 @@ export async function GET(
       );
     }
 
+    // Get company context for team data sharing
+    const companyContext = await getUserCompanyContext(authUser.id);
+    
+    // Use company user IDs if available, otherwise fall back to current user only
+    const userIdsFilter = companyContext?.userIds || [authUser.id];
+
     // Get candidate with their CV and profile
     const candidate = await prisma.user.findUnique({
       where: { id: candidateId },
@@ -67,7 +74,7 @@ export async function GET(
           },
           where: {
             jobPosting: {
-              userId: authUser.id
+              userId: { in: userIdsFilter }
             }
           }
         }
@@ -206,4 +213,3 @@ export async function GET(
     );
   }
 }
-

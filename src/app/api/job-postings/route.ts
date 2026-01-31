@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { prisma } from '@/lib/prisma';
 import type { JobPostingFormData } from '@/types/jobPosting';
+import { getUserCompanyContext } from '@/lib/company-access';
 
 // 配置 route segment config - 启用缓存
 export const dynamic = 'force-dynamic'; // GET 需要动态数据
@@ -250,12 +251,18 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
 
-    console.log('[API] Fetching job postings for user:', userId, 'status:', status || 'all');
+    // Get company context for team data sharing
+    const companyContext = await getUserCompanyContext(userId);
+    
+    // Use company user IDs if available, otherwise fall back to current user only
+    const userIdsFilter = companyContext?.userIds || [userId];
+
+    console.log('[API] Fetching job postings for company team, users:', userIdsFilter.length, 'status:', status || 'all');
     const startTime = Date.now();
 
     const jobPostings = await prisma.jobPosting.findMany({
       where: {
-        userId,
+        userId: { in: userIdsFilter },
         ...(status && { status: status as 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'ARCHIVED' }),
       },
       include: {

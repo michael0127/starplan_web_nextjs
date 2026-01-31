@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { prisma } from '@/lib/prisma';
 import { JobStatus } from '@prisma/client';
+import { canModifyJob } from '@/lib/company-access';
 
 export async function PATCH(
   request: NextRequest,
@@ -64,10 +65,11 @@ export async function PATCH(
       );
     }
 
-    // Verify ownership
-    if (jobPosting.userId !== user.id) {
+    // Check if user can modify this job (own job or OWNER/ADMIN role in company)
+    const modifyPermission = await canModifyJob(user.id, jobPosting.userId);
+    if (!modifyPermission.allowed) {
       return NextResponse.json(
-        { error: 'Forbidden: You do not own this job posting' },
+        { error: modifyPermission.reason || 'Forbidden: You do not have permission to archive this job posting' },
         { status: 403 }
       );
     }

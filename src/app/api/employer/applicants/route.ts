@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { prisma } from '@/lib/prisma';
+import { getUserCompanyContext } from '@/lib/company-access';
 
 // Structured location type (new format from CV extraction)
 interface StructuredLocation {
@@ -179,9 +180,15 @@ export async function GET(request: NextRequest) {
     const experienceLevels = searchParams.get('experienceLevels')?.split(',').filter(Boolean) || [];
     const skip = (page - 1) * limit;
 
-    // Get all job postings for this employer
+    // Get company context for team data sharing
+    const companyContext = await getUserCompanyContext(user.id);
+    
+    // Use company user IDs if available, otherwise fall back to current user only
+    const userIdsFilter = companyContext?.userIds || [user.id];
+
+    // Get all job postings for this company's team members
     const employerJobs = await prisma.jobPosting.findMany({
-      where: { userId: user.id },
+      where: { userId: { in: userIdsFilter } },
       select: {
         id: true,
         jobTitle: true,
