@@ -44,6 +44,7 @@ model User {
   invitedMembers           OrganizationMember[]   @relation("InvitedByUser")
   sentTeamInvitations      TeamInvitation[]       @relation("TeamInviter")
   acceptedTeamInvitations  TeamInvitation[]       @relation("AcceptedInvitation")
+  activityLogs             OrganizationActivityLog[]
 
   @@map("users")
 }
@@ -427,7 +428,7 @@ model OrganizationMember {
   // Relations
   company        Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
   user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  inviter        User?            @relation("InvitedByUser", fields: [invitedBy], references: [id])
+  inviter        User?            @relation("InvitedByUser", fields: [invitedBy], references: [id], onDelete: SetNull)
   
   @@unique([companyId, userId])
   @@index([companyId])
@@ -446,7 +447,7 @@ model TeamInvitation {
   // Invitation info
   email          String
   role           OrganizationRole     @default(MEMBER)
-  invitedBy      String               @map("invited_by") @db.Uuid
+  invitedBy      String?              @map("invited_by") @db.Uuid
   
   // Status
   status         TeamInvitationStatus @default(PENDING)
@@ -467,8 +468,8 @@ model TeamInvitation {
   
   // Relations
   company        Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  inviter        User                 @relation("TeamInviter", fields: [invitedBy], references: [id])
-  acceptedUser   User?                @relation("AcceptedInvitation", fields: [acceptedUserId], references: [id])
+  inviter        User?                @relation("TeamInviter", fields: [invitedBy], references: [id], onDelete: SetNull)
+  acceptedUser   User?                @relation("AcceptedInvitation", fields: [acceptedUserId], references: [id], onDelete: SetNull)
   
   @@index([companyId])
   @@index([email])
@@ -482,7 +483,7 @@ model TeamInvitation {
 model OrganizationActivityLog {
   id          String   @id @default(uuid()) @db.Uuid
   companyId   String   @map("company_id") @db.Uuid
-  userId      String   @map("user_id") @db.Uuid
+  userId      String?  @map("user_id") @db.Uuid
   
   // Activity info
   action      String   // e.g.: member_invited, member_removed, role_changed, invitation_revoked
@@ -500,6 +501,7 @@ model OrganizationActivityLog {
   
   // Relations
   company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   
   @@index([companyId])
   @@index([userId])

@@ -55,8 +55,9 @@ function EmployerLoginForm() {
       }
 
       if (data.user) {
-        // Redirect to employer dashboard
-        router.push('/employer/dashboard');
+        // Redirect to returnUrl or employer dashboard
+        const returnUrl = searchParams.get('returnUrl');
+        router.push(returnUrl || '/employer/dashboard');
       }
     } catch (err) {
       setError('An unexpected error occurred. Please try again.');

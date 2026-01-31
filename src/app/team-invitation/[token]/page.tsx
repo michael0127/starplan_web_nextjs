@@ -110,9 +110,9 @@ export default function TeamInvitationPage({ params }: PageProps) {
 
   const handleAccept = async () => {
     if (!isLoggedIn) {
-      // Redirect to login with return URL
+      // Redirect to employer login with return URL
       const returnUrl = encodeURIComponent(`/team-invitation/${token}`);
-      router.push(`/login?returnUrl=${returnUrl}&invitationEmail=${encodeURIComponent(invitation?.email || '')}`);
+      router.push(`/companies/login?returnUrl=${returnUrl}&email=${encodeURIComponent(invitation?.email || '')}`);
       return;
     }
 
@@ -391,7 +391,7 @@ export default function TeamInvitationPage({ params }: PageProps) {
         {!isLoggedIn && (
           <p className={styles.authHint}>
             Don&apos;t have an account?{' '}
-            <Link href={`/login?mode=signup&returnUrl=${encodeURIComponent(`/team-invitation/${token}`)}&invitationEmail=${encodeURIComponent(invitation.email)}`}>
+            <Link href={`/companies/register?returnUrl=${encodeURIComponent(`/team-invitation/${token}`)}&email=${encodeURIComponent(invitation.email)}`}>
               Sign up
             </Link>
           </p>

@@ -49,11 +49,13 @@ function EmployerRegisterForm() {
       }
 
       // Sign up with Supabase as employer
+      const returnUrl = searchParams.get('returnUrl');
+      const redirectAfterVerify = returnUrl || '/employer/settings';
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=/employer/settings`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectAfterVerify)}`,
           data: {
             user_type: 'EMPLOYER', // 标记为雇主账户 (必须大写以匹配数据库enum)
           }
