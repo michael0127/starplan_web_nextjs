@@ -109,28 +109,31 @@ export default function TeamInvitationPage({ params }: PageProps) {
   }, [invitation]);
 
   const handleAccept = async () => {
-    if (!isLoggedIn) {
+    // Get fresh session to avoid stale state issues
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
       // Redirect to employer login with return URL
       const returnUrl = encodeURIComponent(`/team-invitation/${token}`);
       router.push(`/companies/login?returnUrl=${returnUrl}&email=${encodeURIComponent(invitation?.email || '')}`);
       return;
     }
 
-    // Check email match
-    if (currentEmail?.toLowerCase() !== invitation?.email.toLowerCase()) {
+    // Check email match using fresh session email
+    const sessionEmail = session.user?.email;
+    if (sessionEmail?.toLowerCase() !== invitation?.email.toLowerCase()) {
+      setCurrentEmail(sessionEmail || null);
       setError('EMAIL_MISMATCH');
       return;
     }
 
     setProcessing(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
       const response = await fetch(`/api/invitation/${token}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`,
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ action: 'accept' }),
       });
@@ -140,6 +143,12 @@ export default function TeamInvitationPage({ params }: PageProps) {
       if (result.success) {
         router.push(result.data.redirectUrl || '/employer/dashboard');
       } else {
+        // Handle auth errors by redirecting to login
+        if (result.error === 'AUTH_REQUIRED') {
+          const returnUrl = encodeURIComponent(`/team-invitation/${token}`);
+          router.push(`/companies/login?returnUrl=${returnUrl}&email=${encodeURIComponent(invitation?.email || '')}`);
+          return;
+        }
         setError(result.error);
       }
     } catch (err) {
@@ -251,6 +260,13 @@ export default function TeamInvitationPage({ params }: PageProps) {
   }
 
   if (error) {
+    // Handle AUTH_REQUIRED by redirecting to login
+    if (error === 'AUTH_REQUIRED') {
+      const returnUrl = encodeURIComponent(`/team-invitation/${token}`);
+      router.push(`/companies/login?returnUrl=${returnUrl}&email=${encodeURIComponent(invitation?.email || '')}`);
+      return null;
+    }
+
     const getErrorContent = () => {
       switch (errorStatus || error) {
         case 'EXPIRED':
