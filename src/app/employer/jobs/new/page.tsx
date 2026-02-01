@@ -36,6 +36,7 @@ import {
   type CustomScreeningQuestion,
 } from '@/lib/screeningOptions';
 import { getStripeProductConfig, formatCurrency } from '@/lib/stripeProducts';
+import { RichTextEditor, getPlainTextLength } from '@/components/RichTextEditor';
 import styles from './page.module.css';
 
 // 步骤定义
@@ -114,6 +115,7 @@ function CreateJobAdForm() {
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
   const [isPurchaseComplete, setIsPurchaseComplete] = useState(false);
   const [isAlreadyPaid, setIsAlreadyPaid] = useState(false);  // Track if job was already paid for
+  const [originalJobStatus, setOriginalJobStatus] = useState<string | null>(null);  // Track original status for edit mode
   
   // JD 文件上传状态
   const [jdFile, setJdFile] = useState<File | null>(null);
@@ -224,6 +226,9 @@ function CreateJobAdForm() {
           // Set previews for images
           if (job.companyLogo) setLogoPreview(job.companyLogo);
           if (job.companyCoverImage) setCoverPreview(job.companyCoverImage);
+          
+          // Store original job status
+          if (job.status) setOriginalJobStatus(job.status);
           
           // Check if job has already been paid for
           if (job.purchase && job.purchase.paymentStatus === 'SUCCEEDED') {
@@ -854,7 +859,7 @@ function CreateJobAdForm() {
     if (!formData.companyName.trim()) {
       newErrors.companyName = 'Company name is required';
     }
-    if (!formData.jobDescription.trim()) {
+    if (getPlainTextLength(formData.jobDescription) === 0) {
       newErrors.jobDescription = 'Job description is required';
     }
     if (!formData.jobSummary.trim()) {
@@ -1309,11 +1314,16 @@ function CreateJobAdForm() {
           workAuthByCountry: {},
         };
 
+    // Preserve original status for PUBLISHED jobs when saving (not changing to DRAFT)
+    const finalStatus = (editId && originalJobStatus === 'PUBLISHED' && status === 'DRAFT') 
+      ? 'PUBLISHED' 
+      : status;
+
     return {
       ...formData,
       id: editId || undefined,
       currency: typeof formData.currency === 'object' ? formData.currency.code : formData.currency,
-      status,
+      status: finalStatus,
       // Override with filtered/conditional data
       systemScreeningAnswers: enabledSystemAnswers,
       ...workAuthData,
@@ -1356,21 +1366,22 @@ function CreateJobAdForm() {
         if (data.data?.id && !currentJobPostingId) {
           setCurrentJobPostingId(data.data.id);
         }
-        setSaveMessage({ type: 'success', text: 'Draft saved successfully!' });
+        const isPublishedEdit = editId && originalJobStatus === 'PUBLISHED';
+        setSaveMessage({ type: 'success', text: isPublishedEdit ? 'Changes saved successfully!' : 'Draft saved successfully!' });
         setTimeout(() => setSaveMessage(null), 3000);
       } else {
         // Log detailed error for debugging
         console.error('API Error:', data);
         const errorMessage = data.details 
           ? `${data.error}: ${data.details}` 
-          : data.error || 'Failed to save draft';
+          : data.error || 'Failed to save';
         throw new Error(errorMessage);
       }
     } catch (error) {
-      console.error('Error saving draft:', error);
+      console.error('Error saving:', error);
       setSaveMessage({ 
         type: 'error', 
-        text: error instanceof Error ? error.message : 'Failed to save draft'
+        text: error instanceof Error ? error.message : 'Failed to save'
       });
     } finally {
       setIsSaving(false);
@@ -2239,18 +2250,17 @@ function CreateJobAdForm() {
                       <span className={styles.hint}>
                         Provide a detailed description of the role, responsibilities, and requirements
                       </span>
-                      <textarea
-                        className={`${styles.textarea} ${styles.richTextarea} ${errors.jobDescription ? styles.inputError : ''}`}
-                        placeholder="Describe the role in detail. Include key responsibilities, day-to-day tasks, and what success looks like in this position..."
+                      <RichTextEditor
                         value={formData.jobDescription}
-                        onChange={(e) => setFormData(prev => ({ ...prev, jobDescription: e.target.value }))}
-                        rows={12}
+                        onChange={(value) => setFormData(prev => ({ ...prev, jobDescription: value }))}
+                        placeholder="Describe the role in detail. Include key responsibilities, day-to-day tasks, and what success looks like in this position..."
+                        error={!!errors.jobDescription}
                       />
                       {errors.jobDescription && (
                         <span className={styles.errorText}>{errors.jobDescription}</span>
                       )}
                       <div className={styles.charCount}>
-                        {formData.jobDescription.length} characters
+                        {getPlainTextLength(formData.jobDescription)} characters
                       </div>
                     </div>
                   </div>
@@ -3144,14 +3154,14 @@ function CreateJobAdForm() {
                 </div>
                 
                 <div className={styles.rightActions}>
-                  {/* Save Draft Button - Always visible */}
+                  {/* Save Button - Always visible */}
                   <button 
                     className={styles.btnSecondary}
                     onClick={handleSaveDraft}
                     disabled={isSaving || !formData.jobTitle || formData.categories.length === 0}
-                    title="Save current progress as draft"
+                    title={editId && originalJobStatus === 'PUBLISHED' ? 'Save changes' : 'Save current progress as draft'}
                   >
-                    {isSaving ? 'Saving...' : 'Save Draft'}
+                    {isSaving ? 'Saving...' : (editId && originalJobStatus === 'PUBLISHED' ? 'Save' : 'Save Draft')}
                   </button>
                   
                 {currentStep < STEPS.length ? (
