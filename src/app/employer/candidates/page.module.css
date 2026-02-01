@@ -127,6 +127,18 @@
   text-align: center;
 }
 
+.pipelineCount {
+  background: linear-gradient(135deg, #057642 0%, #0a8f51 100%);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
+  margin-left: 6px;
+}
+
 /* Tab Divider */
 .tabDivider {
   width: 1px;
@@ -2761,10 +2773,27 @@
   padding: 8px 14px;
   background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
   color: white;
+  border: none;
   border-radius: 6px;
   font-size: 13px;
   font-weight: 600;
   box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.rankingPromptModalButtonPreview:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4);
+}
+
+.rankingPromptModalButtonPreview:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.rankingPromptModalButtonPreview:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .rankingPromptModalArrowText {

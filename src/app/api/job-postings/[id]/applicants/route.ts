@@ -359,6 +359,18 @@ export async function PATCH(
       );
     }
 
+    // Handle remove action - delete the applicant from the system
+    if (action === 'remove') {
+      await prisma.candidateJobMatch.delete({
+        where: { id: applicantId },
+      });
+
+      return NextResponse.json({
+        success: true,
+        removed: true,
+      });
+    }
+
     // Update applicant status
     const updateData: Record<string, boolean> = {};
     
@@ -368,6 +380,7 @@ export async function PATCH(
       updateData.employerInterested = true;
       updateData.employerViewed = true;
     } else if (action === 'reject') {
+      // reject now just removes from pipeline (toggle off)
       updateData.employerInterested = false;
       updateData.employerViewed = true;
     }

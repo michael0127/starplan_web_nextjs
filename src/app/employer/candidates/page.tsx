@@ -183,7 +183,7 @@ interface ApplicantsData {
 }
 
 type SortOption = 'newest' | 'oldest' | 'screening' | 'ranking';
-type TabOption = 'applicants' | 'recommended';
+type TabOption = 'applicants' | 'recommended' | 'pipeline';
 
 function EmployerCandidatesContent() {
   const mounted = usePageAnimation();
@@ -201,7 +201,11 @@ function EmployerCandidatesContent() {
   const [showFilters, setShowFilters] = useState(true);
   
   // Tab state
-  const [activeTab, setActiveTab] = useState<TabOption>(tabParam === 'recommended' ? 'recommended' : 'applicants');
+  const [activeTab, setActiveTab] = useState<TabOption>(
+    tabParam === 'recommended' ? 'recommended' : 
+    tabParam === 'pipeline' ? 'pipeline' : 
+    'applicants'
+  );
   
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -422,7 +426,7 @@ function EmployerCandidatesContent() {
     }
   };
 
-  const handleApplicantAction = async (applicantId: string, action: 'view' | 'interested' | 'reject') => {
+  const handleApplicantAction = async (applicantId: string, action: 'view' | 'interested' | 'reject' | 'remove') => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
@@ -444,6 +448,23 @@ function EmployerCandidatesContent() {
         // Update local state
         setData(prev => {
           if (!prev) return prev;
+          
+          // Handle remove action - remove from list
+          if (action === 'remove') {
+            return {
+              ...prev,
+              applicants: prev.applicants.filter(a => a.id !== applicantId),
+              pagination: {
+                ...prev.pagination,
+                total: prev.pagination.total - 1,
+              },
+              stats: {
+                ...prev.stats,
+                total: prev.stats.total - 1,
+              },
+            };
+          }
+          
           return {
             ...prev,
             applicants: prev.applicants.map(a => {
@@ -925,6 +946,28 @@ function EmployerCandidatesContent() {
                   <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                 </svg>
                 AI Ranked Matches
+              </button>
+              
+              {/* Divider */}
+              <div className={styles.tabDivider}></div>
+              
+              {/* Pipeline (Saved Candidates) */}
+              <button 
+                className={`${styles.tabBtn} ${activeTab === 'pipeline' ? styles.tabActive : ''}`}
+                onClick={() => {
+                  setActiveTab('pipeline');
+                  setSortBy('newest');
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 4 }}>
+                  <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                </svg>
+                Pipeline
+                {data?.applicants && data.applicants.filter(a => a.employerInterested).length > 0 && (
+                  <span className={styles.pipelineCount}>
+                    {data.applicants.filter(a => a.employerInterested).length}
+                  </span>
+                )}
               </button>
             </nav>
             
@@ -1484,6 +1527,8 @@ function EmployerCandidatesContent() {
                     ? `${selectedApplicants.size} SELECTED`
                     : activeTab === 'recommended' 
                       ? `${data?.stats.passed || 0} RANKED CANDIDATES`
+                      : activeTab === 'pipeline'
+                      ? `${data?.applicants?.filter(a => a.employerInterested).length || 0} SAVED TO PIPELINE`
                       : `${data?.pagination.total.toLocaleString() || 0} RESULTS`
                   }
                 </span>
@@ -1599,12 +1644,27 @@ function EmployerCandidatesContent() {
                 </div>
                 <p>Start AI Ranking to see candidates sorted by match quality</p>
               </div>
+            ) : activeTab === 'pipeline' && (!data?.applicants || data.applicants.filter(a => a.employerInterested).length === 0) ? (
+              // Empty state for pipeline tab
+              <div className={styles.emptyState}>
+                <div className={styles.emptyIcon}>
+                  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                  </svg>
+                </div>
+                <h2 className={styles.emptyTitle}>No saved candidates yet</h2>
+                <p className={styles.emptyDescription}>
+                  Click &quot;Save to pipeline&quot; on any candidate to add them here for easy access
+                </p>
+              </div>
             ) : (
               <div className={`${styles.applicantList} ${(activeTab === 'recommended' ? topMatchesCollapsed : spotlightCollapsed) ? styles.applicantListExpanded : ''}`}>
                 {/* Filter and sort applicants based on active tab and sort option */}
                 {(() => {
                   let applicants = activeTab === 'recommended' 
                     ? data?.applicants.filter(a => a.passedHardGate) || []
+                    : activeTab === 'pipeline'
+                    ? data?.applicants.filter(a => a.employerInterested) || []
                     : data?.applicants || [];
                   
                   // Apply sorting based on sortBy option
@@ -1883,7 +1943,7 @@ function EmployerCandidatesContent() {
                       <div className={styles.actionButtons}>
                         <button 
                           className={`${styles.btnSavePipeline} ${applicant.employerInterested ? styles.saved : ''}`}
-                          onClick={() => handleApplicantAction(applicant.id, 'interested')}
+                          onClick={() => handleApplicantAction(applicant.id, applicant.employerInterested ? 'reject' : 'interested')}
                         >
                           {applicant.employerInterested ? 'Saved' : 'Save to pipeline'}
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1892,9 +1952,9 @@ function EmployerCandidatesContent() {
                         </button>
                         <button 
                           className={styles.btnReject}
-                          onClick={() => handleApplicantAction(applicant.id, 'reject')}
+                          onClick={() => handleApplicantAction(applicant.id, 'remove')}
                         >
-                          Reject
+                          Remove
                         </button>
                         <button 
                           className={styles.btnInvite}
@@ -2047,14 +2107,21 @@ function EmployerCandidatesContent() {
               
               {/* Visual indicator showing the button preview */}
               <div className={styles.rankingPromptModalIndicator}>
-                <div className={styles.rankingPromptModalButtonPreview}>
+                <button 
+                  className={styles.rankingPromptModalButtonPreview}
+                  onClick={() => {
+                    setShowRankingPromptModal(false);
+                    handleStartRanking();
+                  }}
+                  disabled={!selectedJob}
+                >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M12 20V10"></path>
                     <path d="M18 20V4"></path>
                     <path d="M6 20v-4"></path>
                   </svg>
                   Start AI Ranking
-                </div>
+                </button>
                 <span className={styles.rankingPromptModalArrowText}>← Click here</span>
               </div>
               
