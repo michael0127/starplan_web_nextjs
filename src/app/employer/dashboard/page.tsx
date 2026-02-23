@@ -206,6 +206,16 @@ export default function EmployerDashboard() {
                 <p>Search and filter through our talent pool</p>
               </Link>
 
+              <Link href="/employer/quick-rank" className={styles.actionCard}>
+                <div className={styles.actionIcon}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                  </svg>
+                </div>
+                <h3>Quick Rank</h3>
+                <p>Upload CVs and a JD to instantly rank candidates with AI</p>
+              </Link>
+
               <Link href="/employer/settings" className={styles.actionCard}>
                 <div className={styles.actionIcon}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
