@@ -372,3 +372,459 @@
   min-width: 120px;
 }
 
+/* ==============================
+   Progress Tracker
+   ============================== */
+
+.progressCard {
+  background: white;
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px;
+}
+
+.progressHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.progressTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a202c;
+  margin: 0;
+}
+
+.cancelBtn {
+  padding: 8px 20px;
+  border: 2px solid #e53e3e;
+  background: white;
+  color: #e53e3e;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancelBtn:hover {
+  background: #fff5f5;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(229, 62, 62, 0.15);
+}
+
+.cancelBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Phase Steps */
+.phaseSteps {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 28px;
+}
+
+.phaseStep {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  position: relative;
+}
+
+.phaseStep:not(:last-child)::after {
+  content: '';
+  flex: 1;
+  height: 2px;
+  background: #e2e8f0;
+  margin: 0 12px;
+  transition: background 0.4s ease;
+}
+
+.phaseStep.activePhase:not(:last-child)::after,
+.phaseStep.completedPhase:not(:last-child)::after {
+  background: #4a5bf4;
+}
+
+.phaseIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+  background: #e2e8f0;
+  color: #a0aec0;
+}
+
+.activePhase .phaseIcon {
+  background: #4a5bf4;
+  color: white;
+  box-shadow: 0 0 0 4px rgba(74, 91, 244, 0.2);
+  animation: phasePulse 2s ease-in-out infinite;
+}
+
+.completedPhase .phaseIcon {
+  background: #38a169;
+  color: white;
+}
+
+.failedPhase .phaseIcon {
+  background: #e53e3e;
+  color: white;
+}
+
+.phaseLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: #a0aec0;
+  white-space: nowrap;
+}
+
+.activePhase .phaseLabel {
+  color: #4a5bf4;
+  font-weight: 600;
+}
+
+.completedPhase .phaseLabel {
+  color: #38a169;
+  font-weight: 600;
+}
+
+.failedPhase .phaseLabel {
+  color: #e53e3e;
+  font-weight: 600;
+}
+
+@keyframes phasePulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(74, 91, 244, 0.2); }
+  50% { box-shadow: 0 0 0 8px rgba(74, 91, 244, 0.1); }
+}
+
+/* Progress Bar */
+.progressBarWrapper {
+  margin-bottom: 20px;
+}
+
+.progressStats {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+
+.progressPercent {
+  font-size: 28px;
+  font-weight: 800;
+  color: #1a202c;
+  line-height: 1;
+}
+
+.progressCount {
+  font-size: 14px;
+  color: #718096;
+  font-weight: 500;
+}
+
+.progressBarTrack {
+  width: 100%;
+  height: 12px;
+  background: #edf2f7;
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progressBarFill {
+  height: 100%;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #4a5bf4 0%, #667eea 100%);
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  min-width: 0;
+}
+
+.progressBarFill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    transparent 100%
+  );
+  animation: shimmer 2s infinite;
+}
+
+.progressBarFill.complete {
+  background: linear-gradient(90deg, #38a169 0%, #48bb78 100%);
+}
+
+.progressBarFill.complete::after {
+  animation: none;
+}
+
+.progressBarFill.hasErrors {
+  background: linear-gradient(90deg, #dd6b20 0%, #ed8936 100%);
+}
+
+.progressBarIndeterminate {
+  height: 100%;
+  width: 40%;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #4a5bf4 0%, #667eea 100%);
+  animation: indeterminate 1.8s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+@keyframes indeterminate {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+
+/* Status Message */
+.statusMessage {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  margin-top: 16px;
+}
+
+.statusMessage.processing {
+  background: #ebf4ff;
+  color: #3182ce;
+  border: 1px solid #bee3f8;
+}
+
+.statusMessage.complete {
+  background: #f0fff4;
+  color: #276749;
+  border: 1px solid #9ae6b4;
+}
+
+.statusMessage.error {
+  background: #fff5f5;
+  color: #9b2c2c;
+  border: 1px solid #feb2b2;
+}
+
+.statusIcon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* File Results Table */
+.fileResults {
+  margin-top: 24px;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 24px;
+}
+
+.fileResultsTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0 0 16px 0;
+}
+
+.fileResultsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.fileResultItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #f7fafc;
+  font-size: 13px;
+  transition: background 0.2s ease;
+}
+
+.fileResultItem:hover {
+  background: #edf2f7;
+}
+
+.fileStatusIcon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.fileStatusIcon.success {
+  background: #c6f6d5;
+  color: #276749;
+}
+
+.fileStatusIcon.failure {
+  background: #fed7d7;
+  color: #9b2c2c;
+}
+
+.fileStatusIcon.pending {
+  background: #e2e8f0;
+  color: #718096;
+}
+
+.fileStatusIcon.running {
+  background: #bee3f8;
+  color: #2b6cb0;
+}
+
+.fileName {
+  flex: 1;
+  color: #2d3748;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileStatus {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 10px;
+}
+
+.fileStatus.success {
+  background: #c6f6d5;
+  color: #276749;
+}
+
+.fileStatus.failure {
+  background: #fed7d7;
+  color: #9b2c2c;
+}
+
+.fileStatus.pending {
+  background: #e2e8f0;
+  color: #718096;
+}
+
+.fileStatus.running {
+  background: #bee3f8;
+  color: #2b6cb0;
+}
+
+/* Completion Summary */
+.completionSummary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.summaryCard {
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.summaryCard.total {
+  background: #ebf4ff;
+}
+
+.summaryCard.success {
+  background: #f0fff4;
+}
+
+.summaryCard.failed {
+  background: #fff5f5;
+}
+
+.summaryCardValue {
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.summaryCard.total .summaryCardValue {
+  color: #3182ce;
+}
+
+.summaryCard.success .summaryCardValue {
+  color: #38a169;
+}
+
+.summaryCard.failed .summaryCardValue {
+  color: #e53e3e;
+}
+
+.summaryCardLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: #718096;
+  margin-top: 4px;
+}
+
+.newUploadBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  padding: 10px 24px;
+  background: #4a5bf4;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.newUploadBtn:hover {
+  background: #3544e4;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(74, 91, 244, 0.3);
+}
+

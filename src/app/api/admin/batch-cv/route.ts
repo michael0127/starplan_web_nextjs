@@ -8,9 +8,8 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000';
 
-// 异步任务提交响应
 interface AsyncTaskResponse {
-  task_id: string;
+  batch_task_id: string;
   total_files: number;
   status: string;
   message: string;
@@ -61,15 +60,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 返回异步任务信息
     return NextResponse.json({
       success: true,
       async: true,
-      taskId: data.task_id,
+      batchTaskId: data.batch_task_id,
       totalFiles: data.total_files,
       status: data.status,
-      message: '批量 CV 提取任务已提交，请使用 taskId 轮询结果',
-      pollUrl: `/api/tasks/${data.task_id}`,
+      pollUrl: `/api/tasks/${data.batch_task_id}?batch=true`,
     });
   } catch (error) {
     console.error('Error in batch-cv route:', error);

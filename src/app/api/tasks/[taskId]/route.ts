@@ -18,11 +18,11 @@ interface TaskStatusResponse {
   progress?: Record<string, unknown>;
 }
 
-// 批量任务状态响应类型
 interface BatchTaskStatusResponse {
   batch_task_id: string;
   total: number;
   completed: number;
+  failed: number;
   progress: string;
   ready: boolean;
   results?: Array<{
@@ -30,6 +30,7 @@ interface BatchTaskStatusResponse {
     status: string;
     result?: Record<string, unknown>;
     error?: string;
+    progress?: Record<string, unknown>;
   }>;
 }
 
@@ -86,6 +87,7 @@ export async function GET(
         type: 'batch',
         total: data.total,
         completed: data.completed,
+        failed: data.failed,
         progress: data.progress,
         ready: data.ready,
         results: data.results,
