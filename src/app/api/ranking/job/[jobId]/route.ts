@@ -19,8 +19,9 @@ interface AsyncTaskResponse {
 
 interface RankingRequestBody {
   useRawFile?: boolean;
-  // 如果为 true，则使用同步接口（用于需要立即返回结果的场景）
   sync?: boolean;
+  skipHardGate?: boolean;
+  candidateIds?: string[];
 }
 
 export async function POST(
@@ -39,24 +40,37 @@ export async function POST(
     
     // Parse request body for optional parameters
     let sync = false;
+    let skipHardGate = false;
+    let candidateIds: string[] | undefined;
     try {
       const body: RankingRequestBody = await request.json();
       if (typeof body.sync === 'boolean') {
         sync = body.sync;
       }
+      if (typeof body.skipHardGate === 'boolean') {
+        skipHardGate = body.skipHardGate;
+      }
+      if (Array.isArray(body.candidateIds)) {
+        candidateIds = body.candidateIds;
+      }
     } catch {
       // No body or invalid JSON, use defaults (async)
     }
     
-    // 使用 Celery 异步任务接口
+    const rankingPayload: Record<string, unknown> = {
+      job_posting_id: jobId,
+      skip_hard_gate: skipHardGate,
+    };
+    if (candidateIds && candidateIds.length > 0) {
+      rankingPayload.candidate_ids = candidateIds;
+    }
+
     const response = await fetch(`${BACKEND_URL}/api/v1/tasks/ranking/start`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        job_posting_id: jobId,
-      }),
+      body: JSON.stringify(rankingPayload),
     });
     
     if (!response.ok) {

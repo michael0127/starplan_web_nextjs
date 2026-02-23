@@ -80,6 +80,7 @@ export default function QuickRankPage() {
     onError: (msg: string) => void,
     onProgress?: (completed: number, total: number) => void,
   ) => {
+    let done = false;
     const poll = async () => {
       try {
         const res = await fetch(`/api/tasks/${batchTaskId}?batch=true`);
@@ -92,6 +93,7 @@ export default function QuickRankPage() {
         }
 
         if (data.ready) {
+          done = true;
           stopPolling();
           const failedCount = data.failed ?? 0;
           if (failedCount > 0 && (data.completed - failedCount) === 0) {
@@ -106,7 +108,9 @@ export default function QuickRankPage() {
     };
 
     await poll();
-    pollRef.current = setInterval(poll, 2500);
+    if (!done) {
+      pollRef.current = setInterval(poll, 2500);
+    }
   }, [stopPolling]);
 
   const pollSingleTask = useCallback(async (
@@ -115,6 +119,7 @@ export default function QuickRankPage() {
     onError: (msg: string) => void,
     onProgress?: (progress: Record<string, unknown>) => void,
   ) => {
+    let done = false;
     const poll = async () => {
       try {
         const res = await fetch(`/api/tasks/${taskId}`);
@@ -128,6 +133,7 @@ export default function QuickRankPage() {
         }
 
         if (taskData?.ready) {
+          done = true;
           stopPolling();
           if (taskData.result?.success) {
             onComplete(taskData.result);
@@ -141,7 +147,9 @@ export default function QuickRankPage() {
     };
 
     await poll();
-    pollRef.current = setInterval(poll, 1500);
+    if (!done) {
+      pollRef.current = setInterval(poll, 1500);
+    }
   }, [stopPolling]);
 
   const handleStart = async () => {
@@ -156,20 +164,33 @@ export default function QuickRankPage() {
 
     try {
       const token = await getToken();
+      if (!token) {
+        throw new Error('Not authenticated. Please sign in again.');
+      }
       const headers = { 'Authorization': `Bearer ${token}` };
 
       // Step 1: Upload CV ZIP
       const cvFormData = new FormData();
       cvFormData.append('file', cvFile);
 
-      const cvRes = await fetch('/api/employer/quick-rank/upload-cv', {
-        method: 'POST',
-        headers,
-        body: cvFormData,
-        signal: abortRef.current.signal,
-      });
+      let cvRes: Response;
+      try {
+        cvRes = await fetch('/api/employer/quick-rank/upload-cv', {
+          method: 'POST',
+          headers,
+          body: cvFormData,
+          signal: abortRef.current.signal,
+        });
+      } catch (fetchErr) {
+        throw new Error(`CV upload network error: ${(fetchErr as Error).message}. The file may be too large or the server may need a restart.`);
+      }
 
-      const cvData = await cvRes.json();
+      let cvData;
+      try {
+        cvData = await cvRes.json();
+      } catch {
+        throw new Error(`CV upload failed with status ${cvRes.status}`);
+      }
       if (!cvRes.ok || !cvData.success) {
         throw new Error(cvData.error || 'CV upload failed');
       }
@@ -178,14 +199,24 @@ export default function QuickRankPage() {
       const jdFormData = new FormData();
       jdFormData.append('file', jdFile);
 
-      const jdRes = await fetch('/api/employer/quick-rank/upload-jd', {
-        method: 'POST',
-        headers,
-        body: jdFormData,
-        signal: abortRef.current.signal,
-      });
+      let jdRes: Response;
+      try {
+        jdRes = await fetch('/api/employer/quick-rank/upload-jd', {
+          method: 'POST',
+          headers,
+          body: jdFormData,
+          signal: abortRef.current.signal,
+        });
+      } catch (fetchErr) {
+        throw new Error(`JD upload network error: ${(fetchErr as Error).message}`);
+      }
 
-      const jdData = await jdRes.json();
+      let jdData;
+      try {
+        jdData = await jdRes.json();
+      } catch {
+        throw new Error(`JD upload failed with status ${jdRes.status}`);
+      }
       if (!jdRes.ok || !jdData.success) {
         throw new Error(jdData.error || 'JD upload failed');
       }
@@ -208,9 +239,14 @@ export default function QuickRankPage() {
         );
       });
 
-      const cvCount = cvResults.filter(
+      const successfulCvResults = cvResults.filter(
         (r: Record<string, unknown>) => (r.result as Record<string, unknown>)?.success
-      ).length;
+      );
+      const cvCount = successfulCvResults.length;
+
+      const candidateIds = successfulCvResults
+        .map((r: Record<string, unknown>) => (r.result as Record<string, unknown>)?.user_id as string)
+        .filter(Boolean);
 
       setPhase('analyzing-jd');
       setProgressPercent(45);
@@ -237,11 +273,15 @@ export default function QuickRankPage() {
       setProgressPercent(55);
       setProgressMessage(`Ranking ${cvCount} candidates...`);
 
-      // Step 5: Start ranking
+      // Step 5: Start ranking (pass candidateIds to scope ranking to uploaded CVs only)
+      const rankBody: Record<string, unknown> = { sync: false, skipHardGate: true };
+      if (candidateIds.length > 0) {
+        rankBody.candidateIds = candidateIds;
+      }
       const rankRes = await fetch(`/api/ranking/job/${jobPostingId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sync: false }),
+        body: JSON.stringify(rankBody),
         signal: abortRef.current.signal,
       });
 
@@ -257,12 +297,17 @@ export default function QuickRankPage() {
           resolve,
           reject as (msg: string) => void,
           (progress) => {
+            const status = progress.status as string;
+            if (status === 'starting') {
+              setProgressMessage('Preparing candidates for ranking...');
+              return;
+            }
             const pct = (progress.progress_percent as number) || 0;
             setProgressPercent(55 + Math.round(pct * 0.45));
-            const current = progress.current ?? 0;
-            const total = progress.total ?? 0;
-            const msg = progress.message as string || `Comparing candidates (${current}/${total})...`;
-            setProgressMessage(msg);
+            const msg = progress.message as string;
+            if (msg) {
+              setProgressMessage(msg);
+            }
           },
         );
       });
